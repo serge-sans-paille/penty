@@ -1,1 +1,1 @@
-from penty.pentypes import int
+from penty.pentypes import int, bool

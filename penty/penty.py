@@ -1,6 +1,32 @@
 import gast as ast
+import typing
+import itertools
 
 import penty.pentypes as pentypes
+
+class UnboundIdentifier(RuntimeError):
+    pass
+
+class OperatorModule(object):
+    pass
+
+
+class Lambda(object):
+
+    def __init__(self, node, visitor):
+        self.node = node
+        self.visitor = visitor
+        self.bindings = list(visitor.bindings)
+
+    def __call__(self, *argument_types):
+        old_bindings, self.visitor.bindings = self.visitor.bindings, self.bindings
+        new_bindings = {arg.id: arg_ty for arg, arg_ty in
+                        zip(self.node.args.args, argument_types)}
+        self.visitor.bindings.append(new_bindings)
+        result_types = self.visitor.visit(self.node.body)
+        self.visitor.bindings.pop()
+        self.visitor.bindings = old_bindings
+        return result_types
 
 class BinaryOperator(object):
     def __init__(self, name):
@@ -24,10 +50,48 @@ class UnaryOperator(object):
             result_type.update(Types[operand_type][self.name](operand_types))
         return result_type
 
-Types = {
+class NotOperator(object):
+    def __call__(self, operand_types):
+        result_type = set()
+        for operand_type in operand_types:
+            if '__not__' in Types[operand_type]:
+                func = Types[operand_type]['__not__']
+            else:
+                def func(argument_types):
+                    result_types = set()
+                    for z in argument_types:
+                        z_bool_ty = Types[z]['__bool__'](argument_types)
+                        for y in z_bool_ty:
+                            result_types.update(Types[y]['__not__'](z_bool_ty))
+                    return result_types
+
+            result_type.update(func(operand_types))
+        return result_type
+
+class TypeRegistry(object):
+
+    def __init__(self, registry):
+        self.registry = registry
+
+    def __getattr__(self, attr):
+        return self.registry.attr
+
+    def __getitem__(self, key):
+        if hasattr(key, 'mro'):
+            return self.registry[key]
+        else:
+            return self.registry[type(key)]
+
+
+
+Types = TypeRegistry({
+    bool : {
+        '__not__': pentypes.bool.not_,
+    },
     int: {
         '__add__': pentypes.int.add,
         '__and__': pentypes.int.bitand,
+        '__bool__': pentypes.int.boolean,
         '__floordiv__': pentypes.int.floordiv,
         '__invert__': pentypes.int.invert,
         '__mul__': pentypes.int.mul,
@@ -35,12 +99,14 @@ Types = {
         '__neg__': pentypes.int.neg,
         '__or__': pentypes.int.bitor,
         '__pos__': pentypes.int.pos,
-        '__pow__': pentypes.int.pow,
+        '__pow__': pentypes.int.power,
         '__sub__': pentypes.int.sub,
         '__truediv__': pentypes.int.truediv,
         '__xor__': pentypes.int.bitxor,
     },
-    'operator': {
+    str: {
+    },
+    OperatorModule: {
         '__add__': BinaryOperator('__add__'),
         '__and__': BinaryOperator('__and__'),
         '__floordiv__': BinaryOperator('__floordiv__'),
@@ -49,6 +115,7 @@ Types = {
         '__mod__': BinaryOperator('__mod__'),
         '__mul__': BinaryOperator('__mul__'),
         '__neg__': UnaryOperator('__neg__'),
+        '__not__': NotOperator(),
         '__or__': BinaryOperator('__or__'),
         '__pos__': UnaryOperator('__pos__'),
         '__pow__': BinaryOperator('__pow__'),
@@ -56,24 +123,28 @@ Types = {
         '__truediv__': BinaryOperator('__truediv__'),
         '__xor__': BinaryOperator('__xor__'),
     },
-}
+})
 
 Ops = {
-    ast.Add: Types['operator']['__add__'],
-    ast.BitAnd: Types['operator']['__and__'],
-    ast.BitOr: Types['operator']['__or__'],
-    ast.BitXor: Types['operator']['__xor__'],
-    ast.Div: Types['operator']['__truediv__'],
-    ast.FloorDiv: Types['operator']['__floordiv__'],
-    ast.Invert: Types['operator']['__invert__'],
-    ast.MatMult: Types['operator']['__matmul__'],
-    ast.Mod: Types['operator']['__mod__'],
-    ast.Mult: Types['operator']['__mul__'],
-    ast.Pow: Types['operator']['__pow__'],
-    ast.Sub: Types['operator']['__sub__'],
-    ast.UAdd: Types['operator']['__pos__'],
-    ast.USub: Types['operator']['__neg__'],
+    ast.Add: Types[OperatorModule]['__add__'],
+    ast.BitAnd: Types[OperatorModule]['__and__'],
+    ast.BitOr: Types[OperatorModule]['__or__'],
+    ast.BitXor: Types[OperatorModule]['__xor__'],
+    ast.Div: Types[OperatorModule]['__truediv__'],
+    ast.FloorDiv: Types[OperatorModule]['__floordiv__'],
+    ast.Invert: Types[OperatorModule]['__invert__'],
+    ast.MatMult: Types[OperatorModule]['__matmul__'],
+    ast.Mod: Types[OperatorModule]['__mod__'],
+    ast.Mult: Types[OperatorModule]['__mul__'],
+    ast.Not: Types[OperatorModule]['__not__'],
+    ast.Pow: Types[OperatorModule]['__pow__'],
+    ast.Sub: Types[OperatorModule]['__sub__'],
+    ast.UAdd: Types[OperatorModule]['__pos__'],
+    ast.USub: Types[OperatorModule]['__neg__'],
 }
+
+def normalize_test_ty(types):
+    return {ty if hasattr(ty, 'mro') else bool(ty) for ty in types}
 
 class Typer(ast.NodeVisitor):
 
@@ -99,8 +170,54 @@ class Typer(ast.NodeVisitor):
         operand_ty = self.visit(node.operand)
         return self._call(Ops[type(node.op)], operand_ty)
 
+    def visit_Lambda(self, node):
+        return {Lambda(node, self)}
+
+    def visit_IfExp(self, node):
+        test_ty = self.visit(node.test)
+        test_ty = normalize_test_ty(test_ty)
+
+        result_types = set()
+        if test_ty != {False}:
+            result_types.update(self.visit(node.body))
+        if test_ty != {True}:
+            result_types.update(self.visit(node.orelse))
+        return result_types
+
+    def visit_Dict(self, node):
+        if node.keys:
+            result_types = set()
+            for k, v in zip(node.keys, node.values):
+                dict_types = {typing.Dict[kty, vty] for kty, vty in
+                              itertools.product(self.visit(k), self.visit(v))}
+                result_types.update(dict_types)
+            return result_types
+        else:
+            return {dict}
+
+    def visit_Set(self, node):
+        result_types = set()
+        for e in node.elts:
+            set_types = {typing.Set[ty] for ty in self.visit(e)}
+            result_types.update(set_types)
+        return result_types
+
+    def visit_Call(self, node):
+        args_ty = [self.visit(arg) for arg in node.args]
+        func_ty = self.visit(node.func)
+        return_ty = set()
+        return_ty.update(*[self._call(fty, *args_ty) for fty in func_ty])
+        return return_ty
+
+
     def visit_Constant(self, node):
-        return {type(node.value)}
+        return {node.value}
+
+    def visit_Name(self, node):
+        for binding in reversed(self.bindings):
+            if node.id in binding:
+                return binding[node.id]
+        raise UnboundIdentifier(node.id)
 
 def type_eval(expr, env):
     '''
