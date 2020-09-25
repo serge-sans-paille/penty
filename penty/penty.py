@@ -86,6 +86,11 @@ class Typer(ast.NodeVisitor):
         result_type = func(*args)
         return result_type
 
+    # expr
+    def visit_BoolOp(self, node):
+        operands_ty = [self.visit(value) for value in node.values]
+        return set.union(*operands_ty)
+
     def visit_Constant(self, node):
         return {type(node.value)}
 
