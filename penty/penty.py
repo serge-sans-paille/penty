@@ -91,16 +91,16 @@ class Typer(ast.NodeVisitor):
         operands_ty = [self.visit(value) for value in node.values]
         return set.union(*operands_ty)
 
-    def visit_Constant(self, node):
-        return {type(node.value)}
+    def visit_BinOp(self, node):
+        operands_ty = self.visit(node.left), self.visit(node.right)
+        return self._call(Ops[type(node.op)], *operands_ty)
 
     def visit_UnaryOp(self, node):
         operand_ty = self.visit(node.operand)
         return self._call(Ops[type(node.op)], operand_ty)
 
-    def visit_BinOp(self, node):
-        operands_ty = self.visit(node.left), self.visit(node.right)
-        return self._call(Ops[type(node.op)], *operands_ty)
+    def visit_Constant(self, node):
+        return {type(node.value)}
 
 def type_eval(expr, env):
     '''
