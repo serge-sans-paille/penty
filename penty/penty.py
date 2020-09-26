@@ -4,6 +4,7 @@ import itertools
 
 import penty.pentypes as pentypes
 
+
 class UnboundIdentifier(RuntimeError):
     pass
 
@@ -105,6 +106,10 @@ Types = TypeRegistry({
         '__xor__': pentypes.int.bitxor,
     },
     str: {
+        '__iter__': pentypes.str.iterator,
+    },
+    pentypes.str.str_iterator: {
+        '__next__': pentypes.str_iterator.next_element,
     },
     OperatorModule: {
         '__add__': BinaryOperator('__add__'),
@@ -143,8 +148,21 @@ Ops = {
     ast.USub: Types[OperatorModule]['__neg__'],
 }
 
+def astype(ty):
+    return ty if hasattr(ty, 'mro') else type(ty)
+
 def normalize_test_ty(types):
     return {ty if hasattr(ty, 'mro') else bool(ty) for ty in types}
+
+def iterator_value_ty(types):
+    result_types = set()
+    iter_types = set()
+    for ty in types:
+        iter_types.update(Types[ty]['__iter__'](types))
+    for ty in iter_types:
+        result_types.update(Types[ty]['__next__'](iter_types))
+    return result_types
+
 
 class Typer(ast.NodeVisitor):
 
@@ -201,6 +219,81 @@ class Typer(ast.NodeVisitor):
             set_types = {typing.Set[ty] for ty in self.visit(e)}
             result_types.update(set_types)
         return result_types
+
+    def visit_ListComp(self, node):
+        new_bindings = {}
+        no_list = False
+        for generator in node.generators:
+            test_types = set()
+            for if_ in generator.ifs:
+                test_types.update(self.visit(if_))
+            test_types = normalize_test_ty(test_types)
+            if test_types == {False}:
+                no_list = True
+
+            iter_types = self.visit(generator.iter)
+            if isinstance(generator.target, ast.Name):
+                new_bindings[generator.target.id] = iterator_value_ty(iter_types)
+
+        self.bindings.append(new_bindings)
+        result_types = set()
+        elt_types = self.visit(node.elt)
+        self.bindings.pop()
+        if no_list:
+            return {list}
+        else:
+            return {typing.List[astype(elt_ty)] for elt_ty in elt_types}
+
+    def visit_SetComp(self, node):
+        new_bindings = {}
+        no_set = False
+        for generator in node.generators:
+            test_types = set()
+            for if_ in generator.ifs:
+                test_types.update(self.visit(if_))
+            test_types = normalize_test_ty(test_types)
+            if test_types == {False}:
+                no_set = True
+
+            iter_types = self.visit(generator.iter)
+            if isinstance(generator.target, ast.Name):
+                new_bindings[generator.target.id] = iterator_value_ty(iter_types)
+
+        self.bindings.append(new_bindings)
+        result_types = set()
+        elt_types = self.visit(node.elt)
+        self.bindings.pop()
+        if no_set:
+            return {set}
+        else:
+            return {typing.Set[astype(elt_ty)] for elt_ty in elt_types}
+
+    def visit_DictComp(self, node):
+        new_bindings = {}
+        no_dict = False
+        for generator in node.generators:
+            test_types = set()
+            for if_ in generator.ifs:
+                test_types.update(self.visit(if_))
+            test_types = normalize_test_ty(test_types)
+            if test_types == {False}:
+                no_dict = True
+
+            iter_types = self.visit(generator.iter)
+            if isinstance(generator.target, ast.Name):
+                new_bindings[generator.target.id] = iterator_value_ty(iter_types)
+
+        self.bindings.append(new_bindings)
+        result_types = set()
+        key_types = self.visit(node.key)
+        value_types = self.visit(node.value)
+        self.bindings.pop()
+        if no_dict:
+            return {dict}
+        else:
+            return {typing.Dict[astype(k), astype(v)]
+                    for k in key_types
+                    for v in value_types}
 
     def visit_Call(self, node):
         args_ty = [self.visit(arg) for arg in node.args]

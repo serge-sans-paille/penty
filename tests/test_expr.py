@@ -79,6 +79,24 @@ class TestExpr(TestCase):
                           {typing.Set[float], typing.Set[int]},
                           env={'x': int, 'y': float})
 
+    def test_list_comp_ty(self):
+        self.assertIsType('[x for x in y]', typing.List[str], env={'y': str})
+        self.assertIsType('[x for x in y if 0]', list, env={'y': str})
+        self.assertIsType('[1 for x in y if y]', typing.List[int], env={'y': str})
+        self.assertIsType('[1 for x in y for z in y]', typing.List[int], env={'y': str})
+
+    def test_set_comp_ty(self):
+        self.assertIsType('{x for x in y}', typing.Set[str], env={'y': str})
+        self.assertIsType('{x for x in y if 0}', set, env={'y': str})
+        self.assertIsType('{1 for x in y if y}', typing.Set[int], env={'y': str})
+        self.assertIsType('{1 for x in y for z in y}', typing.Set[int], env={'y': str})
+
+    def test_dict_comp_ty(self):
+        self.assertIsType('{x:1 for x in y}', typing.Dict[str, int], env={'y': str})
+        self.assertIsType('{1:x for x in y if 0}', dict, env={'y': str})
+        self.assertIsType('{1:1 for x in y if y}', typing.Dict[int, int], env={'y': str})
+        self.assertIsType('{1:"" for x in y for z in y}', typing.Dict[int,str], env={'y': str})
+
     def test_constant_ty(self):
         self.assertIsType('True', True)
         self.assertIsType('False', False)
