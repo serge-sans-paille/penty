@@ -295,6 +295,30 @@ class Typer(ast.NodeVisitor):
                     for k in key_types
                     for v in value_types}
 
+    def visit_GeneratorExp(self, node):
+        new_bindings = {}
+        no_gen = False
+        for generator in node.generators:
+            test_types = set()
+            for if_ in generator.ifs:
+                test_types.update(self.visit(if_))
+            test_types = normalize_test_ty(test_types)
+            if test_types == {False}:
+                no_gen = True
+
+            iter_types = self.visit(generator.iter)
+            if isinstance(generator.target, ast.Name):
+                new_bindings[generator.target.id] = iterator_value_ty(iter_types)
+
+        self.bindings.append(new_bindings)
+        result_types = set()
+        elt_types = self.visit(node.elt)
+        self.bindings.pop()
+        if no_gen:
+            return {typing.Generator}
+        else:
+            return {typing.Generator[astype(elt_ty), None, None] for elt_ty in elt_types}
+
     def visit_Call(self, node):
         args_ty = [self.visit(arg) for arg in node.args]
         func_ty = self.visit(node.func)

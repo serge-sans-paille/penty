@@ -97,6 +97,20 @@ class TestExpr(TestCase):
         self.assertIsType('{1:1 for x in y if y}', typing.Dict[int, int], env={'y': str})
         self.assertIsType('{1:"" for x in y for z in y}', typing.Dict[int,str], env={'y': str})
 
+    def test_gen_expr_ty(self):
+        self.assertIsType('(x for x in y)',
+                          typing.Generator[str, None, None],
+                          env={'y': str})
+        self.assertIsType('(x for x in y if 0)',
+                          typing.Generator,
+                          env={'y': str})
+        self.assertIsType('(1 for x in y if y)',
+                          typing.Generator[int, None, None],
+                          env={'y': str})
+        self.assertIsType('(1 for x in y for z in y)',
+                          typing.Generator[int, None, None],
+                          env={'y': str})
+
     def test_constant_ty(self):
         self.assertIsType('True', True)
         self.assertIsType('False', False)
