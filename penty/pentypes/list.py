@@ -1,4 +1,4 @@
-from penty.pentypes.builtins.slice import frozen_slice as _frozen_slice
+from penty.types import Cst as _Cst
 
 def instanciate(ty):
     return {
@@ -15,12 +15,14 @@ def getitem(base_ty, self_types, key_types):
         for key_ty in key_types:
             if key_ty in (bool, int):
                 result_types.add(base_key_ty)
-            elif isinstance(key_ty, (bool, int)):
-                result_types.add(base_key_ty)
             elif key_ty is slice:
                 result_types.add(base_ty)
-            elif isinstance(key_ty, _frozen_slice):
-                result_types.add(base_ty)
+            elif issubclass(key_ty, _Cst):
+                key_v = key_ty.__args__[0]
+                if isinstance(key_v, (bool, int)):
+                    result_types.add(base_key_ty)
+                elif isinstance(key_v, slice):
+                    result_types.add(base_ty)
             else:
                 raise NotImplementedError
 

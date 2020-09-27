@@ -3,6 +3,9 @@ import typing
 import itertools
 
 import penty.pentypes as pentypes
+from penty.types import Cst
+
+
 
 
 class UnboundIdentifier(RuntimeError):
@@ -49,7 +52,7 @@ def IsOperator(left_types, right_types):
             if left_ty == right_ty:
                 result_types.add(bool)
             else:
-                result_types.add(False)
+                result_types.add(Cst[False])
     return result_types
 
 def IsNotOperator(left_types, right_types):
@@ -61,7 +64,7 @@ def IsNotOperator(left_types, right_types):
             if left_ty == right_ty:
                 result_types.add(bool)
             else:
-                result_types.add(True)
+                result_types.add(Cst[True])
     return result_types
 
 class UnaryOperator(object):
@@ -101,13 +104,12 @@ class TypeRegistry(object):
         return self.registry.attr
 
     def __getitem__(self, key):
-        if hasattr(key, 'mro'):
-            if issubclass(key, (typing.List, typing.Set, typing.Dict,
-                                typing.Tuple)):
-                self.registry[key] = self.instanciate(key)
-            return self.registry[key]
-        else:
-            return self.registry[type(key)]
+        if issubclass(key, Cst):
+            return self.registry[type(key.__args__[0])]
+        if issubclass(key, (typing.List, typing.Set, typing.Dict,
+                            typing.Tuple)):
+            self.registry[key] = self.instanciate(key)
+        return self.registry[key]
 
     def instanciate(self, ty):
         if ty in self.registry:
@@ -209,10 +211,11 @@ Builtins = {
 }
 
 def astype(ty):
-    return ty if hasattr(ty, 'mro') else type(ty)
+    return type(ty.__args__[0]) if issubclass(ty, Cst) else ty
 
 def normalize_test_ty(types):
-    return {ty if hasattr(ty, 'mro') else bool(ty) for ty in types}
+    return {Cst[bool(ty.__args__[0])] if issubclass(ty, Cst) else ty
+            for ty in types}
 
 def iterator_value_ty(types):
     result_types = set()
@@ -258,9 +261,9 @@ class Typer(ast.NodeVisitor):
         test_ty = normalize_test_ty(test_ty)
 
         result_types = set()
-        if test_ty != {False}:
+        if test_ty != {Cst[False]}:
             result_types.update(self.visit(node.body))
-        if test_ty != {True}:
+        if test_ty != {Cst[True]}:
             result_types.update(self.visit(node.orelse))
         return result_types
 
@@ -290,7 +293,7 @@ class Typer(ast.NodeVisitor):
             for if_ in generator.ifs:
                 test_types.update(self.visit(if_))
             test_types = normalize_test_ty(test_types)
-            if test_types == {False}:
+            if test_types == {Cst[False]}:
                 no_list = True
 
             iter_types = self.visit(generator.iter)
@@ -314,7 +317,7 @@ class Typer(ast.NodeVisitor):
             for if_ in generator.ifs:
                 test_types.update(self.visit(if_))
             test_types = normalize_test_ty(test_types)
-            if test_types == {False}:
+            if test_types == {Cst[False]}:
                 no_set = True
 
             iter_types = self.visit(generator.iter)
@@ -338,7 +341,7 @@ class Typer(ast.NodeVisitor):
             for if_ in generator.ifs:
                 test_types.update(self.visit(if_))
             test_types = normalize_test_ty(test_types)
-            if test_types == {False}:
+            if test_types == {Cst[False]}:
                 no_dict = True
 
             iter_types = self.visit(generator.iter)
@@ -365,7 +368,7 @@ class Typer(ast.NodeVisitor):
             for if_ in generator.ifs:
                 test_types.update(self.visit(if_))
             test_types = normalize_test_ty(test_types)
-            if test_types == {False}:
+            if test_types == {Cst[False]}:
                 no_gen = True
 
             iter_types = self.visit(generator.iter)
@@ -388,13 +391,13 @@ class Typer(ast.NodeVisitor):
         for op, comparator in zip(node.ops, node.comparators):
             comparator_ty = self.visit(comparator)
             cmp_ty = self._call(Ops[type(op)], prev_ty, comparator_ty)
-            is_false |= cmp_ty == {False}
+            is_false |= cmp_ty == {Cst[False]}
             result_types.update(cmp_ty)
             prev_ty = comparator_ty
 
         if is_false:
-            return {False}
-        elif result_types == {True}:
+            return {Cst[False]}
+        elif result_types == {Cst[True]}:
             return result_types
         else:
             return set(map(astype, result_types))
@@ -412,7 +415,7 @@ class Typer(ast.NodeVisitor):
         return {str}
 
     def visit_Constant(self, node):
-        return {node.value}
+        return {Cst[node.value]}
 
     def visit_Subscript(self, node):
         value_types = self.visit(node.value)
@@ -422,19 +425,37 @@ class Typer(ast.NodeVisitor):
                           value_types,
                           slice_types)
 
+    def visit_List(self, node):
+        if not node.elts:
+            return {list}
+        result_types = set()
+        for elt in node.elts:
+            elt_types = self.visit(elt)
+            result_types.update(map(astype, elt_types))
+        return {typing.List[ty] for ty in result_types}
+
+    def visit_Tuple(self, node):
+        if not node.elts:
+            return {tuple}
+        result_types = []
+        for elt in node.elts:
+            elt_types = self.visit(elt)
+            result_types.append(elt_types)
+        return {tuple(tys) for tys in itertools.product(*result_types)}
+
     def visit_Slice(self, node):
         if node.lower:
             lower_types = self.visit(node.lower)
         else:
-            lower_types = {None}
+            lower_types = {Cst[None]}
         if node.upper:
             upper_types = self.visit(node.upper)
         else:
-            upper_types = {None}
+            upper_types = {Cst[None]}
         if node.step:
             step_types = self.visit(node.step)
         else:
-            step_types = {None}
+            step_types = {Cst[None]}
         return next(iter(Builtins['slice']))(lower_types, upper_types, step_types)
 
     def visit_Name(self, node):

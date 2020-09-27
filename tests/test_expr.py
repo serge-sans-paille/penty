@@ -50,16 +50,17 @@ class TestExpr(TestCase):
                           env={'x': int, 'y': float})
 
     def test_ifexpr_ty(self):
-        self.assertIsType('x if x else y', {int, float}, env={'x': int, 'y':
-                                                              float})
-        self.assertIsType('x if True else y', int, env={'x': int, 'y':
-                                                        float})
-        self.assertIsType('x if False else y', float, env={'x': int, 'y':
-                                                           float})
-        self.assertIsType('x if 1 else y', int, env={'x': int, 'y':
-                                                        float})
-        self.assertIsType('x if 0 else y', float, env={'x': int, 'y':
-                                                           float})
+        self.assertIsType('x if x else y',
+                          {int, float},
+                          env={'x': int, 'y': float})
+        self.assertIsType('x if True else y',
+                          int, env={'x': int, 'y': float})
+        self.assertIsType('x if False else y',
+                          float, env={'x': int, 'y': float})
+        self.assertIsType('x if 1 else y',
+                          int, env={'x': int, 'y': float})
+        self.assertIsType('x if 0 else y',
+                          float, env={'x': int, 'y': float})
 
     def test_dict_ty(self):
         self.assertIsType('{}', dict)
@@ -113,88 +114,88 @@ class TestExpr(TestCase):
 
     def test_compare_ty(self):
         self.assertIsType('x == y == x', bool, env={'x': int, 'y': int})
-        self.assertIsType('0 == 1 == x', False, env={'x': int, 'y': int})
+        self.assertIsType('0 == 1 == x', penty.types.Cst[False], env={'x': int, 'y': int})
         self.assertIsType('0 == 0 == x', bool, env={'x': int, 'y': int})
-        self.assertIsType('0 == 0 == 0', True, env={'x': int, 'y': int})
+        self.assertIsType('0 == 0 == 0', penty.types.Cst[True], env={'x': int, 'y': int})
 
         self.assertIsType('x < y', bool, env={'x': int, 'y': int})
         self.assertIsType('1 < y', bool, env={'x': int, 'y': int})
         self.assertIsType('x < 1', bool, env={'x': int, 'y': int})
-        self.assertIsType('0 < 1', True, env={'x': int, 'y': int})
-        self.assertIsType('2 < 1', False, env={'x': int, 'y': int})
+        self.assertIsType('0 < 1', penty.types.Cst[True], env={'x': int, 'y': int})
+        self.assertIsType('2 < 1', penty.types.Cst[False], env={'x': int, 'y': int})
 
         self.assertIsType('x <= y', bool, env={'x': int, 'y': int})
         self.assertIsType('1 <= y', bool, env={'x': int, 'y': int})
         self.assertIsType('x <= 1', bool, env={'x': int, 'y': int})
-        self.assertIsType('1 <= 1', True, env={'x': int, 'y': int})
-        self.assertIsType('2 <= 1', False, env={'x': int, 'y': int})
+        self.assertIsType('1 <= 1', penty.types.Cst[True], env={'x': int, 'y': int})
+        self.assertIsType('2 <= 1', penty.types.Cst[False], env={'x': int, 'y': int})
 
         self.assertIsType('x == y', bool, env={'x': int, 'y': int})
         self.assertIsType('1 == y', bool, env={'x': int, 'y': int})
         self.assertIsType('x == 1', bool, env={'x': int, 'y': int})
-        self.assertIsType('1 == 1', True, env={'x': int, 'y': int})
-        self.assertIsType('1 == 2', False, env={'x': int, 'y': int})
+        self.assertIsType('1 == 1', penty.types.Cst[True], env={'x': int, 'y': int})
+        self.assertIsType('1 == 2', penty.types.Cst[False], env={'x': int, 'y': int})
 
         self.assertIsType('x != y', bool, env={'x': int, 'y': int})
         self.assertIsType('1 != y', bool, env={'x': int, 'y': int})
         self.assertIsType('x != 1', bool, env={'x': int, 'y': int})
-        self.assertIsType('1 != 1', False, env={'x': int, 'y': int})
-        self.assertIsType('1 != 2', True, env={'x': int, 'y': int})
+        self.assertIsType('1 != 1', penty.types.Cst[False], env={'x': int, 'y': int})
+        self.assertIsType('1 != 2', penty.types.Cst[True], env={'x': int, 'y': int})
 
         self.assertIsType('x > y', bool, env={'x': int, 'y': int})
         self.assertIsType('1 > y', bool, env={'x': int, 'y': int})
         self.assertIsType('x > 1', bool, env={'x': int, 'y': int})
-        self.assertIsType('1 > 1', False, env={'x': int, 'y': int})
-        self.assertIsType('1 > 0', True, env={'x': int, 'y': int})
+        self.assertIsType('1 > 1', penty.types.Cst[False], env={'x': int, 'y': int})
+        self.assertIsType('1 > 0', penty.types.Cst[True], env={'x': int, 'y': int})
 
         self.assertIsType('x >= y', bool, env={'x': int, 'y': int})
         self.assertIsType('1 >= y', bool, env={'x': int, 'y': int})
         self.assertIsType('x >= 1', bool, env={'x': int, 'y': int})
-        self.assertIsType('0 >= 1', False, env={'x': int, 'y': int})
-        self.assertIsType('1 >= 0', True, env={'x': int, 'y': int})
+        self.assertIsType('0 >= 1', penty.types.Cst[False], env={'x': int, 'y': int})
+        self.assertIsType('1 >= 0', penty.types.Cst[True], env={'x': int, 'y': int})
 
         self.assertIsType('x is y', bool, env={'x': int, 'y': int})
-        self.assertIsType('x is y', False, env={'x': int, 'y': float})
+        self.assertIsType('x is y', penty.types.Cst[False], env={'x': int, 'y': float})
         self.assertIsType('1. is y', bool, env={'x': int, 'y': float})
         self.assertIsType('y is 1.', bool, env={'x': int, 'y': float})
-        self.assertIsType('1 is y', False, env={'x': int, 'y': float})
-        self.assertIsType('y is 1', False, env={'x': int, 'y': float})
+        self.assertIsType('1 is y', penty.types.Cst[False], env={'x': int, 'y': float})
+        self.assertIsType('y is 1', penty.types.Cst[False], env={'x': int, 'y': float})
 
         self.assertIsType('x is not y', bool, env={'x': int, 'y': int})
-        self.assertIsType('x is not y', True, env={'x': int, 'y': float})
+        self.assertIsType('x is not y', penty.types.Cst[True], env={'x': int, 'y': float})
 
         #self.assertIsType('x in y', bool, env={'x': int, 'y': int})
         #self.assertIsType('x not in y', bool, env={'x': int, 'y': int})
 
     def test_repr(self):
         self.assertIsType('repr(x)', str, env={'x': int})
-        self.assertIsType('repr(1)', '1', env={'x': int})
+        self.assertIsType('repr(1)', penty.types.Cst['1'], env={'x': int})
 
     def test_constant_ty(self):
-        self.assertIsType('True', True)
-        self.assertIsType('False', False)
-        self.assertIsType('None', None)
-        self.assertIsType('1', 1)
-        self.assertIsType('1.', 1.)
-        self.assertIsType('1.j', 1.j)
-        self.assertIsType('""', "")
+        self.assertIsType('True', penty.types.Cst[True])
+        self.assertIsType('False', penty.types.Cst[False])
+        self.assertIsType('None', penty.types.Cst[None])
+        self.assertIsType('1', penty.types.Cst[1])
+        self.assertIsType('1.', penty.types.Cst[1.])
+        self.assertIsType('1.j', penty.types.Cst[1.j])
+        self.assertIsType('""', penty.types.Cst[""])
 
     def test_contant_op_ty(self):
-        self.assertIsType('+(1)', +1)
-        self.assertIsType('-(1)', -1)
-        self.assertIsType('~1', ~1)
-        self.assertIsType('not 1', not 1)
-        self.assertIsType('1 + 1', 1+1)
-        self.assertIsType('1 - 1', 1 - 1)
-        self.assertIsType('1 * 1', 1 * 1)
+        self.assertIsType('+(1)', penty.types.Cst[+1])
+        self.assertIsType('-(1)', penty.types.Cst[-1])
+        self.assertIsType('~1', penty.types.Cst[~1])
+        self.assertIsType('not 1', penty.types.Cst[not 1])
+        self.assertIsType('1 + 1', penty.types.Cst[1+1])
+        self.assertIsType('1 - 1', penty.types.Cst[1 - 1])
+        self.assertIsType('1 * 1', penty.types.Cst[1 * 1])
         #self.assertIsType('x @ x', int, env={"x": int})
-        self.assertIsType('1 / 1', 1 / 1)
-        self.assertIsType('1 % 1', 1 % 1)
-        self.assertIsType('1 // 2', 1 // 2)
-        self.assertIsType('1 | 2', 1 | 2)
-        self.assertIsType('1 & 3', 1 & 3)
-        self.assertIsType('2 ^ 3', 2 ^3)
-        self.assertIsType('2 ** 3', 2 ** 3)
+        self.assertIsType('1 / 1', penty.types.Cst[1 / 1])
+        self.assertIsType('1 % 1', penty.types.Cst[1 % 1])
+        self.assertIsType('1 // 2', penty.types.Cst[1 // 2])
+        self.assertIsType('1 | 2', penty.types.Cst[1 | 2])
+        self.assertIsType('1 & 3', penty.types.Cst[1 & 3])
+        self.assertIsType('2 ^ 3', penty.types.Cst[2 ^3])
+        self.assertIsType('2 ** 3', penty.types.Cst[2 ** 3])
 
     def test_subscript_ty(self):
         self.assertIsType('x[y]', int, env={'x': typing.List[int], 'y': int})
@@ -219,3 +220,18 @@ class TestExpr(TestCase):
                           env={'x': typing.Tuple[int, float]})
         self.assertIsType('x[::]', typing.Tuple[int, float],
                           env={'x': typing.Tuple[int, float]})
+
+    def test_list_ty(self):
+        self.assertIsType('[]', list)
+        self.assertIsType('[1]', typing.List[int])
+        self.assertIsType('[x]', typing.List[int], env={'x': int})
+        self.assertIsType('[1, 1.]', {typing.List[int], typing.List[float]})
+
+    def test_tuple_ty(self):
+        self.assertIsType('()', tuple)
+        self.assertIsType('(1,)', (penty.types.Cst[1],))
+        self.assertIsType('(1, x)', (penty.types.Cst[1], int), env={'x': int})
+        self.assertIsType('(x, y)', (int, float), env={'x': int, 'y': float})
+        self.assertIsType('(1, x or y)',
+                          {(penty.types.Cst[1], float), (penty.types.Cst[1], int)},
+                          env={'x': int, 'y': float})
