@@ -3,7 +3,7 @@ import typing
 import itertools
 
 import penty.pentypes as pentypes
-from penty.types import Cst
+from penty.types import Cst, FDef
 
 
 
@@ -237,8 +237,36 @@ class Typer(ast.NodeVisitor):
         self.callstack = []
 
     def _call(self, func, *args):
-        result_type = func(*args)
+        if hasattr(func, 'mro') and issubclass(func, FDef):
+            fnode, = func.__args__
+            call_key = func, *args
+            if call_key in self.callstack:
+                return {}
+
+            new_bindings = {arg.id: arg_ty for arg, arg_ty in
+                            zip(fnode.args.args, args)}
+            new_bindings['@'] = set()
+            self.bindings.append(new_bindings)
+            self.callstack.append(call_key)
+            for stmt in fnode.body:
+                self.visit(stmt)
+            result_type = new_bindings['@'] or {Cst[None]}
+            self.callstack.pop()
+            self.bindings.pop()
+        else:
+            result_type = func(*args)
         return result_type
+
+    # stmt
+    def visit_FunctionDef(self, node):
+        self.bindings[-1][node.name] = {FDef[node]}
+
+    def visit_Return(self, node):
+        self.bindings[-1].setdefault('@', set())
+        if node.value is None:
+            self.bindings[-1]['@'].add(Cst[None])
+        else:
+            self.bindings[-1]['@'].update(self.visit(node.value))
 
     # expr
     def visit_BoolOp(self, node):
@@ -451,7 +479,7 @@ class Typer(ast.NodeVisitor):
         for elt in node.elts:
             elt_types = self.visit(elt)
             result_types.append(elt_types)
-        return {tuple(tys) for tys in itertools.product(*result_types)}
+        return {typing.Tuple[tys] for tys in itertools.product(*result_types)}
 
     def visit_Slice(self, node):
         if node.lower:
@@ -476,9 +504,21 @@ class Typer(ast.NodeVisitor):
 
 def type_eval(expr, env):
     '''
-    Returns the type set of `expr` using the environment defined in `env`
+    Returns the type set of `expr`,
+    using the environment defined in `env`
     '''
     expr_node = ast.parse(expr, mode='eval')
     typer = Typer(env)
     expr_ty = typer.visit(expr_node.body)
     return expr_ty
+
+def type_exec(stmt, env):
+    '''
+    Returns the type environment after executing `stmt`,
+    using the environment defined in `env`
+    '''
+    stmt_node = ast.parse(stmt, mode='exec')
+    typer = Typer(env)
+    typer.visit(stmt_node)
+    top_level_bindings, = typer.bindings
+    return top_level_bindings

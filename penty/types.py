@@ -21,3 +21,21 @@ class CstMeta(type):
 
 class Cst(metaclass=CstMeta):
     pass
+
+class FDefMeta(type):
+    cache = {}
+
+    def __getitem__(self, args):
+        if args not in FDefMeta.cache:
+            class LocalFDef(FDef):
+                __args__ = args,
+
+            FDefMeta.cache[args] = LocalFDef
+        return FDefMeta.cache[args]
+
+    def __repr__(self):
+        return 'FDef[{}]'.format(self.__args__[0])
+
+
+class FDef(metaclass=FDefMeta):
+    pass

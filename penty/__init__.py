@@ -1,1 +1,1 @@
-from penty.penty import type_eval
+from penty.penty import type_eval, type_exec
