@@ -1,1 +1,1 @@
-from penty.pentypes import int, bool, str, str_iterator
+from penty.pentypes import int, bool, float, str, str_iterator

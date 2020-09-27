@@ -40,6 +40,29 @@ class BinaryOperator(object):
                                (left_types, right_types))
         return result_type
 
+def IsOperator(left_types, right_types):
+    result_types = set()
+    for left_ty in left_types:
+        left_ty = astype(left_ty)
+        for right_ty in right_types:
+            right_ty = astype(right_ty)
+            if left_ty == right_ty:
+                result_types.add(bool)
+            else:
+                result_types.add(False)
+    return result_types
+
+def IsNotOperator(left_types, right_types):
+    result_types = set()
+    for left_ty in left_types:
+        left_ty = astype(left_ty)
+        for right_ty in right_types:
+            right_ty = astype(right_ty)
+            if left_ty == right_ty:
+                result_types.add(bool)
+            else:
+                result_types.add(True)
+    return result_types
 
 class UnaryOperator(object):
     def __init__(self, name):
@@ -93,10 +116,16 @@ Types = TypeRegistry({
         '__add__': pentypes.int.add,
         '__and__': pentypes.int.bitand,
         '__bool__': pentypes.int.boolean,
+        '__eq__': pentypes.int.eq,
         '__floordiv__': pentypes.int.floordiv,
+        '__ge__': pentypes.int.ge,
+        '__gt__': pentypes.int.gt,
         '__invert__': pentypes.int.invert,
+        '__le__': pentypes.int.le,
+        '__lt__': pentypes.int.lt,
         '__mul__': pentypes.int.mul,
         '__mod__': pentypes.int.mod,
+        '__ne__': pentypes.int.ne,
         '__neg__': pentypes.int.neg,
         '__or__': pentypes.int.bitor,
         '__pos__': pentypes.int.pos,
@@ -114,11 +143,17 @@ Types = TypeRegistry({
     OperatorModule: {
         '__add__': BinaryOperator('__add__'),
         '__and__': BinaryOperator('__and__'),
+        '__eq__': BinaryOperator('__eq__'),
         '__floordiv__': BinaryOperator('__floordiv__'),
+        '__ge__': BinaryOperator('__ge__'),
+        '__gt__': BinaryOperator('__gt__'),
         '__invert__': UnaryOperator('__invert__'),
+        '__le__': BinaryOperator('__le__'),
+        '__lt__': BinaryOperator('__lt__'),
         '__matmul__': BinaryOperator('__matmul__'),
         '__mod__': BinaryOperator('__mod__'),
         '__mul__': BinaryOperator('__mul__'),
+        '__ne__': BinaryOperator('__ne__'),
         '__neg__': UnaryOperator('__neg__'),
         '__not__': NotOperator(),
         '__or__': BinaryOperator('__or__'),
@@ -136,12 +171,20 @@ Ops = {
     ast.BitOr: Types[OperatorModule]['__or__'],
     ast.BitXor: Types[OperatorModule]['__xor__'],
     ast.Div: Types[OperatorModule]['__truediv__'],
+    ast.Eq: Types[OperatorModule]['__eq__'],
     ast.FloorDiv: Types[OperatorModule]['__floordiv__'],
+    ast.Gt: Types[OperatorModule]['__gt__'],
+    ast.GtE: Types[OperatorModule]['__ge__'],
     ast.Invert: Types[OperatorModule]['__invert__'],
+    ast.Is: IsOperator,
+    ast.IsNot: IsNotOperator,
+    ast.Lt: Types[OperatorModule]['__lt__'],
+    ast.LtE: Types[OperatorModule]['__le__'],
     ast.MatMult: Types[OperatorModule]['__matmul__'],
     ast.Mod: Types[OperatorModule]['__mod__'],
     ast.Mult: Types[OperatorModule]['__mul__'],
     ast.Not: Types[OperatorModule]['__not__'],
+    ast.NotEq: Types[OperatorModule]['__ne__'],
     ast.Pow: Types[OperatorModule]['__pow__'],
     ast.Sub: Types[OperatorModule]['__sub__'],
     ast.UAdd: Types[OperatorModule]['__pos__'],
@@ -318,6 +361,24 @@ class Typer(ast.NodeVisitor):
             return {typing.Generator}
         else:
             return {typing.Generator[astype(elt_ty), None, None] for elt_ty in elt_types}
+
+    def visit_Compare(self, node):
+        prev_ty = left_ty = self.visit(node.left)
+        is_false = False
+        result_types = set()
+        for op, comparator in zip(node.ops, node.comparators):
+            comparator_ty = self.visit(comparator)
+            cmp_ty = self._call(Ops[type(op)], prev_ty, comparator_ty)
+            is_false |= cmp_ty == {False}
+            result_types.update(cmp_ty)
+            prev_ty = comparator_ty
+
+        if is_false:
+            return {False}
+        elif result_types == {True}:
+            return result_types
+        else:
+            return set(map(astype, result_types))
 
     def visit_Call(self, node):
         args_ty = [self.visit(arg) for arg in node.args]

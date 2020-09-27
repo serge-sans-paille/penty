@@ -116,3 +116,35 @@ def boolean(self_types):
         else:
             raise NotImplementedError
     return result_types
+
+def _make_boolop(operator):
+    def boolop(self_types, other_types):
+        result_types = set()
+        for s in self_types:
+            if isinstance(s, int):
+                for o in other_types:
+                    if o in (bool, int, float):
+                        result_types.add(bool)
+                    elif isinstance(o, int):
+                        result_types.add(operator(s, o))
+                    else:
+                        raise NotImplementedError
+            elif s is int:
+                for o in other_types:
+                    if o in (bool, int, float):
+                        result_types.add(bool)
+                    elif isinstance(o, int):
+                        result_types.add(bool)
+                    else:
+                        raise NotImplementedError
+            else:
+                raise NotImplementedError
+        return result_types
+    return boolop
+
+eq = _make_boolop(_operator.eq)
+ge = _make_boolop(_operator.ge)
+gt = _make_boolop(_operator.gt)
+le = _make_boolop(_operator.le)
+lt = _make_boolop(_operator.lt)
+ne = _make_boolop(_operator.ne)

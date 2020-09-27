@@ -111,6 +111,61 @@ class TestExpr(TestCase):
                           typing.Generator[int, None, None],
                           env={'y': str})
 
+    def test_compare_ty(self):
+        self.assertIsType('x == y == x', bool, env={'x': int, 'y': int})
+        self.assertIsType('0 == 1 == x', False, env={'x': int, 'y': int})
+        self.assertIsType('0 == 0 == x', bool, env={'x': int, 'y': int})
+        self.assertIsType('0 == 0 == 0', True, env={'x': int, 'y': int})
+
+        self.assertIsType('x < y', bool, env={'x': int, 'y': int})
+        self.assertIsType('1 < y', bool, env={'x': int, 'y': int})
+        self.assertIsType('x < 1', bool, env={'x': int, 'y': int})
+        self.assertIsType('0 < 1', True, env={'x': int, 'y': int})
+        self.assertIsType('2 < 1', False, env={'x': int, 'y': int})
+
+        self.assertIsType('x <= y', bool, env={'x': int, 'y': int})
+        self.assertIsType('1 <= y', bool, env={'x': int, 'y': int})
+        self.assertIsType('x <= 1', bool, env={'x': int, 'y': int})
+        self.assertIsType('1 <= 1', True, env={'x': int, 'y': int})
+        self.assertIsType('2 <= 1', False, env={'x': int, 'y': int})
+
+        self.assertIsType('x == y', bool, env={'x': int, 'y': int})
+        self.assertIsType('1 == y', bool, env={'x': int, 'y': int})
+        self.assertIsType('x == 1', bool, env={'x': int, 'y': int})
+        self.assertIsType('1 == 1', True, env={'x': int, 'y': int})
+        self.assertIsType('1 == 2', False, env={'x': int, 'y': int})
+
+        self.assertIsType('x != y', bool, env={'x': int, 'y': int})
+        self.assertIsType('1 != y', bool, env={'x': int, 'y': int})
+        self.assertIsType('x != 1', bool, env={'x': int, 'y': int})
+        self.assertIsType('1 != 1', False, env={'x': int, 'y': int})
+        self.assertIsType('1 != 2', True, env={'x': int, 'y': int})
+
+        self.assertIsType('x > y', bool, env={'x': int, 'y': int})
+        self.assertIsType('1 > y', bool, env={'x': int, 'y': int})
+        self.assertIsType('x > 1', bool, env={'x': int, 'y': int})
+        self.assertIsType('1 > 1', False, env={'x': int, 'y': int})
+        self.assertIsType('1 > 0', True, env={'x': int, 'y': int})
+
+        self.assertIsType('x >= y', bool, env={'x': int, 'y': int})
+        self.assertIsType('1 >= y', bool, env={'x': int, 'y': int})
+        self.assertIsType('x >= 1', bool, env={'x': int, 'y': int})
+        self.assertIsType('0 >= 1', False, env={'x': int, 'y': int})
+        self.assertIsType('1 >= 0', True, env={'x': int, 'y': int})
+
+        self.assertIsType('x is y', bool, env={'x': int, 'y': int})
+        self.assertIsType('x is y', False, env={'x': int, 'y': float})
+        self.assertIsType('1. is y', bool, env={'x': int, 'y': float})
+        self.assertIsType('y is 1.', bool, env={'x': int, 'y': float})
+        self.assertIsType('1 is y', False, env={'x': int, 'y': float})
+        self.assertIsType('y is 1', False, env={'x': int, 'y': float})
+
+        self.assertIsType('x is not y', bool, env={'x': int, 'y': int})
+        self.assertIsType('x is not y', True, env={'x': int, 'y': float})
+
+        #self.assertIsType('x in y', bool, env={'x': int, 'y': int})
+        #self.assertIsType('x not in y', bool, env={'x': int, 'y': int})
+
     def test_constant_ty(self):
         self.assertIsType('True', True)
         self.assertIsType('False', False)
