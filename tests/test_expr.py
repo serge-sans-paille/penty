@@ -197,6 +197,10 @@ class TestExpr(TestCase):
         self.assertIsType('2 ^ 3', penty.types.Cst[2 ^3])
         self.assertIsType('2 ** 3', penty.types.Cst[2 ** 3])
 
+    def test_attr_ty(self):
+        self.assertIsType('x.count("1")', int,
+                          env={'x': typing.List[str]})
+
     def test_subscript_ty(self):
         self.assertIsType('x[y]', int, env={'x': typing.List[int], 'y': int})
         self.assertIsType('x[0]', int, env={'x': typing.List[int]})

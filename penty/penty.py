@@ -417,6 +417,16 @@ class Typer(ast.NodeVisitor):
     def visit_Constant(self, node):
         return {Cst[node.value]}
 
+    def _bindattr(self, value_ty, attr):
+        return lambda *args: Types[value_ty][attr]({value_ty}, *args)
+
+    def visit_Attribute(self, node):
+        value_types = self.visit(node.value)
+        result_types = set()
+        for value_ty in value_types:
+            result_types.add(self._bindattr(value_ty, node.attr))
+        return result_types
+
     def visit_Subscript(self, node):
         value_types = self.visit(node.value)
         slice_types = self.visit(node.slice)
