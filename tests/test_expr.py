@@ -166,6 +166,10 @@ class TestExpr(TestCase):
         #self.assertIsType('x in y', bool, env={'x': int, 'y': int})
         #self.assertIsType('x not in y', bool, env={'x': int, 'y': int})
 
+    def test_repr(self):
+        self.assertIsType('repr(x)', str, env={'x': int})
+        self.assertIsType('repr(1)', '1', env={'x': int})
+
     def test_constant_ty(self):
         self.assertIsType('True', True)
         self.assertIsType('False', False)
@@ -191,3 +195,27 @@ class TestExpr(TestCase):
         self.assertIsType('1 & 3', 1 & 3)
         self.assertIsType('2 ^ 3', 2 ^3)
         self.assertIsType('2 ** 3', 2 ** 3)
+
+    def test_subscript_ty(self):
+        self.assertIsType('x[y]', int, env={'x': typing.List[int], 'y': int})
+        self.assertIsType('x[0]', int, env={'x': typing.List[int]})
+        self.assertIsType('x[y]', typing.List[int],
+                          env={'x': typing.List[int], 'y': slice})
+        self.assertIsType('x[0:y]', typing.List[int],
+                          env={'x': typing.List[int], 'y': int})
+        self.assertIsType('x[0:1]', typing.List[int],
+                          env={'x': typing.List[int]})
+        self.assertIsType('x[::]', typing.List[int],
+                          env={'x': typing.List[int]})
+
+        self.assertIsType('x[y]', {int, float},
+                          env={'x': typing.Tuple[int, float], 'y': int})
+        self.assertIsType('x[0]', int, env={'x': typing.Tuple[int, float]})
+        self.assertIsType('x[y]', tuple,
+                          env={'x': typing.Tuple[int, float], 'y': slice})
+        self.assertIsType('x[0:y]', tuple,
+                          env={'x': typing.Tuple[int, float], 'y': int})
+        self.assertIsType('x[0:1]', typing.Tuple[int],
+                          env={'x': typing.Tuple[int, float]})
+        self.assertIsType('x[::]', typing.Tuple[int, float],
+                          env={'x': typing.Tuple[int, float]})

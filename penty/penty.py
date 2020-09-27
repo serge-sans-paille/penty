@@ -102,9 +102,18 @@ class TypeRegistry(object):
 
     def __getitem__(self, key):
         if hasattr(key, 'mro'):
+            if issubclass(key, (typing.List, typing.Set, typing.Dict,
+                                typing.Tuple)):
+                self.registry[key] = self.instanciate(key)
             return self.registry[key]
         else:
             return self.registry[type(key)]
+
+    def instanciate(self, ty):
+        if ty in self.registry:
+            return self.registry[ty]
+        base = ty.__bases__[0]
+        return self.registry[base].instanciate(ty)
 
 
 
@@ -146,6 +155,7 @@ Types = TypeRegistry({
         '__eq__': BinaryOperator('__eq__'),
         '__floordiv__': BinaryOperator('__floordiv__'),
         '__ge__': BinaryOperator('__ge__'),
+        '__getitem__': BinaryOperator('__getitem__'),
         '__gt__': BinaryOperator('__gt__'),
         '__invert__': UnaryOperator('__invert__'),
         '__le__': BinaryOperator('__le__'),
@@ -163,7 +173,9 @@ Types = TypeRegistry({
         '__truediv__': BinaryOperator('__truediv__'),
         '__xor__': BinaryOperator('__xor__'),
     },
-})
+    typing.List: pentypes.list,
+    typing.Tuple: pentypes.tuple,
+    })
 
 Ops = {
     ast.Add: Types[OperatorModule]['__add__'],
@@ -191,6 +203,11 @@ Ops = {
     ast.USub: Types[OperatorModule]['__neg__'],
 }
 
+Builtins = {
+    'repr': {pentypes.builtins.repr.repr_},
+    'slice': {pentypes.builtins.slice.slice_},
+}
+
 def astype(ty):
     return ty if hasattr(ty, 'mro') else type(ty)
 
@@ -211,7 +228,9 @@ class Typer(ast.NodeVisitor):
 
     def __init__(self, env=None):
         self.state = {}
-        self.bindings = [{} if env is None else env]
+        self.bindings = [Builtins.copy()]
+        if env:
+            self.bindings[0].update(env)
         self.callstack = []
 
     def _call(self, func, *args):
@@ -387,9 +406,36 @@ class Typer(ast.NodeVisitor):
         return_ty.update(*[self._call(fty, *args_ty) for fty in func_ty])
         return return_ty
 
+    def visit_Repr(self, node):
+        value_types = self.visit(node.value)
+        assert set(map(astype, value_types)) == {str}
+        return {str}
 
     def visit_Constant(self, node):
         return {node.value}
+
+    def visit_Subscript(self, node):
+        value_types = self.visit(node.value)
+        slice_types = self.visit(node.slice)
+
+        return self._call(Types[OperatorModule]['__getitem__'],
+                          value_types,
+                          slice_types)
+
+    def visit_Slice(self, node):
+        if node.lower:
+            lower_types = self.visit(node.lower)
+        else:
+            lower_types = {None}
+        if node.upper:
+            upper_types = self.visit(node.upper)
+        else:
+            upper_types = {None}
+        if node.step:
+            step_types = self.visit(node.step)
+        else:
+            step_types = {None}
+        return next(iter(Builtins['slice']))(lower_types, upper_types, step_types)
 
     def visit_Name(self, node):
         for binding in reversed(self.bindings):
