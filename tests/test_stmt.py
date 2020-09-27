@@ -28,3 +28,19 @@ class TestStmt(TestCase):
         self.assertIsType('def func(x, y): return x, y',
                           'func(x, x)', typing.Tuple[int, int],
                           env={'x':int})
+
+    def test_recursive_function_ty(self):
+        code = '''
+            def fibo(x):
+                return x if x < 2 else fibo(x-1) + fibo(x-2)'''
+        self.assertIsType(code,
+                          'fibo(n)', int,
+                          env={'n':int})
+
+    def test_recursive_function_cst_ty(self):
+        code = '''
+            def fibo(x):
+                return x if x < 2 else fibo(x-1) + fibo(x-2)'''
+        self.assertIsType(code,
+                          'fibo(n)', pentyping.Cst[8],
+                          env={'n': pentyping.Cst[6]})
