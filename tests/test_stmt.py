@@ -44,3 +44,53 @@ class TestStmt(TestCase):
         self.assertIsType(code,
                           'fibo(n)', pentyping.Cst[8],
                           env={'n': pentyping.Cst[6]})
+
+    def test_del_single(self):
+        stmt = 'del a'
+        env = {'a': int}
+        type_env = penty.type_exec(dedent(stmt), env)
+        self.assertNotIn('a', type_env)
+        with self.assertRaises(penty.penty.UnboundIdentifier):
+            stmt = 'del a; a'
+            penty.type_exec(dedent(stmt), env)
+
+    def test_del_multiple(self):
+        stmt = 'del a, b'
+        env = {'a': int, 'b': float}
+        type_env = penty.type_exec(dedent(stmt), env)
+        self.assertNotIn('a', type_env)
+        self.assertNotIn('b', type_env)
+        with self.assertRaises(penty.penty.UnboundIdentifier):
+            stmt = 'del a, b; a, b'
+            penty.type_exec(dedent(stmt), env)
+
+    def test_assign(self):
+        self.assertIsType('x = 1',
+                          'x', pentyping.Cst[1])
+
+    def test_type_destructuring_assign(self):
+        self.assertIsType('x, y = 1, 2',
+                          'x, y', typing.Tuple[pentyping.Cst[1],
+                                               pentyping.Cst[2]])
+
+    def test_type_destructuring_assign_ex(self):
+        self.assertIsType('x, (y, z) = 1, (2, "3")',
+                          'x, y, z', typing.Tuple[pentyping.Cst[1],
+                                                  pentyping.Cst[2],
+                                                  pentyping.Cst["3"]])
+
+    def test_multi_assign(self):
+        self.assertIsType('x = y = 1',
+                          'x, y', typing.Tuple[pentyping.Cst[1],
+                                               pentyping.Cst[1]])
+
+    def test_reassign(self):
+        self.assertIsType('x = 1; x = 1.',
+                          'x', pentyping.Cst[1.])
+
+    def test_update_operators(self):
+        for op in ('+', '&', '|', '^', '/', '//', '%', '*', '**', '-'):
+            self.assertIsType('x = 2; x {}= 3'.format(op),
+                              'x',
+                              pentyping.Cst[eval("2 {} 3".format(op))])
+

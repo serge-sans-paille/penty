@@ -152,3 +152,25 @@ gt = _make_boolop(_operator.gt)
 le = _make_boolop(_operator.le)
 lt = _make_boolop(_operator.lt)
 ne = _make_boolop(_operator.ne)
+
+def _make_biniop(operator):
+    def biniop(self_types, other_types):
+        result_types = operator(self_types, other_types)
+        if 0:
+            return result_types
+        else:
+            self_types.clear()
+            self_types.update(result_types)
+            return self_types
+    return biniop
+
+iadd = _make_biniop(add)
+iand = _make_biniop(bitand)
+ior = _make_biniop(bitor)
+ixor = _make_biniop(bitxor)
+itruediv = _make_biniop(truediv)
+ifloordiv = _make_biniop(floordiv)
+imod = _make_biniop(mod)
+imul = _make_biniop(mul)
+ipow = _make_biniop(power)
+isub = _make_biniop(sub)

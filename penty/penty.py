@@ -38,7 +38,7 @@ class BinaryOperator(object):
 
     def __call__(self, left_types, right_types):
         result_type = set()
-        for left_ty in left_types:
+        for left_ty in list(left_types):
             result_type.update(Types[left_ty][self.name]
                                (left_types, right_types))
         return result_type
@@ -131,6 +131,16 @@ Types = TypeRegistry({
         '__floordiv__': pentypes.int.floordiv,
         '__ge__': pentypes.int.ge,
         '__gt__': pentypes.int.gt,
+        '__iadd__': pentypes.int.iadd,
+        '__iand__': pentypes.int.iand,
+        '__ior__': pentypes.int.ior,
+        '__itruediv__': pentypes.int.itruediv,
+        '__ifloordiv__': pentypes.int.ifloordiv,
+        '__imod__': pentypes.int.imod,
+        '__imul__': pentypes.int.imul,
+        '__isub__': pentypes.int.isub,
+        '__ipow__': pentypes.int.ipow,
+        '__ixor__': pentypes.int.ixor,
         '__invert__': pentypes.int.invert,
         '__le__': pentypes.int.le,
         '__lt__': pentypes.int.lt,
@@ -159,6 +169,17 @@ Types = TypeRegistry({
         '__ge__': BinaryOperator('__ge__'),
         '__getitem__': BinaryOperator('__getitem__'),
         '__gt__': BinaryOperator('__gt__'),
+        '__iadd__': BinaryOperator('__iadd__'),
+        '__iand__': BinaryOperator('__iand__'),
+        '__ior__': BinaryOperator('__ior__'),
+        '__ixor__': BinaryOperator('__ixor__'),
+        '__itruediv__': BinaryOperator('__itruediv__'),
+        '__ifloordiv__': BinaryOperator('__ifloordiv__'),
+        '__imatmul__': BinaryOperator('__imatmul__'),
+        '__imod__': BinaryOperator('__imod__'),
+        '__imul__': BinaryOperator('__imul__'),
+        '__ipow__': BinaryOperator('__ipow__'),
+        '__isub__': BinaryOperator('__isub__'),
         '__invert__': UnaryOperator('__invert__'),
         '__le__': BinaryOperator('__le__'),
         '__lt__': BinaryOperator('__lt__'),
@@ -203,6 +224,20 @@ Ops = {
     ast.Sub: Types[OperatorModule]['__sub__'],
     ast.UAdd: Types[OperatorModule]['__pos__'],
     ast.USub: Types[OperatorModule]['__neg__'],
+}
+
+IOps = {
+    ast.Add: Types[OperatorModule]['__iadd__'],
+    ast.BitAnd: Types[OperatorModule]['__iand__'],
+    ast.BitOr: Types[OperatorModule]['__ior__'],
+    ast.BitXor: Types[OperatorModule]['__ixor__'],
+    ast.Div: Types[OperatorModule]['__itruediv__'],
+    ast.FloorDiv: Types[OperatorModule]['__ifloordiv__'],
+    ast.MatMult: Types[OperatorModule]['__imatmul__'],
+    ast.Mod: Types[OperatorModule]['__imod__'],
+    ast.Mult: Types[OperatorModule]['__imul__'],
+    ast.Pow: Types[OperatorModule]['__ipow__'],
+    ast.Sub: Types[OperatorModule]['__isub__'],
 }
 
 Builtins = {
@@ -267,6 +302,28 @@ class Typer(ast.NodeVisitor):
             self.bindings[-1]['@'].add(Cst[None])
         else:
             self.bindings[-1]['@'].update(self.visit(node.value))
+
+    def _type_destructuring_assign(self, node, types):
+        if isinstance(node, ast.Name):
+            self.bindings[-1][node.id] = types
+        elif isinstance(node, ast.Tuple):
+            for i, elt in enumerate(node.elts):
+                elt_types = self._call(
+                    Types[OperatorModule]['__getitem__'],
+                    types, {Cst[i]})
+                self._type_destructuring_assign(elt, elt_types)
+        else:
+            raise NotImplementedError
+
+    def visit_Assign(self, node):
+        value_types = self.visit(node.value)
+        for target in node.targets:
+            self._type_destructuring_assign(target, value_types)
+
+    def visit_AugAssign(self, node):
+        value_types = self.visit(node.value)
+        target_types = self.visit(node.target)
+        tys = self._call(IOps[type(node.op)], target_types, value_types)
 
     # expr
     def visit_BoolOp(self, node):
@@ -497,9 +554,19 @@ class Typer(ast.NodeVisitor):
         return next(iter(Builtins['slice']))(lower_types, upper_types, step_types)
 
     def visit_Name(self, node):
-        for binding in reversed(self.bindings):
-            if node.id in binding:
-                return binding[node.id]
+        # the store here is surprising, but it comes from augassign
+        # so the identifier should already be bound
+        if isinstance(node.ctx, (ast.Load, ast.Store)):
+            for binding in reversed(self.bindings):
+                if node.id in binding:
+                    return binding[node.id]
+        elif isinstance(node.ctx, ast.Del):
+            for binding in reversed(self.bindings):
+                if node.id in binding:
+                    node_ty = binding[node.id]
+                    del binding[node.id]
+                    return node_ty
+
         raise UnboundIdentifier(node.id)
 
 def type_eval(expr, env):
