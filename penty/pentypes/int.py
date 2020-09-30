@@ -156,12 +156,8 @@ ne = _make_boolop(_operator.ne)
 def _make_biniop(operator):
     def biniop(self_types, other_types):
         result_types = operator(self_types, other_types)
-        if 0:
-            return result_types
-        else:
-            self_types.clear()
-            self_types.update(result_types)
-            return self_types
+        # int are immutable so we don't update self_types
+        return result_types
     return biniop
 
 iadd = _make_biniop(add)

@@ -1,3 +1,4 @@
+from penty.types import Cst as _Cst
 str_iterator = type(iter(""))
 
 def iterator(self_types):
@@ -5,7 +6,7 @@ def iterator(self_types):
     for o in self_types:
         if o is str:
             result_types.add(str_iterator)
-        elif isinstance(o, str):
+        elif issubclass(o, _Cst):
             result_types.add(str_iterator)
         else:
             raise NotImplementedError

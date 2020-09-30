@@ -323,7 +323,39 @@ class Typer(ast.NodeVisitor):
     def visit_AugAssign(self, node):
         value_types = self.visit(node.value)
         target_types = self.visit(node.target)
-        tys = self._call(IOps[type(node.op)], target_types, value_types)
+        new_types = self._call(IOps[type(node.op)], target_types, value_types)
+        self._type_destructuring_assign(node.target, new_types)
+
+    def visit_For(self, node):
+        iter_types = self.visit(node.iter)
+        value_types = iterator_value_ty(iter_types)
+        self._type_destructuring_assign(node.target, value_types)
+
+        loop_bindings = {}
+        self.bindings.append(loop_bindings)
+        for stmt in node.body:
+            self.visit(stmt)
+
+        reloop_bindings = {}
+        self.bindings.append(reloop_bindings)
+        for stmt in node.body:
+            self.visit(stmt)
+        self.bindings.pop()
+        self.bindings.pop()
+
+        for k, v in loop_bindings.items():
+            if k not in self.bindings[-1]:
+                self.bindings[-1][k] = v
+            else:
+                self.bindings[-1][k].update(v)
+
+        for k, v in reloop_bindings.items():
+            if k not in self.bindings[-1]:
+                self.bindings[-1][k] = v
+            elif not self.bindings[-1][k].issuperset(v):
+                # get rid of constants that grows along the loop
+                self.bindings[-1][k] = {astype(ty)
+                                        for ty in self.bindings[-1][k]}
 
     # expr
     def visit_BoolOp(self, node):

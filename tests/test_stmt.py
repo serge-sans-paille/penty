@@ -94,3 +94,10 @@ class TestStmt(TestCase):
                               'x',
                               pentyping.Cst[eval("2 {} 3".format(op))])
 
+    def test_for_loop_simple(self):
+        self.assertIsType('for i in "hello": pass',
+                          'i', str)
+
+    def test_for_loop_simple(self):
+        self.assertIsType('j = 0\nfor i in "hello": j += 1',
+                          'j', int)
