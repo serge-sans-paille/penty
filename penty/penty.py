@@ -284,24 +284,19 @@ class Typer(ast.NodeVisitor):
             self.bindings.append(new_bindings)
             self.callstack.append(call_key)
             for stmt in fnode.body:
-                self.visit(stmt)
-            result_type = new_bindings['@'] or {Cst[None]}
+                prev = self.visit(stmt)
+                if not prev:
+                    break
+
+            if prev:
+                new_bindings['@'].add(Cst[None])
+
+            result_type = new_bindings['@']
             self.callstack.pop()
             self.bindings.pop()
         else:
             result_type = func(*args)
         return result_type
-
-    # stmt
-    def visit_FunctionDef(self, node):
-        self.bindings[-1][node.name] = {FDef[node]}
-
-    def visit_Return(self, node):
-        self.bindings[-1].setdefault('@', set())
-        if node.value is None:
-            self.bindings[-1]['@'].add(Cst[None])
-        else:
-            self.bindings[-1]['@'].update(self.visit(node.value))
 
     def _type_destructuring_assign(self, node, types):
         if isinstance(node, ast.Name):
@@ -315,16 +310,36 @@ class Typer(ast.NodeVisitor):
         else:
             raise NotImplementedError
 
+
+    # stmt
+    def visit_FunctionDef(self, node):
+        self.bindings[-1][node.name] = {FDef[node]}
+        return node,
+
+    def visit_Return(self, node):
+        self.bindings[-1].setdefault('@', set())
+        if node.value is None:
+            self.bindings[-1]['@'].add(Cst[None])
+        else:
+            self.bindings[-1]['@'].update(self.visit(node.value))
+        return ()
+
+    def visit_Delete(self, node):
+        self.generic_visit(node)
+        return node,
+
     def visit_Assign(self, node):
         value_types = self.visit(node.value)
         for target in node.targets:
             self._type_destructuring_assign(target, value_types)
+        return node,
 
     def visit_AugAssign(self, node):
         value_types = self.visit(node.value)
         target_types = self.visit(node.target)
         new_types = self._call(IOps[type(node.op)], target_types, value_types)
         self._type_destructuring_assign(node.target, new_types)
+        return node,
 
     def visit_For(self, node):
         iter_types = self.visit(node.iter)
@@ -333,14 +348,27 @@ class Typer(ast.NodeVisitor):
 
         loop_bindings = {}
         self.bindings.append(loop_bindings)
+
         for stmt in node.body:
-            self.visit(stmt)
+            prev = self.visit(stmt)
+            if not prev :
+                break
+            if all(isinstance(p, (ast.Break, ast.Continue)) for p in prev):
+                break
 
         reloop_bindings = {}
-        self.bindings.append(reloop_bindings)
-        for stmt in node.body:
-            self.visit(stmt)
-        self.bindings.pop()
+
+        if not all(isinstance(p, ast.Break) for p in prev):
+            self.bindings.append(reloop_bindings)
+            for stmt in node.body:
+                prev = self.visit(stmt)
+                if not prev:
+                    break
+                if all(isinstance(p, (ast.Break, ast.Continue)) for p in prev):
+                    break
+
+            self.bindings.pop()
+
         self.bindings.pop()
 
         for k, v in loop_bindings.items():
@@ -356,6 +384,27 @@ class Typer(ast.NodeVisitor):
                 # get rid of constants that grows along the loop
                 self.bindings[-1][k] = {astype(ty)
                                         for ty in self.bindings[-1][k]}
+
+        if not all(isinstance(p, ast.Break) for p in prev):
+            for stmt in node.orelse:
+                prev  = self.visit(stmt)
+                if not prev:
+                    break
+
+        return prev
+
+    def visit_Expr(self, node):
+        self.generic_visit(node)
+        return node,
+
+    def visit_Pass(self, node):
+        return node,
+
+    def visit_Break(self, node):
+        return node,
+
+    def visit_Continue(self, node):
+        return node,
 
     # expr
     def visit_BoolOp(self, node):

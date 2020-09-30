@@ -101,3 +101,27 @@ class TestStmt(TestCase):
     def test_for_loop_simple(self):
         self.assertIsType('j = 0\nfor i in "hello": j += 1',
                           'j', int)
+
+    def test_for_early_return(self):
+        self.assertIsType('j = 0\nfor i in "hello":\n j += 1\n return',
+                          'j', {pentyping.Cst[0], pentyping.Cst[1]})
+
+    def test_for_early_break(self):
+        self.assertIsType('j = 0\nfor i in "hello":\n j += 1\n break',
+                          'j', {pentyping.Cst[0], pentyping.Cst[1]})
+
+    def test_for_early_continue(self):
+        self.assertIsType('j = 0\nfor i in "hello":\n j += 1\n continue',
+                          'j', int)
+
+    def test_for_early_return_else(self):
+        self.assertIsType('j = 0\nfor i in "hello": return\nelse: j = 1',
+                          'j', pentyping.Cst[0])
+
+    def test_for_early_break_else(self):
+        self.assertIsType('j = 0\nfor i in "hello":\n break\nelse: j = 1',
+                          'j', pentyping.Cst[0])
+
+    def test_for_early_continue_else(self):
+        self.assertIsType('j = 0\nfor i in "hello":\n continue\nelse: j = 1',
+                          'j', pentyping.Cst[1])
