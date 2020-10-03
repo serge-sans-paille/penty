@@ -241,6 +241,7 @@ IOps = {
 }
 
 Builtins = {
+    'id': {pentypes.builtins.id.id_},
     'repr': {pentypes.builtins.repr.repr_},
     'slice': {pentypes.builtins.slice.slice_},
 }
@@ -385,13 +386,105 @@ class Typer(ast.NodeVisitor):
                 self.bindings[-1][k] = {astype(ty)
                                         for ty in self.bindings[-1][k]}
 
-        if not all(isinstance(p, ast.Break) for p in prev):
+        if not prev:
+            return ()
+
+
+        if all(not isinstance(p, ast.Break) for p in prev):
             for stmt in node.orelse:
-                prev  = self.visit(stmt)
+                prev = self.visit(stmt)
                 if not prev:
                     break
+        elif any(not isinstance(p, ast.Break) for p in prev):
+            orelse_bindings = {}
+            self.bindings.append(orelse_bindings)
+            for stmt in node.orelse:
+                prev = self.visit(stmt)
+                if not prev:
+                    break
+            self.bindings.pop()
+            for k, v in orelse_bindings.items():
+                if k in self.bindings[-1]:
+                    self.bindings[-1][k].update(v)
+                else:
+                    self.bindings[-1][k] = v
 
         return prev
+
+    def visit_If(self, node):
+        test_types = self.visit(node.test)
+        test_types = normalize_test_ty(test_types)
+
+        is_trivial_true = test_types == {Cst[True]}
+        is_trivial_false = test_types == {Cst[False]}
+
+        if is_trivial_true:
+            for stmt in node.body:
+                prev = self.visit(stmt)
+                if not prev:
+                    break
+                if all(isinstance(p, (ast.Break, ast.Continue)) for p in prev):
+                    break
+            return prev
+
+        if is_trivial_false:
+            prev = node,
+            for stmt in node.orelse:
+                prev = self.visit(stmt)
+                if not prev:
+                    break
+                if all(isinstance(p, (ast.Break, ast.Continue)) for p in prev):
+                    break
+            return prev
+
+        prev_body = ()
+        body_bindings = {}
+        self.bindings.append(body_bindings)
+        try:
+            for stmt in node.body:
+                prev_body = self.visit(stmt)
+                if not prev_body:
+                    break
+                if all(isinstance(p, (ast.Break, ast.Continue)) for p in
+                       prev_body):
+                    break
+        except UnboundIdentifier as ui:
+            pass
+        finally:
+            self.bindings.pop()
+
+        prev_orelse = node,
+        orelse_bindings = {}
+        self.bindings.append(orelse_bindings)
+        try:
+            for stmt in node.orelse:
+                prev_orelse = self.visit(stmt)
+                if not prev_orelse:
+                    break
+                if all(isinstance(p, (ast.Break, ast.Continue)) for p in
+                       prev_orelse):
+                    break
+        except UnboundIdentifier as ui:
+            pass
+        finally:
+            self.bindings.pop()
+
+        all_keys = set(body_bindings.keys()).union(orelse_bindings.keys())
+        for k in all_keys:
+            k_inbody, k_inorelse = k in body_bindings, k in orelse_bindings
+            if k_inbody & k_inorelse:
+                # don't erase the return type, add to it
+                if k != '@':
+                    self.bindings[-1][k].clear()
+                self.bindings[-1][k].update(body_bindings[k],
+                                            orelse_bindings[k])
+            elif k_inbody:
+                self.bindings[-1].setdefault(k, set())  # only in one branch
+                self.bindings[-1][k].update(body_bindings[k])
+            else:
+                self.bindings[-1].setdefault(k, set())  # only in one branch
+                self.bindings[-1][k].update(orelse_bindings[k])
+        return prev_body + prev_orelse
 
     def visit_Expr(self, node):
         self.generic_visit(node)

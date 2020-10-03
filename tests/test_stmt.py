@@ -125,3 +125,113 @@ class TestStmt(TestCase):
     def test_for_early_continue_else(self):
         self.assertIsType('j = 0\nfor i in "hello":\n continue\nelse: j = 1',
                           'j', pentyping.Cst[1])
+
+    def test_if_true_branch(self):
+        self.assertIsType('j = 0\nif j != 1: j = 1',
+                          'j', pentyping.Cst[1])
+
+    def test_if_false_branch(self):
+        self.assertIsType('j = 0\nif j != 0: j = 1\nelse: j = 2',
+                          'j', pentyping.Cst[2])
+
+    def test_if_false_empty_branch(self):
+        self.assertIsType('j = 0\nif j != 0: j = 1\nj = 3',
+                          'j', pentyping.Cst[3])
+
+    def test_if_both(self):
+        self.assertIsType('j = 0\nif id(j): j = 1\nelse: j = 3',
+                          'j', {pentyping.Cst[1], pentyping.Cst[3]})
+
+    def test_if_body(self):
+        self.assertIsType('j = 0\nif id(j): j = 1',
+                          'j', {pentyping.Cst[0], pentyping.Cst[1]})
+
+    def test_if_else(self):
+        self.assertIsType('j = 0\nif id(j): pass\nelse: j = 1',
+                          'j', {pentyping.Cst[0], pentyping.Cst[1]})
+
+    def test_if_else_in_loop_assign(self):
+        code = '''
+        for j in "erty":
+            if j: v = 1
+            else: s = v'''
+        self.assertIsType(code,
+                          'v, s',
+                          typing.Tuple[pentyping.Cst[1], pentyping.Cst[1]])
+
+    def test_if_else_in_loop_break(self):
+        code = '''
+        for j in "erty":
+            if j:
+                s = j
+                break
+        else:
+            s = 1'''
+        self.assertIsType(code,
+                          's',
+                          {pentyping.Cst[1], str})
+
+    def test_if_return_body_default(self):
+        code = '''
+        def f(x):
+            if x:
+                return x'''
+        self.assertIsType(code,
+                          'f(y)', {int, pentyping.Cst[None]},
+                          env = {'y': int})
+
+    def test_if_return_body(self):
+        code = '''
+        def f(x):
+            if x:
+                return x
+            return "e"'''
+        self.assertIsType(code,
+                          'f(y)', {int, pentyping.Cst["e"]},
+                          env = {'y': int})
+
+    def test_if_return_orelse_default(self):
+        code = '''
+        def f(x):
+            if x:
+                pass
+            else:
+                return x'''
+        self.assertIsType(code,
+                          'f(y)', {int, pentyping.Cst[None]},
+                          env = {'y': int})
+
+    def test_if_return_orelse(self):
+        code = '''
+        def f(x):
+            if x:
+                pass
+            else:
+                return x
+            return "e"'''
+        self.assertIsType(code,
+                          'f(y)', {int, pentyping.Cst["e"]},
+                          env = {'y': int})
+
+    def test_if_return(self):
+        code = '''
+        def f(x):
+            if x:
+                return "x"
+            else:
+                return x'''
+        self.assertIsType(code,
+                          'f(y)', {int, pentyping.Cst["x"]},
+                          env = {'y': int})
+
+    def test_nested_if_return(self):
+        code = '''
+        def f(x):
+            if x:
+                if id(x):
+                    return "x"
+            else:
+                return x'''
+        self.assertIsType(code,
+                          'f(y)', {int, pentyping.Cst["x"], pentyping.Cst[None]},
+                          env = {'y': int})
