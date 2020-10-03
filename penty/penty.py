@@ -313,6 +313,14 @@ class Typer(ast.NodeVisitor):
 
 
     # stmt
+    def visit_Module(self, node):
+        prev = ()
+        for stmt in node.body:
+            prev = self.visit(stmt)
+            if not prev :
+                break
+        return prev
+
     def visit_FunctionDef(self, node):
         self.bindings[-1][node.name] = {FDef[node]}
         return node,
@@ -342,10 +350,7 @@ class Typer(ast.NodeVisitor):
         self._type_destructuring_assign(node.target, new_types)
         return node,
 
-    def visit_For(self, node):
-        iter_types = self.visit(node.iter)
-        value_types = iterator_value_ty(iter_types)
-        self._type_destructuring_assign(node.target, value_types)
+    def visit_Loop(self, node):
 
         loop_bindings = {}
         self.bindings.append(loop_bindings)
@@ -410,6 +415,55 @@ class Typer(ast.NodeVisitor):
                     self.bindings[-1][k] = v
 
         return prev
+
+    def visit_For(self, node):
+        iter_types = self.visit(node.iter)
+        value_types = iterator_value_ty(iter_types)
+        self._type_destructuring_assign(node.target, value_types)
+
+        return self.visit_Loop(node)
+
+    def visit_While(self, node):
+        test_types = self.visit(node.test)
+        test_types = normalize_test_ty(test_types)
+
+        is_trivial_true = test_types == {Cst[True]}
+        is_trivial_false = test_types == {Cst[False]}
+
+        if is_trivial_false:
+            return node,
+
+        if is_trivial_true:
+            for stmt in node.body:
+                prev = self.visit(stmt)
+                if not prev :
+                    break
+                if all(isinstance(p, (ast.Break, ast.Continue)) for p in prev):
+                    break
+
+            if not prev:
+                return ()
+
+            if all(isinstance(p, ast.Break) for p in prev):
+                for stmt in node.orelse:
+                    prev = self.visit(stmt)
+                    if not prev:
+                        break
+                return prev
+            elif all(not isinstance(p, ast.Break) for p in prev):
+                test_types = self.visit(node.test)
+                test_types = normalize_test_ty(test_types)
+                is_trivial_true = test_types == {Cst[True]}
+
+                # infinite loop detected
+                if is_trivial_true:
+                    self.visit_Loop(node)
+                    return ()
+
+            # other cases default to normal loop handling
+
+        return self.visit_Loop(node)
+
 
     def visit_If(self, node):
         test_types = self.visit(node.test)

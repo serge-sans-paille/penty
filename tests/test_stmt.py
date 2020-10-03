@@ -98,7 +98,7 @@ class TestStmt(TestCase):
         self.assertIsType('for i in "hello": pass',
                           'i', str)
 
-    def test_for_loop_simple(self):
+    def test_for_loop_simple_incr(self):
         self.assertIsType('j = 0\nfor i in "hello": j += 1',
                           'j', int)
 
@@ -124,6 +124,50 @@ class TestStmt(TestCase):
 
     def test_for_early_continue_else(self):
         self.assertIsType('j = 0\nfor i in "hello":\n continue\nelse: j = 1',
+                          'j', pentyping.Cst[1])
+
+    def test_while_loop_trivial_false(self):
+        self.assertIsType('i = 0\nwhile 0: i = 1',
+                          'i', pentyping.Cst[0])
+
+    def test_while_loop_trivial_true(self):
+        self.assertIsType('i = 0\nwhile 1: i = 1',
+                          'i', pentyping.Cst[1])
+
+    def test_while_loop_trivial_inifinte(self):
+        self.assertIsType('i = 0\nwhile 1: i = 1\ni = 2',
+                          'i', pentyping.Cst[1])
+
+    def test_while_loop_simple(self):
+        self.assertIsType('i = 0\nwhile id(i): j = i',
+                          'j', pentyping.Cst[0])
+
+    def test_while_loop_simple_incr(self):
+        self.assertIsType('j = 0\nwhile id(j): j += 1',
+                          'j', int)
+
+    def test_while_early_return(self):
+        self.assertIsType('j = 0\nwhile id(j):\n j += 1\n return',
+                          'j', {pentyping.Cst[0], pentyping.Cst[1]})
+
+    def test_while_early_break(self):
+        self.assertIsType('j = 0\nwhile id(j):\n j += 1\n break',
+                          'j', {pentyping.Cst[0], pentyping.Cst[1]})
+
+    def test_while_early_continue(self):
+        self.assertIsType('j = 0\nwhile id(j):\n j += 1\n continue',
+                          'j', int)
+
+    def test_while_early_return_else(self):
+        self.assertIsType('j = 0\nwhile id(j): return\nelse: j = 1',
+                          'j', pentyping.Cst[0])
+
+    def test_while_early_break_else(self):
+        self.assertIsType('j = 0\nwhile id(j):\n break\nelse: j = 1',
+                          'j', pentyping.Cst[0])
+
+    def test_while_early_continue_else(self):
+        self.assertIsType('j = 0\nwhile id(j):\n continue\nelse: j = 1',
                           'j', pentyping.Cst[1])
 
     def test_if_true_branch(self):
