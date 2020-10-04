@@ -3,15 +3,10 @@ import typing
 import itertools
 
 import penty.pentypes as pentypes
-from penty.types import Cst, FDef
-
-
+from penty.types import Cst, FDef, Module
 
 
 class UnboundIdentifier(RuntimeError):
-    pass
-
-class OperatorModule(object):
     pass
 
 
@@ -161,7 +156,7 @@ Types = TypeRegistry({
     pentypes.str.str_iterator: {
         '__next__': pentypes.str_iterator.next_element,
     },
-    OperatorModule: {
+    Module['operator']: {
         '__add__': BinaryOperator('__add__'),
         '__and__': BinaryOperator('__and__'),
         '__eq__': BinaryOperator('__eq__'),
@@ -195,49 +190,82 @@ Types = TypeRegistry({
         '__sub__': BinaryOperator('__sub__'),
         '__truediv__': BinaryOperator('__truediv__'),
         '__xor__': BinaryOperator('__xor__'),
+        'add': BinaryOperator('__add__'),
+        'and_': BinaryOperator('__and__'),
+        'eq': BinaryOperator('__eq__'),
+        'floordiv': BinaryOperator('__floordiv__'),
+        'ge': BinaryOperator('__ge__'),
+        'getitem': BinaryOperator('__getitem__'),
+        'gt': BinaryOperator('__gt__'),
+        'iadd': BinaryOperator('__iadd__'),
+        'iand': BinaryOperator('__iand__'),
+        'ior': BinaryOperator('__ior__'),
+        'ixor': BinaryOperator('__ixor__'),
+        'itruediv': BinaryOperator('__itruediv__'),
+        'ifloordiv': BinaryOperator('__ifloordiv__'),
+        'imatmul': BinaryOperator('__imatmul__'),
+        'imod': BinaryOperator('__imod__'),
+        'imul': BinaryOperator('__imul__'),
+        'ipow': BinaryOperator('__ipow__'),
+        'isub': BinaryOperator('__isub__'),
+        'invert': UnaryOperator('__invert__'),
+        'le': BinaryOperator('__le__'),
+        'lt': BinaryOperator('__lt__'),
+        'matmul': BinaryOperator('__matmul__'),
+        'mod': BinaryOperator('__mod__'),
+        'mul': BinaryOperator('__mul__'),
+        'ne': BinaryOperator('__ne__'),
+        'neg': UnaryOperator('__neg__'),
+        'not_': NotOperator(),
+        'or_': BinaryOperator('__or__'),
+        'pos': UnaryOperator('__pos__'),
+        'pow': BinaryOperator('__pow__'),
+        'sub': BinaryOperator('__sub__'),
+        'truediv': BinaryOperator('__truediv__'),
+        'xor': BinaryOperator('__xor__'),
     },
     typing.List: pentypes.list,
     typing.Tuple: pentypes.tuple,
     })
 
 Ops = {
-    ast.Add: Types[OperatorModule]['__add__'],
-    ast.BitAnd: Types[OperatorModule]['__and__'],
-    ast.BitOr: Types[OperatorModule]['__or__'],
-    ast.BitXor: Types[OperatorModule]['__xor__'],
-    ast.Div: Types[OperatorModule]['__truediv__'],
-    ast.Eq: Types[OperatorModule]['__eq__'],
-    ast.FloorDiv: Types[OperatorModule]['__floordiv__'],
-    ast.Gt: Types[OperatorModule]['__gt__'],
-    ast.GtE: Types[OperatorModule]['__ge__'],
-    ast.Invert: Types[OperatorModule]['__invert__'],
+    ast.Add: Types[Module['operator']]['__add__'],
+    ast.BitAnd: Types[Module['operator']]['__and__'],
+    ast.BitOr: Types[Module['operator']]['__or__'],
+    ast.BitXor: Types[Module['operator']]['__xor__'],
+    ast.Div: Types[Module['operator']]['__truediv__'],
+    ast.Eq: Types[Module['operator']]['__eq__'],
+    ast.FloorDiv: Types[Module['operator']]['__floordiv__'],
+    ast.Gt: Types[Module['operator']]['__gt__'],
+    ast.GtE: Types[Module['operator']]['__ge__'],
+    ast.Invert: Types[Module['operator']]['__invert__'],
     ast.Is: IsOperator,
     ast.IsNot: IsNotOperator,
-    ast.Lt: Types[OperatorModule]['__lt__'],
-    ast.LtE: Types[OperatorModule]['__le__'],
-    ast.MatMult: Types[OperatorModule]['__matmul__'],
-    ast.Mod: Types[OperatorModule]['__mod__'],
-    ast.Mult: Types[OperatorModule]['__mul__'],
-    ast.Not: Types[OperatorModule]['__not__'],
-    ast.NotEq: Types[OperatorModule]['__ne__'],
-    ast.Pow: Types[OperatorModule]['__pow__'],
-    ast.Sub: Types[OperatorModule]['__sub__'],
-    ast.UAdd: Types[OperatorModule]['__pos__'],
-    ast.USub: Types[OperatorModule]['__neg__'],
+    ast.Lt: Types[Module['operator']]['__lt__'],
+    ast.LtE: Types[Module['operator']]['__le__'],
+    ast.MatMult: Types[Module['operator']]['__matmul__'],
+    ast.Mod: Types[Module['operator']]['__mod__'],
+    ast.Mult: Types[Module['operator']]['__mul__'],
+    ast.Not: Types[Module['operator']]['__not__'],
+    ast.NotEq: Types[Module['operator']]['__ne__'],
+    ast.Pow: Types[Module['operator']]['__pow__'],
+    ast.Sub: Types[Module['operator']]['__sub__'],
+    ast.UAdd: Types[Module['operator']]['__pos__'],
+    ast.USub: Types[Module['operator']]['__neg__'],
 }
 
 IOps = {
-    ast.Add: Types[OperatorModule]['__iadd__'],
-    ast.BitAnd: Types[OperatorModule]['__iand__'],
-    ast.BitOr: Types[OperatorModule]['__ior__'],
-    ast.BitXor: Types[OperatorModule]['__ixor__'],
-    ast.Div: Types[OperatorModule]['__itruediv__'],
-    ast.FloorDiv: Types[OperatorModule]['__ifloordiv__'],
-    ast.MatMult: Types[OperatorModule]['__imatmul__'],
-    ast.Mod: Types[OperatorModule]['__imod__'],
-    ast.Mult: Types[OperatorModule]['__imul__'],
-    ast.Pow: Types[OperatorModule]['__ipow__'],
-    ast.Sub: Types[OperatorModule]['__isub__'],
+    ast.Add: Types[Module['operator']]['__iadd__'],
+    ast.BitAnd: Types[Module['operator']]['__iand__'],
+    ast.BitOr: Types[Module['operator']]['__ior__'],
+    ast.BitXor: Types[Module['operator']]['__ixor__'],
+    ast.Div: Types[Module['operator']]['__itruediv__'],
+    ast.FloorDiv: Types[Module['operator']]['__ifloordiv__'],
+    ast.MatMult: Types[Module['operator']]['__imatmul__'],
+    ast.Mod: Types[Module['operator']]['__imod__'],
+    ast.Mult: Types[Module['operator']]['__imul__'],
+    ast.Pow: Types[Module['operator']]['__ipow__'],
+    ast.Sub: Types[Module['operator']]['__isub__'],
 }
 
 Builtins = {
@@ -305,7 +333,7 @@ class Typer(ast.NodeVisitor):
         elif isinstance(node, ast.Tuple):
             for i, elt in enumerate(node.elts):
                 elt_types = self._call(
-                    Types[OperatorModule]['__getitem__'],
+                    Types[Module['operator']]['__getitem__'],
                     types, {Cst[i]})
                 self._type_destructuring_assign(elt, elt_types)
         else:
@@ -540,6 +568,12 @@ class Typer(ast.NodeVisitor):
                 self.bindings[-1][k].update(orelse_bindings[k])
         return prev_body + prev_orelse
 
+    def visit_Import(self, node):
+        for alias in node.names:
+            module = Module[alias.name]
+            self.bindings[-1][alias.asname or alias.name] = {module}
+        return node,
+
     def visit_Expr(self, node):
         self.generic_visit(node)
         return node,
@@ -730,21 +764,28 @@ class Typer(ast.NodeVisitor):
     def visit_Constant(self, node):
         return {Cst[node.value]}
 
-    def _bindattr(self, value_ty, attr):
-        return lambda *args: Types[value_ty][attr]({value_ty}, *args)
+    def _bounded_attr(self, value_types, value_ty, attr):
+        func = self._unbounded_attr(value_ty, attr)
+        return lambda *args: func(value_types, *args)
+
+    def _unbounded_attr(self, value_ty, attr):
+        return Types[value_ty][attr]
 
     def visit_Attribute(self, node):
         value_types = self.visit(node.value)
         result_types = set()
-        for value_ty in value_types:
-            result_types.add(self._bindattr(value_ty, node.attr))
+        for value_ty in list(value_types):
+            if issubclass(value_ty, Module):
+                result_types.add(self._unbounded_attr(value_ty, node.attr))
+            else:
+                result_types.add(self._bounded_attr(value_types, value_ty, node.attr))
         return result_types
 
     def visit_Subscript(self, node):
         value_types = self.visit(node.value)
         slice_types = self.visit(node.slice)
 
-        return self._call(Types[OperatorModule]['__getitem__'],
+        return self._call(Types[Module['operator']]['__getitem__'],
                           value_types,
                           slice_types)
 

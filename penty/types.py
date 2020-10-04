@@ -1,4 +1,3 @@
-
 class CstMeta(type):
     cache = {}
 
@@ -38,4 +37,22 @@ class FDefMeta(type):
 
 
 class FDef(metaclass=FDefMeta):
+    pass
+
+class ModuleMeta(type):
+    cache = {}
+
+    def __getitem__(self, args):
+        if args not in ModuleMeta.cache:
+            class LocalModule(Module):
+                __args__ = args,
+
+            ModuleMeta.cache[args] = LocalModule
+        return ModuleMeta.cache[args]
+
+    def __repr__(self):
+        return 'Module[{}]'.format(self.__args__[0])
+
+
+class Module(metaclass=ModuleMeta):
     pass
