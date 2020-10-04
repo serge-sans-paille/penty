@@ -1,6 +1,7 @@
 import gast as ast
 import typing
 import itertools
+import operator
 
 import penty.pentypes as pentypes
 from penty.types import Cst, FDef, Module
@@ -570,8 +571,26 @@ class Typer(ast.NodeVisitor):
 
     def visit_Import(self, node):
         for alias in node.names:
+            if '.' in alias.name:
+                raise NotImplementedError
             module = Module[alias.name]
             self.bindings[-1][alias.asname or alias.name] = {module}
+        return node,
+
+    def visit_ImportFrom(self, node):
+        if not node.module:
+            raise NotImplementedError
+        if node.level:
+            raise NotImplementedError
+        module_path = node.module.split('.')
+        if len(module_path) == 1:
+            path = Types[Module[module_path[0]]]
+        else:
+            path = reduce(operator.getitem, module_path[1:],
+                          Types[Module[module_path[0]]])
+        for alias in node.names:
+            attribute = path[alias.name]
+            self.bindings[-1][alias.asname or alias.name] = {attribute}
         return node,
 
     def visit_Expr(self, node):

@@ -287,3 +287,11 @@ class TestStmt(TestCase):
     def test_import_as(self):
         self.assertIsType('import operator as op; x = op.add(1, 2)',
                           'x', pentyping.Cst[3])
+
+    def test_import_from(self):
+        self.assertIsType('from operator import add; x = add(1, 2)',
+                          'x', pentyping.Cst[3])
+
+    def test_import_as(self):
+        self.assertIsType('from operator import add as op; x = op(1, 2)',
+                          'x', pentyping.Cst[3])
