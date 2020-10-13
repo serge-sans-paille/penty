@@ -99,6 +99,9 @@ class TypeRegistry(object):
     def __getattr__(self, attr):
         return self.registry.attr
 
+    def __setitem__(self, key, value):
+        self.registry[key] = value
+
     def __getitem__(self, key):
         if issubclass(key, Cst):
             return self.registry[type(key.__args__[0])]
@@ -157,77 +160,12 @@ Types = TypeRegistry({
     pentypes.str.str_iterator: {
         '__next__': pentypes.str_iterator.next_element,
     },
-    Module['operator']: {
-        '__add__': BinaryOperator('__add__'),
-        '__and__': BinaryOperator('__and__'),
-        '__eq__': BinaryOperator('__eq__'),
-        '__floordiv__': BinaryOperator('__floordiv__'),
-        '__ge__': BinaryOperator('__ge__'),
-        '__getitem__': BinaryOperator('__getitem__'),
-        '__gt__': BinaryOperator('__gt__'),
-        '__iadd__': BinaryOperator('__iadd__'),
-        '__iand__': BinaryOperator('__iand__'),
-        '__ior__': BinaryOperator('__ior__'),
-        '__ixor__': BinaryOperator('__ixor__'),
-        '__itruediv__': BinaryOperator('__itruediv__'),
-        '__ifloordiv__': BinaryOperator('__ifloordiv__'),
-        '__imatmul__': BinaryOperator('__imatmul__'),
-        '__imod__': BinaryOperator('__imod__'),
-        '__imul__': BinaryOperator('__imul__'),
-        '__ipow__': BinaryOperator('__ipow__'),
-        '__isub__': BinaryOperator('__isub__'),
-        '__invert__': UnaryOperator('__invert__'),
-        '__le__': BinaryOperator('__le__'),
-        '__lt__': BinaryOperator('__lt__'),
-        '__matmul__': BinaryOperator('__matmul__'),
-        '__mod__': BinaryOperator('__mod__'),
-        '__mul__': BinaryOperator('__mul__'),
-        '__ne__': BinaryOperator('__ne__'),
-        '__neg__': UnaryOperator('__neg__'),
-        '__not__': NotOperator(),
-        '__or__': BinaryOperator('__or__'),
-        '__pos__': UnaryOperator('__pos__'),
-        '__pow__': BinaryOperator('__pow__'),
-        '__sub__': BinaryOperator('__sub__'),
-        '__truediv__': BinaryOperator('__truediv__'),
-        '__xor__': BinaryOperator('__xor__'),
-        'add': BinaryOperator('__add__'),
-        'and_': BinaryOperator('__and__'),
-        'eq': BinaryOperator('__eq__'),
-        'floordiv': BinaryOperator('__floordiv__'),
-        'ge': BinaryOperator('__ge__'),
-        'getitem': BinaryOperator('__getitem__'),
-        'gt': BinaryOperator('__gt__'),
-        'iadd': BinaryOperator('__iadd__'),
-        'iand': BinaryOperator('__iand__'),
-        'ior': BinaryOperator('__ior__'),
-        'ixor': BinaryOperator('__ixor__'),
-        'itruediv': BinaryOperator('__itruediv__'),
-        'ifloordiv': BinaryOperator('__ifloordiv__'),
-        'imatmul': BinaryOperator('__imatmul__'),
-        'imod': BinaryOperator('__imod__'),
-        'imul': BinaryOperator('__imul__'),
-        'ipow': BinaryOperator('__ipow__'),
-        'isub': BinaryOperator('__isub__'),
-        'invert': UnaryOperator('__invert__'),
-        'le': BinaryOperator('__le__'),
-        'lt': BinaryOperator('__lt__'),
-        'matmul': BinaryOperator('__matmul__'),
-        'mod': BinaryOperator('__mod__'),
-        'mul': BinaryOperator('__mul__'),
-        'ne': BinaryOperator('__ne__'),
-        'neg': UnaryOperator('__neg__'),
-        'not_': NotOperator(),
-        'or_': BinaryOperator('__or__'),
-        'pos': UnaryOperator('__pos__'),
-        'pow': BinaryOperator('__pow__'),
-        'sub': BinaryOperator('__sub__'),
-        'truediv': BinaryOperator('__truediv__'),
-        'xor': BinaryOperator('__xor__'),
-    },
     typing.List: pentypes.list,
     typing.Tuple: pentypes.tuple,
     })
+
+# needed to define Ops in terms of calls tothe operator module
+pentypes.operator.register(Types)
 
 Ops = {
     ast.Add: Types[Module['operator']]['__add__'],
@@ -574,6 +512,7 @@ class Typer(ast.NodeVisitor):
             if '.' in alias.name:
                 raise NotImplementedError
             module = Module[alias.name]
+            getattr(pentypes, alias.name).register(Types)
             self.bindings[-1][alias.asname or alias.name] = {module}
         return node,
 
@@ -584,10 +523,17 @@ class Typer(ast.NodeVisitor):
             raise NotImplementedError
         module_path = node.module.split('.')
         if len(module_path) == 1:
-            path = Types[Module[module_path[0]]]
+            getattr(pentypes, module_path[0]).register(Types)
+            module = Module[module_path[0]]
+            path = Types[module]
         else:
-            path = reduce(operator.getitem, module_path[1:],
-                          Types[Module[module_path[0]]])
+            imported_module = getattr(pentypes, module_path[0])
+            imported_module.register(Types)
+            path = Types[Module[module_path[0]]]
+            for mp in module_path[1:]:
+                getattr(imported_module, mp).register(imported_module)
+                path = path[mp]
+
         for alias in node.names:
             attribute = path[alias.name]
             self.bindings[-1][alias.asname or alias.name] = {attribute}
@@ -796,6 +742,7 @@ class Typer(ast.NodeVisitor):
         for value_ty in list(value_types):
             if issubclass(value_ty, Module):
                 result_types.add(self._unbounded_attr(value_ty, node.attr))
+            # FIXME: handle static methods
             else:
                 result_types.add(self._bounded_attr(value_types, value_ty, node.attr))
         return result_types

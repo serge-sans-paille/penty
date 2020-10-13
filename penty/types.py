@@ -39,6 +39,24 @@ class FDefMeta(type):
 class FDef(metaclass=FDefMeta):
     pass
 
+class FunctionTypeMeta(type):
+    cache = {}
+
+    def __getitem__(self, args):
+        if args not in FunctionTypeMeta.cache:
+            class LocalFunctionType(FunctionType):
+                __args__ = args,
+
+            FunctionTypeMeta.cache[args] = LocalFunctionType
+        return FunctionTypeMeta.cache[args]
+
+    def __repr__(self):
+        return 'FunctionType[{}]'.format(self.__args__[0])
+
+
+class FunctionType(metaclass=FunctionTypeMeta):
+    pass
+
 class ModuleMeta(type):
     cache = {}
 
