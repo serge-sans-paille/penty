@@ -28,73 +28,11 @@ class Lambda(object):
         self.visitor.bindings = old_bindings
         return result_types
 
-class BinaryOperator(object):
-    def __init__(self, name):
-        self.name = name
-
-    def __call__(self, left_types, right_types):
-        result_type = set()
-        for left_ty in list(left_types):
-            result_type.update(Types[left_ty][self.name]
-                               (left_types, right_types))
-        return result_type
-
-def IsOperator(left_types, right_types):
-    result_types = set()
-    for left_ty in left_types:
-        left_ty = astype(left_ty)
-        for right_ty in right_types:
-            right_ty = astype(right_ty)
-            if left_ty == right_ty:
-                result_types.add(bool)
-            else:
-                result_types.add(Cst[False])
-    return result_types
-
-def IsNotOperator(left_types, right_types):
-    result_types = set()
-    for left_ty in left_types:
-        left_ty = astype(left_ty)
-        for right_ty in right_types:
-            right_ty = astype(right_ty)
-            if left_ty == right_ty:
-                result_types.add(bool)
-            else:
-                result_types.add(Cst[True])
-    return result_types
-
-class UnaryOperator(object):
-    def __init__(self, name):
-        self.name = name
-
-    def __call__(self, operand_types):
-        result_type = set()
-        for operand_type in operand_types:
-            result_type.update(Types[operand_type][self.name](operand_types))
-        return result_type
-
-class NotOperator(object):
-    def __call__(self, operand_types):
-        result_type = set()
-        for operand_type in operand_types:
-            if '__not__' in Types[operand_type]:
-                func = Types[operand_type]['__not__']
-            else:
-                def func(argument_types):
-                    result_types = set()
-                    for z in argument_types:
-                        z_bool_ty = Types[z]['__bool__'](argument_types)
-                        for y in z_bool_ty:
-                            result_types.update(Types[y]['__not__'](z_bool_ty))
-                    return result_types
-
-            result_type.update(func(operand_types))
-        return result_type
 
 class TypeRegistry(object):
 
-    def __init__(self, registry):
-        self.registry = registry
+    def __init__(self):
+        self.registry = {}
 
     def __getattr__(self, attr):
         return self.registry.attr
@@ -114,57 +52,14 @@ class TypeRegistry(object):
         if ty in self.registry:
             return self.registry[ty]
         base = ty.__bases__[0]
-        return self.registry[base].instanciate(ty)
+        return self.registry[base](ty)
 
 
 
-Types = TypeRegistry({
-    bool : {
-        '__not__': pentypes.bool.not_,
-    },
-    int: {
-        '__add__': pentypes.int.add,
-        '__and__': pentypes.int.bitand,
-        '__bool__': pentypes.int.boolean,
-        '__eq__': pentypes.int.eq,
-        '__floordiv__': pentypes.int.floordiv,
-        '__ge__': pentypes.int.ge,
-        '__gt__': pentypes.int.gt,
-        '__iadd__': pentypes.int.iadd,
-        '__iand__': pentypes.int.iand,
-        '__ior__': pentypes.int.ior,
-        '__itruediv__': pentypes.int.itruediv,
-        '__ifloordiv__': pentypes.int.ifloordiv,
-        '__imod__': pentypes.int.imod,
-        '__imul__': pentypes.int.imul,
-        '__isub__': pentypes.int.isub,
-        '__ipow__': pentypes.int.ipow,
-        '__ixor__': pentypes.int.ixor,
-        '__invert__': pentypes.int.invert,
-        '__le__': pentypes.int.le,
-        '__lt__': pentypes.int.lt,
-        '__mul__': pentypes.int.mul,
-        '__mod__': pentypes.int.mod,
-        '__ne__': pentypes.int.ne,
-        '__neg__': pentypes.int.neg,
-        '__or__': pentypes.int.bitor,
-        '__pos__': pentypes.int.pos,
-        '__pow__': pentypes.int.power,
-        '__sub__': pentypes.int.sub,
-        '__truediv__': pentypes.int.truediv,
-        '__xor__': pentypes.int.bitxor,
-    },
-    str: {
-        '__iter__': pentypes.str.iterator,
-    },
-    pentypes.str.str_iterator: {
-        '__next__': pentypes.str_iterator.next_element,
-    },
-    typing.List: pentypes.list,
-    typing.Tuple: pentypes.tuple,
-    })
+Types = TypeRegistry()
 
-# needed to define Ops in terms of calls tothe operator module
+pentypes.builtins.register(Types)
+# needed to define Ops in terms of calls to the operator module
 pentypes.operator.register(Types)
 
 Ops = {
@@ -178,8 +73,8 @@ Ops = {
     ast.Gt: Types[Module['operator']]['__gt__'],
     ast.GtE: Types[Module['operator']]['__ge__'],
     ast.Invert: Types[Module['operator']]['__invert__'],
-    ast.Is: IsOperator,
-    ast.IsNot: IsNotOperator,
+    ast.Is: pentypes.operator.IsOperator,
+    ast.IsNot: pentypes.operator.IsNotOperator,
     ast.Lt: Types[Module['operator']]['__lt__'],
     ast.LtE: Types[Module['operator']]['__le__'],
     ast.MatMult: Types[Module['operator']]['__matmul__'],
@@ -207,11 +102,6 @@ IOps = {
     ast.Sub: Types[Module['operator']]['__isub__'],
 }
 
-Builtins = {
-    'id': {pentypes.builtins.id.id_},
-    'repr': {pentypes.builtins.repr.repr_},
-    'slice': {pentypes.builtins.slice.slice_},
-}
 
 def astype(ty):
     return type(ty.__args__[0]) if issubclass(ty, Cst) else ty
@@ -234,7 +124,7 @@ class Typer(ast.NodeVisitor):
 
     def __init__(self, env=None):
         self.state = {}
-        self.bindings = [Builtins.copy()]
+        self.bindings = [Types[Module['builtins']].copy()]
         if env:
             self.bindings[0].update(env)
         self.callstack = []
@@ -786,7 +676,7 @@ class Typer(ast.NodeVisitor):
             step_types = self.visit(node.step)
         else:
             step_types = {Cst[None]}
-        return next(iter(Builtins['slice']))(lower_types, upper_types, step_types)
+        return next(iter(Types[Module['builtins']]['slice']))(lower_types, upper_types, step_types)
 
     def visit_Name(self, node):
         # the store here is surprising, but it comes from augassign
