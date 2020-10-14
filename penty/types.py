@@ -1,3 +1,6 @@
+def astype(ty):
+    return type(ty.__args__[0]) if hasattr(ty, 'mro') and issubclass(ty, Cst) else ty
+
 class CstMeta(type):
     cache = {}
 
@@ -73,4 +76,22 @@ class ModuleMeta(type):
 
 
 class Module(metaclass=ModuleMeta):
+    pass
+
+class LambdaMeta(type):
+    cache = {}
+
+    def __getitem__(self, args):
+        if args not in LambdaMeta.cache:
+            class LocalLambda(Lambda):
+                __args__ = args,
+
+            LambdaMeta.cache[args] = LocalLambda
+        return LambdaMeta.cache[args]
+
+    def __repr__(self):
+        return 'Lambda[{}]'.format(self.__args__[0])
+
+
+class Lambda(metaclass=LambdaMeta):
     pass

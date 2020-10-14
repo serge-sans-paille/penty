@@ -1,4 +1,4 @@
-from penty.types import FunctionType, FunctionTypeMeta, Cst, Module
+from penty.types import FunctionType, FunctionTypeMeta, Cst, Module, astype
 
 class UnaryOperatorMeta(FunctionTypeMeta):
     cache = {}
@@ -8,7 +8,7 @@ class UnaryOperatorMeta(FunctionTypeMeta):
             class LocalUnaryOperator(UnaryOperator):
                 __args__ = args,
 
-            UnaryOperatorMeta.cache[args] = LocalUnaryOperator
+            UnaryOperatorMeta.cache[args] = Cst[LocalUnaryOperator]
         return UnaryOperatorMeta.cache[args]
 
     def __repr__(self):
@@ -33,7 +33,7 @@ class BinaryOperatorMeta(FunctionTypeMeta):
             class LocalBinaryOperator(BinaryOperator):
                 __args__ = args,
 
-            BinaryOperatorMeta.cache[args] = LocalBinaryOperator
+            BinaryOperatorMeta.cache[args] = Cst[LocalBinaryOperator]
         return BinaryOperatorMeta.cache[args]
 
     def __repr__(self):
@@ -54,38 +54,60 @@ class BinaryOperator(FunctionType, metaclass=BinaryOperatorMeta):
 class IsOperatorMeta(BinaryOperatorMeta):
 
     def __call__(self, left_types, right_types):
-        from penty.penty import astype
         result_types = set()
         for left_ty in left_types:
-            left_ty = astype(left_ty)
-            for right_ty in right_types:
-                right_ty = astype(right_ty)
-                if left_ty == right_ty:
-                    result_types.add(bool)
-                else:
-                    result_types.add(Cst[False])
+            if issubclass(left_ty, Cst):
+                for right_ty in right_types:
+                    if issubclass(right_ty, Cst):
+                        result_types.add(Cst[left_ty.__args__[0] is
+                                              right_ty.__args__[0]])
+                    elif astype(left_ty) == right_ty:
+                        result_types.add(bool)
+                    else:
+                        result_types.add(Cst[False])
+            else:
+                left_ty = astype(left_ty)
+                for right_ty in right_types:
+                    right_ty = astype(right_ty)
+                    if left_ty == right_ty:
+                        result_types.add(bool)
+                    else:
+                        result_types.add(Cst[False])
         return result_types
 
 class IsOperator(BinaryOperator, metaclass=IsOperatorMeta):
     __args__ = "is",
 
+IsOperator = Cst[IsOperator]
+
 class IsNotOperatorMeta(BinaryOperatorMeta):
 
     def __call__(self, left_types, right_types):
-        from penty.penty import astype
         result_types = set()
         for left_ty in left_types:
-            left_ty = astype(left_ty)
-            for right_ty in right_types:
-                right_ty = astype(right_ty)
-                if left_ty == right_ty:
-                    result_types.add(bool)
-                else:
-                    result_types.add(Cst[True])
+            if issubclass(left_ty, Cst):
+                for right_ty in right_types:
+                    if issubclass(right_ty, Cst):
+                        result_types.add(Cst[left_ty.__args__[0] is not
+                                              right_ty.__args__[0]])
+                    elif astype(left_ty) == right_ty:
+                        result_types.add(bool)
+                    else:
+                        result_types.add(Cst[True])
+            else:
+                left_ty = astype(left_ty)
+                for right_ty in right_types:
+                    right_ty = astype(right_ty)
+                    if left_ty == right_ty:
+                        result_types.add(bool)
+                    else:
+                        result_types.add(Cst[True])
         return result_types
 
 class IsNotOperator(BinaryOperator, metaclass=IsNotOperatorMeta):
     __args__ = "is not",
+
+IsNotOperator = Cst[IsNotOperator]
 
 class NotOperatorMeta(UnaryOperatorMeta):
 
@@ -109,6 +131,8 @@ class NotOperatorMeta(UnaryOperatorMeta):
 
 class NotOperator(UnaryOperator, metaclass=NotOperatorMeta):
     __args__ = "not",
+
+NotOperator = Cst[NotOperator]
 
 def register(registry):
     registry[Module['operator']] = {

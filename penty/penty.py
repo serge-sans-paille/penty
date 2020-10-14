@@ -4,29 +4,11 @@ import itertools
 import operator
 
 import penty.pentypes as pentypes
-from penty.types import Cst, FDef, Module
+from penty.types import Cst, FDef, Module, astype, Lambda
 
 
 class UnboundIdentifier(RuntimeError):
     pass
-
-
-class Lambda(object):
-
-    def __init__(self, node, visitor):
-        self.node = node
-        self.visitor = visitor
-        self.bindings = list(visitor.bindings)
-
-    def __call__(self, *argument_types):
-        old_bindings, self.visitor.bindings = self.visitor.bindings, self.bindings
-        new_bindings = {arg.id: arg_ty for arg, arg_ty in
-                        zip(self.node.args.args, argument_types)}
-        self.visitor.bindings.append(new_bindings)
-        result_types = self.visitor.visit(self.node.body)
-        self.visitor.bindings.pop()
-        self.visitor.bindings = old_bindings
-        return result_types
 
 
 class TypeRegistry(object):
@@ -103,9 +85,6 @@ IOps = {
 }
 
 
-def astype(ty):
-    return type(ty.__args__[0]) if issubclass(ty, Cst) else ty
-
 def normalize_test_ty(types):
     return {Cst[bool(ty.__args__[0])] if issubclass(ty, Cst) else ty
             for ty in types}
@@ -130,7 +109,10 @@ class Typer(ast.NodeVisitor):
         self.callstack = []
 
     def _call(self, func, *args):
-        if hasattr(func, 'mro') and issubclass(func, FDef):
+        # Just to make it easier to call operators
+        if isinstance(func, set):
+            func, = func
+        if issubclass(func, FDef):
             fnode, = func.__args__
             call_key = func, *args
             if call_key in self.callstack:
@@ -152,8 +134,15 @@ class Typer(ast.NodeVisitor):
             result_type = new_bindings['@']
             self.callstack.pop()
             self.bindings.pop()
+        elif issubclass(func, Lambda):
+            lnode, = func.__args__
+            new_bindings = {arg.id: arg_ty for arg, arg_ty in
+                            zip(lnode.args.args, args)}
+            self.bindings.append(new_bindings)
+            result_type = self.visit(lnode.body)
+            self.bindings.pop()
         else:
-            result_type = func(*args)
+            result_type = func.__args__[0](*args)
         return result_type
 
     def _type_destructuring_assign(self, node, types):
@@ -474,7 +463,7 @@ class Typer(ast.NodeVisitor):
         return self._call(Ops[type(node.op)], operand_ty)
 
     def visit_Lambda(self, node):
-        return {Lambda(node, self)}
+        return {Lambda[node]}
 
     def visit_IfExp(self, node):
         test_ty = self.visit(node.test)
@@ -639,7 +628,7 @@ class Typer(ast.NodeVisitor):
 
     def _bounded_attr(self, value_types, value_ty, attr):
         func = self._unbounded_attr(value_ty, attr)
-        return lambda *args: func(value_types, *args)
+        return Cst[lambda *args: func(value_types, *args)]
 
     def _unbounded_attr(self, value_ty, attr):
         return Types[value_ty][attr]
@@ -694,7 +683,7 @@ class Typer(ast.NodeVisitor):
             step_types = self.visit(node.step)
         else:
             step_types = {Cst[None]}
-        return next(iter(Types[Module['builtins']]['slice']))(lower_types, upper_types, step_types)
+        return self._call(Types[Module['builtins']]['slice'], lower_types, upper_types, step_types)
 
     def visit_Name(self, node):
         # the store here is surprising, but it comes from augassign

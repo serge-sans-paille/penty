@@ -1,4 +1,4 @@
-from penty.types import Cst as _Cst, Module as _Module
+from penty.types import Cst as _Cst, Module as _Module, astype as _astype
 import typing as _typing
 import operator as _operator
 
@@ -22,6 +22,17 @@ _bool_attrs = {
 
 ##
 #
+
+def int_init(self_types):
+    result_types = set()
+    for ty in self_types:
+        if ty in (bool, int, float, str):
+            result_types.add(int)
+        elif issubclass(ty, _Cst):
+            result_types.add(_Cst[int(ty.__args__[0])])
+        else:
+            raise NotImplementedError
+    return result_types
 
 
 def int_make_binop(operator):
@@ -169,6 +180,7 @@ _int_attrs = {
     '__floordiv__': int_make_binop(_operator.floordiv),
     '__ge__': int_make_boolop(_operator.ge),
     '__gt__': int_make_boolop(_operator.gt),
+    '__init__': _Cst[int_init],
     '__invert__': int_make_unaryop(_operator.inv),
     '__le__': int_make_boolop(_operator.le),
     '__lt__': int_make_boolop(_operator.lt),
@@ -364,6 +376,13 @@ def slice_(lower_types, upper_types, step_types):
 ##
 #
 
+def type_(self_types):
+    from penty.penty import Types
+    return {Types[_astype(ty)]['__init__'] for ty in self_types}
+
+##
+#
+
 def register(registry):
     registry[bool] = _bool_attrs
     registry[int] = _int_attrs
@@ -374,7 +393,9 @@ def register(registry):
     registry[_typing.Tuple] = tuple_instanciate
 
     registry[_Module['builtins']] = {
-        'id': {id_},
-        'repr': {repr_},
-        'slice': {slice_},
+        'id': {_Cst[id_]},
+        'int': {_Cst[int_init]},
+        'repr': {_Cst[repr_]},
+        'slice': {_Cst[slice_]},
+        'type': {_Cst[type_]},
     }
