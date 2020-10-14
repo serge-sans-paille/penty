@@ -243,3 +243,12 @@ class TestExpr(TestCase):
                           {typing.Tuple[pentyping.Cst[1], float],
                            typing.Tuple[pentyping.Cst[1], int]},
                           env={'x': int, 'y': float})
+
+    def test_static_expression_ty(self):
+        self.assertIsType('x is None', pentyping.Cst[False], env={'x': int})
+        self.assertIsType('x is not None', pentyping.Cst[True], env={'x': int})
+        self.assertIsType('x is None or x == 1', bool, env={'x': int})
+        self.assertIsType('x is not None and x is not 2.', pentyping.Cst[True], env={'x': int})
+        self.assertIsType('1 or x == 1', pentyping.Cst[1], env={'x': int})
+        self.assertIsType('1 and x is not 2', bool, env={'x': int})
+        self.assertIsType('1 and x is not 2.', pentyping.Cst[True], env={'x': int})

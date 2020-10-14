@@ -444,8 +444,26 @@ class Typer(ast.NodeVisitor):
 
     # expr
     def visit_BoolOp(self, node):
-        operands_ty = [self.visit(value) for value in node.values]
-        return set.union(*operands_ty)
+        test_ty = set()
+        if isinstance(node.op, ast.And):
+            for value in node.values:
+                ntest_ty = normalize_test_ty(test_ty)
+                if ntest_ty == {Cst[False]}:
+                    break
+                if ntest_ty == {Cst[True]}:
+                    test_ty = self.visit(value)
+                else:
+                    test_ty.update(self.visit(value))
+        else:
+            for value in node.values:
+                ntest_ty = normalize_test_ty(test_ty)
+                if ntest_ty == {Cst[True]}:
+                    break
+                if ntest_ty == {Cst[False]}:
+                    test_ty = self.visit(value)
+                else:
+                    test_ty.update(self.visit(value))
+        return test_ty
 
     def visit_BinOp(self, node):
         operands_ty = self.visit(node.left), self.visit(node.right)
