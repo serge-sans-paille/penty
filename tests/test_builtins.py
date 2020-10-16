@@ -16,6 +16,12 @@ class TestBuiltins(TestCase):
     def test_type(self):
         self.assertIsType('type(x) is int', pentyping.Cst[True], env={'x':int})
 
+    def test_int(self):
+        self.assertIsType('int(x)', int, env={'x': bool})
+        self.assertIsType('int(x)', int, env={'x': int})
+        self.assertIsType('int(x)', int, env={'x': float})
+        self.assertIsType('int(x)', int, env={'x': str})
+
 
 class TestDict(TestCase):
 

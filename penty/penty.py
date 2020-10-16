@@ -147,6 +147,8 @@ class Typer(ast.NodeVisitor):
             self.bindings.append(new_bindings)
             result_type = self.visit(lnode.body)
             self.bindings.pop()
+        elif issubclass(func, Type):
+            result_type = self._call(Types[func.__args__[0]]['__init__'], *args)
         else:
             result_type = func.__args__[0](*args)
         return result_type

@@ -18,7 +18,6 @@ def bool_not(self_types):
     return result_types
 
 _bool_attrs = {
-    '__class__': bool,
     '__not__' : bool_not,
 }
 
@@ -178,7 +177,6 @@ _int_attrs = {
     '__add__': int_make_binop(_operator.add),
     '__and__': int_make_bitop(_operator.and_),
     '__bool__': int_boolean,
-    '__class__': int,
     '__eq__': int_make_boolop(_operator.eq),
     '__floordiv__': int_make_binop(_operator.floordiv),
     '__ge__': int_make_boolop(_operator.ge),
@@ -215,7 +213,6 @@ _int_attrs.update({
 #
 
 _float_attrs = {
-    '__class__' : float,
 }
 
 ##
@@ -234,7 +231,6 @@ def str_iter(self_types):
     return result_types
 
 _str_attrs = {
-    '__class__' : str,
     '__iter__' : str_iter,
 }
 
@@ -267,12 +263,10 @@ def dict_fromkeys(iterable_types, value_types=None):
 
 def dict_instanciate(ty):
     return {
-        '__class__': ty,
         'clear': lambda *args: dict_clear(ty, *args),
     }
 
 _dict_attrs = {
-    '__class__': dict,
     'from_keys': _Cst[dict_fromkeys],
 }
 
@@ -323,7 +317,6 @@ def list_getitem(base_ty, self_types, key_types):
 
 def list_instanciate(ty):
     return {
-        '__class__': ty,
         '__getitem__': lambda *args: list_getitem(ty, *args),
         'count': lambda *args: list_count(ty, *args),
     }
@@ -359,7 +352,6 @@ def tuple_getitem(base_ty, self_types, key_types):
 
 def tuple_instanciate(ty):
     return {
-        '__class__': ty,
         '__getitem__': lambda *args: tuple_getitem(ty, *args),
     }
 
