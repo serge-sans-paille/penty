@@ -2,6 +2,7 @@ import gast as ast
 import typing
 import itertools
 import operator
+from functools import reduce
 
 import penty.pentypes as pentypes
 from penty.types import Cst, FDef, Module, astype, Lambda
@@ -21,6 +22,9 @@ class TypeRegistry(object):
 
     def __setitem__(self, key, value):
         self.registry[key] = value
+
+    def __contains__(self, key):
+        return key in self.registry
 
     def __getitem__(self, key):
         if issubclass(key, Cst):
@@ -388,10 +392,16 @@ class Typer(ast.NodeVisitor):
 
     def visit_Import(self, node):
         for alias in node.names:
-            if '.' in alias.name:
-                raise NotImplementedError
+            packages = alias.name.split('.')
+            accumulated_packages = []
+            for pkg in packages[0: -1]:
+                accumulated_packages.append(pkg)
+                accumulated_name = ".".join(accumulated_packages)
+                module = Module[accumulated_name]
+                self.bindings[-1][accumulated_name] = {module}
+                reduce(getattr, accumulated_packages, pentypes).register(Types)
+            reduce(getattr, packages, pentypes).register(Types)
             module = Module[alias.name]
-            getattr(pentypes, alias.name).register(Types)
             self.bindings[-1][alias.asname or alias.name] = {module}
         return node,
 
@@ -400,21 +410,20 @@ class Typer(ast.NodeVisitor):
             raise NotImplementedError
         if node.level:
             raise NotImplementedError
-        module_path = node.module.split('.')
-        if len(module_path) == 1:
-            getattr(pentypes, module_path[0]).register(Types)
-            module = Module[module_path[0]]
-            path = Types[module]
-        else:
-            imported_module = getattr(pentypes, module_path[0])
-            imported_module.register(Types)
-            path = Types[Module[module_path[0]]]
-            for mp in module_path[1:]:
-                getattr(imported_module, mp).register(imported_module)
-                path = path[mp]
+
+        packages = node.module.split('.')
+        accumulated_packages = []
+        for pkg in packages[0: -1]:
+            accumulated_packages.append(pkg)
+            accumulated_name = ".".join(accumulated_packages)
+            module = Module[accumulated_name]
+            self.bindings[-1][accumulated_name] = {module}
+            reduce(getattr, accumulated_packages, pentypes).register(Types)
+        reduce(getattr, packages, pentypes).register(Types)
+        module = Module[node.module]
 
         for alias in node.names:
-            attribute = path[alias.name]
+            attribute = Types[module][alias.name]
             self.bindings[-1][alias.asname or alias.name] = {attribute}
         return node,
 

@@ -384,18 +384,19 @@ def type_(self_types):
 #
 
 def register(registry):
-    registry[bool] = _bool_attrs
-    registry[int] = _int_attrs
-    registry[float] = _float_attrs
-    registry[str] = _str_attrs
-    registry[str_iterator] = _str_iterator_attrs
-    registry[_typing.List] = list_instanciate
-    registry[_typing.Tuple] = tuple_instanciate
+    if _Module['builtins'] not in registry:
+        registry[bool] = _bool_attrs
+        registry[int] = _int_attrs
+        registry[float] = _float_attrs
+        registry[str] = _str_attrs
+        registry[str_iterator] = _str_iterator_attrs
+        registry[_typing.List] = list_instanciate
+        registry[_typing.Tuple] = tuple_instanciate
 
-    registry[_Module['builtins']] = {
-        'id': {_Cst[id_]},
-        'int': {_Cst[int_init]},
-        'repr': {_Cst[repr_]},
-        'slice': {_Cst[slice_]},
-        'type': {_Cst[type_]},
-    }
+        registry[_Module['builtins']] = {
+            'id': {_Cst[id_]},
+            'int': {_Cst[int_init]},
+            'repr': {_Cst[repr_]},
+            'slice': {_Cst[slice_]},
+            'type': {_Cst[type_]},
+        }

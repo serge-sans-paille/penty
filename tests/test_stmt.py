@@ -288,10 +288,23 @@ class TestStmt(TestCase):
         self.assertIsType('import operator as op; x = op.add(1, 2)',
                           'x', pentyping.Cst[3])
 
+    def test_import_package(self):
+        self.assertIsType('import numpy.random; x = numpy.random.bytes(2)',
+                          'x', str)
+
+    def test_import_package_as(self):
+        self.assertIsType('import numpy.random as random; x = random.bytes(2)',
+                          'x', str)
+
     def test_import_from(self):
         self.assertIsType('from operator import add; x = add(1, 2)',
                           'x', pentyping.Cst[3])
 
-    def test_import_as(self):
+    def test_import_from_as(self):
         self.assertIsType('from operator import add as op; x = op(1, 2)',
                           'x', pentyping.Cst[3])
+
+    def test_import_from_package(self):
+        self.assertIsType('from numpy.random import bytes; x = bytes(1)',
+                          'x', str)
+
