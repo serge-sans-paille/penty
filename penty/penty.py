@@ -5,7 +5,7 @@ import operator
 from functools import reduce
 
 import penty.pentypes as pentypes
-from penty.types import Cst, FDef, Module, astype, Lambda
+from penty.types import Cst, FDef, Module, astype, Lambda, Type
 
 
 class UnboundIdentifier(RuntimeError):
@@ -29,6 +29,8 @@ class TypeRegistry(object):
     def __getitem__(self, key):
         if issubclass(key, Cst):
             return self.registry[type(key.__args__[0])]
+        if issubclass(key, Type):
+            return self.__getitem__(key.__args__[0])
         if issubclass(key, (typing.List, typing.Set, typing.Dict,
                             typing.Tuple)):
             self.registry[key] = self.instanciate(key)
@@ -646,9 +648,8 @@ class Typer(ast.NodeVisitor):
         value_types = self.visit(node.value)
         result_types = set()
         for value_ty in list(value_types):
-            if issubclass(value_ty, Module):
+            if issubclass(value_ty, (Module, Type)):
                 result_types.add(self._unbounded_attr(value_ty, node.attr))
-            # FIXME: handle static methods
             else:
                 result_types.add(self._bounded_attr(value_types, value_ty, node.attr))
         return result_types

@@ -95,3 +95,21 @@ class LambdaMeta(type):
 
 class Lambda(metaclass=LambdaMeta):
     pass
+
+class TypeMeta(type):
+    cache = {}
+
+    def __getitem__(self, args):
+        if args not in TypeMeta.cache:
+            class LocalType(Type):
+                __args__ = args,
+
+            TypeMeta.cache[args] = LocalType
+        return TypeMeta.cache[args]
+
+    def __repr__(self):
+        return 'Type[{}]'.format(self.__args__[0])
+
+
+class Type(metaclass=TypeMeta):
+    pass

@@ -1,4 +1,5 @@
-from penty.types import Cst as _Cst, Module as _Module, astype as _astype
+from penty.types import Cst as _Cst, Module as _Module, Type as _Ty
+from penty.types import astype as _astype
 import typing as _typing
 import operator as _operator
 
@@ -17,7 +18,8 @@ def bool_not(self_types):
     return result_types
 
 _bool_attrs = {
-    '__not__' : bool_not
+    '__class__': bool,
+    '__not__' : bool_not,
 }
 
 ##
@@ -176,6 +178,7 @@ _int_attrs = {
     '__add__': int_make_binop(_operator.add),
     '__and__': int_make_bitop(_operator.and_),
     '__bool__': int_boolean,
+    '__class__': int,
     '__eq__': int_make_boolop(_operator.eq),
     '__floordiv__': int_make_binop(_operator.floordiv),
     '__ge__': int_make_boolop(_operator.ge),
@@ -211,7 +214,9 @@ _int_attrs.update({
 ##
 #
 
-_float_attrs = {}
+_float_attrs = {
+    '__class__' : float,
+}
 
 ##
 #
@@ -229,7 +234,46 @@ def str_iter(self_types):
     return result_types
 
 _str_attrs = {
+    '__class__' : str,
     '__iter__' : str_iter,
+}
+
+##
+#
+
+def dict_clear(base_ty, self_types):
+    for self_ty in self_types:
+        if self_ty is not base_ty:
+            raise NotImplementedError
+    return {_Cst[None]}
+
+def dict_fromkeys(iterable_types, value_types=None):
+    from penty.penty import Types
+
+    iter_types = set()
+    for ty in iterable_types:
+        iter_types.update(Types[ty]['__iter__'](iterable_types))
+
+    key_types = set()
+    for ty in iter_types:
+        key_types.update(Types[ty]['__next__'](iter_types))
+
+    if value_types is None:
+        return {_typing.Dict[k, _Cst[None]] for k in key_types}
+    else:
+        return {_typing.Dict[k, v]
+                for k in key_types
+                for v in value_types}
+
+def dict_instanciate(ty):
+    return {
+        '__class__': ty,
+        'clear': lambda *args: dict_clear(ty, *args),
+    }
+
+_dict_attrs = {
+    '__class__': dict,
+    'from_keys': _Cst[dict_fromkeys],
 }
 
 ##
@@ -279,6 +323,7 @@ def list_getitem(base_ty, self_types, key_types):
 
 def list_instanciate(ty):
     return {
+        '__class__': ty,
         '__getitem__': lambda *args: list_getitem(ty, *args),
         'count': lambda *args: list_count(ty, *args),
     }
@@ -314,6 +359,7 @@ def tuple_getitem(base_ty, self_types, key_types):
 
 def tuple_instanciate(ty):
     return {
+        '__class__': ty,
         '__getitem__': lambda *args: tuple_getitem(ty, *args),
     }
 
@@ -378,7 +424,7 @@ def slice_(lower_types, upper_types, step_types):
 
 def type_(self_types):
     from penty.penty import Types
-    return {Types[_astype(ty)]['__init__'] for ty in self_types}
+    return {_Ty[_astype(ty)] for ty in self_types}
 
 ##
 #
@@ -386,16 +432,19 @@ def type_(self_types):
 def register(registry):
     if _Module['builtins'] not in registry:
         registry[bool] = _bool_attrs
+        registry[dict] = _dict_attrs
         registry[int] = _int_attrs
         registry[float] = _float_attrs
         registry[str] = _str_attrs
         registry[str_iterator] = _str_iterator_attrs
+        registry[_typing.Dict] = dict_instanciate
         registry[_typing.List] = list_instanciate
         registry[_typing.Tuple] = tuple_instanciate
 
         registry[_Module['builtins']] = {
+            'dict': {_Ty[dict]},
             'id': {_Cst[id_]},
-            'int': {_Cst[int_init]},
+            'int': {_Ty[int]},
             'repr': {_Cst[repr_]},
             'slice': {_Cst[slice_]},
             'type': {_Cst[type_]},

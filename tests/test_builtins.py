@@ -15,3 +15,22 @@ class TestBuiltins(TestCase):
 
     def test_type(self):
         self.assertIsType('type(x) is int', pentyping.Cst[True], env={'x':int})
+
+
+class TestDict(TestCase):
+
+    def assertIsType(self, expr, ty, env={}):
+        if not isinstance(ty, set):
+            ty = {ty}
+        env = {k: v if isinstance(v, set) else {v}
+               for k, v in env.items()}
+        self.assertEqual(penty.type_eval(expr, env), ty)
+
+    def test_clear(self):
+        self.assertIsType('x.clear()', pentyping.Cst[None],
+                          env={'x':typing.Dict[int, int]})
+
+    def test_from_keys(self):
+        self.assertIsType('dict.from_keys(x)',
+                          typing.Dict[str, pentyping.Cst[None]],
+                          env={'x': str})

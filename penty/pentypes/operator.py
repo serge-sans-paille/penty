@@ -1,4 +1,5 @@
 from penty.types import FunctionType, FunctionTypeMeta, Cst, Module, astype
+from penty.types import Type
 
 class UnaryOperatorMeta(FunctionTypeMeta):
     cache = {}
@@ -56,9 +57,9 @@ class IsOperatorMeta(BinaryOperatorMeta):
     def __call__(self, left_types, right_types):
         result_types = set()
         for left_ty in left_types:
-            if issubclass(left_ty, Cst):
+            if issubclass(left_ty, (Cst, Type)):
                 for right_ty in right_types:
-                    if issubclass(right_ty, Cst):
+                    if issubclass(right_ty, (Cst, Type)):
                         result_types.add(Cst[left_ty.__args__[0] is
                                               right_ty.__args__[0]])
                     elif astype(left_ty) == right_ty:
