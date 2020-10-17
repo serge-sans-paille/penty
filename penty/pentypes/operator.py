@@ -15,12 +15,9 @@ class UnaryOperatorMeta(FunctionTypeMeta):
     def __repr__(self):
         return 'UnaryOperator[{}]'.format(self.__args__[0])
 
-    def __call__(self, operand_types):
+    def __call__(self, operand_ty):
         from penty.penty import Types
-        result_type = set()
-        for operand_type in operand_types:
-            result_type.update(Types[operand_type][self.__args__[0]](operand_types))
-        return result_type
+        return Types[operand_ty][self.__args__[0]](operand_ty)
 
 
 class UnaryOperator(FunctionType, metaclass=UnaryOperatorMeta):
@@ -40,13 +37,9 @@ class BinaryOperatorMeta(FunctionTypeMeta):
     def __repr__(self):
         return 'BinaryOperator[{}]'.format(self.__args__[0])
 
-    def __call__(self, left_types, right_types):
+    def __call__(self, left_ty, right_ty):
         from penty.penty import Types
-        result_type = set()
-        for left_ty in list(left_types):
-            result_type.update(Types[left_ty][self.__args__[0]]
-                               (left_types, right_types))
-        return result_type
+        return Types[left_ty][self.__args__[0]](left_ty, right_ty)
 
 
 class BinaryOperator(FunctionType, metaclass=BinaryOperatorMeta):
@@ -54,27 +47,21 @@ class BinaryOperator(FunctionType, metaclass=BinaryOperatorMeta):
 
 class IsOperatorMeta(BinaryOperatorMeta):
 
-    def __call__(self, left_types, right_types):
-        result_types = set()
-        for left_ty in left_types:
-            if issubclass(left_ty, (Cst, Type)):
-                for right_ty in right_types:
-                    if issubclass(right_ty, (Cst, Type)):
-                        result_types.add(Cst[left_ty.__args__[0] is
-                                              right_ty.__args__[0]])
-                    elif astype(left_ty) == right_ty:
-                        result_types.add(bool)
-                    else:
-                        result_types.add(Cst[False])
+    def __call__(self, left_ty, right_ty):
+        if issubclass(left_ty, (Cst, Type)):
+            if issubclass(right_ty, (Cst, Type)):
+                return Cst[left_ty.__args__[0] is right_ty.__args__[0]]
+            elif astype(left_ty) == right_ty:
+                return bool
             else:
-                left_ty = astype(left_ty)
-                for right_ty in right_types:
-                    right_ty = astype(right_ty)
-                    if left_ty == right_ty:
-                        result_types.add(bool)
-                    else:
-                        result_types.add(Cst[False])
-        return result_types
+                return Cst[False]
+        else:
+            left_ty = astype(left_ty)
+            right_ty = astype(right_ty)
+            if left_ty == right_ty:
+                return bool
+            else:
+                return Cst[False]
 
 class IsOperator(BinaryOperator, metaclass=IsOperatorMeta):
     __args__ = "is",
@@ -83,27 +70,21 @@ IsOperator = Cst[IsOperator]
 
 class IsNotOperatorMeta(BinaryOperatorMeta):
 
-    def __call__(self, left_types, right_types):
-        result_types = set()
-        for left_ty in left_types:
-            if issubclass(left_ty, Cst):
-                for right_ty in right_types:
-                    if issubclass(right_ty, Cst):
-                        result_types.add(Cst[left_ty.__args__[0] is not
-                                              right_ty.__args__[0]])
-                    elif astype(left_ty) == right_ty:
-                        result_types.add(bool)
-                    else:
-                        result_types.add(Cst[True])
+    def __call__(self, left_ty, right_ty):
+        if issubclass(left_ty, Cst):
+            if issubclass(right_ty, Cst):
+                return Cst[left_ty.__args__[0] is not right_ty.__args__[0]]
+            elif astype(left_ty) == right_ty:
+                return bool
             else:
-                left_ty = astype(left_ty)
-                for right_ty in right_types:
-                    right_ty = astype(right_ty)
-                    if left_ty == right_ty:
-                        result_types.add(bool)
-                    else:
-                        result_types.add(Cst[True])
-        return result_types
+                return Cst[True]
+        else:
+            left_ty = astype(left_ty)
+            right_ty = astype(right_ty)
+            if left_ty == right_ty:
+                return bool
+            else:
+                return Cst[True]
 
 class IsNotOperator(BinaryOperator, metaclass=IsNotOperatorMeta):
     __args__ = "is not",
@@ -112,23 +93,16 @@ IsNotOperator = Cst[IsNotOperator]
 
 class NotOperatorMeta(UnaryOperatorMeta):
 
-    def __call__(self, operand_types):
+    def __call__(self, operand_ty):
         from penty.penty import Types
-        result_type = set()
-        for operand_type in operand_types:
-            if '__not__' in Types[operand_type]:
-                func = Types[operand_type]['__not__']
-            else:
-                def func(argument_types):
-                    result_types = set()
-                    for z in argument_types:
-                        z_bool_ty = Types[z]['__bool__'](argument_types)
-                        for y in z_bool_ty:
-                            result_types.update(Types[y]['__not__'](z_bool_ty))
-                    return result_types
+        if '__not__' in Types[operand_ty]:
+            func = Types[operand_ty]['__not__']
+        else:
+            def func(argument_ty):
+                bool_ty = Types[argument_ty]['__bool__'](argument_ty)
+                return Types[bool_ty]['__not__'](bool_ty)
 
-            result_type.update(func(operand_types))
-        return result_type
+        return func(operand_ty)
 
 class NotOperator(UnaryOperator, metaclass=NotOperatorMeta):
     __args__ = "not",

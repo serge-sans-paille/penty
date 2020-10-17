@@ -95,16 +95,6 @@ def normalize_test_ty(types):
     return {Cst[bool(ty.__args__[0])] if issubclass(ty, Cst) else ty
             for ty in types}
 
-def iterator_value_ty(types):
-    result_types = set()
-    iter_types = set()
-    for ty in types:
-        iter_types.update(Types[ty]['__iter__'](types))
-    for ty in iter_types:
-        result_types.update(Types[ty]['__next__'](iter_types))
-    return result_types
-
-
 class Typer(ast.NodeVisitor):
 
     def __init__(self, env=None):
@@ -150,8 +140,24 @@ class Typer(ast.NodeVisitor):
         elif issubclass(func, Type):
             result_type = self._call(Types[func.__args__[0]]['__init__'], *args)
         else:
-            result_type = func.__args__[0](*args)
+            result_type = set()
+            all_args = itertools.product(*args) if args else [[]]
+            for args_ty in all_args:
+                rty = func(*args_ty)
+                if isinstance(rty, set):
+                    result_type.update(rty)
+                else:
+                    result_type.add(rty)
         return result_type
+
+    def _iterator_value_ty(self, types):
+        iter_types = set()
+        iter_types.update(*[self._call(Types[ty]['__iter__'], {ty})
+                            for ty in types])
+        value_types = set()
+        value_types.update(*[self._call(Types[ty]['__next__'], {ty})
+                            for ty in iter_types])
+        return value_types
 
     def _type_destructuring_assign(self, node, types):
         if isinstance(node, ast.Name):
@@ -272,7 +278,7 @@ class Typer(ast.NodeVisitor):
 
     def visit_For(self, node):
         iter_types = self.visit(node.iter)
-        value_types = iterator_value_ty(iter_types)
+        value_types = self._iterator_value_ty(iter_types)
         self._type_destructuring_assign(node.target, value_types)
 
         return self.visit_Loop(node)
@@ -520,7 +526,7 @@ class Typer(ast.NodeVisitor):
 
             iter_types = self.visit(generator.iter)
             if isinstance(generator.target, ast.Name):
-                new_bindings[generator.target.id] = iterator_value_ty(iter_types)
+                new_bindings[generator.target.id] = self._iterator_value_ty(iter_types)
 
         self.bindings.append(new_bindings)
         result_types = set()
@@ -544,7 +550,7 @@ class Typer(ast.NodeVisitor):
 
             iter_types = self.visit(generator.iter)
             if isinstance(generator.target, ast.Name):
-                new_bindings[generator.target.id] = iterator_value_ty(iter_types)
+                new_bindings[generator.target.id] = self._iterator_value_ty(iter_types)
 
         self.bindings.append(new_bindings)
         result_types = set()
@@ -568,7 +574,7 @@ class Typer(ast.NodeVisitor):
 
             iter_types = self.visit(generator.iter)
             if isinstance(generator.target, ast.Name):
-                new_bindings[generator.target.id] = iterator_value_ty(iter_types)
+                new_bindings[generator.target.id] = self._iterator_value_ty(iter_types)
 
         self.bindings.append(new_bindings)
         result_types = set()
@@ -595,7 +601,7 @@ class Typer(ast.NodeVisitor):
 
             iter_types = self.visit(generator.iter)
             if isinstance(generator.target, ast.Name):
-                new_bindings[generator.target.id] = iterator_value_ty(iter_types)
+                new_bindings[generator.target.id] = self._iterator_value_ty(iter_types)
 
         self.bindings.append(new_bindings)
         result_types = set()
@@ -639,9 +645,9 @@ class Typer(ast.NodeVisitor):
     def visit_Constant(self, node):
         return {Cst[node.value]}
 
-    def _bounded_attr(self, value_types, value_ty, attr):
+    def _bounded_attr(self, value_ty, attr):
         func = self._unbounded_attr(value_ty, attr)
-        return Cst[lambda *args: func(value_types, *args)]
+        return Cst[lambda *args: func(value_ty, *args)]
 
     def _unbounded_attr(self, value_ty, attr):
         return Types[value_ty][attr]
@@ -653,7 +659,7 @@ class Typer(ast.NodeVisitor):
             if issubclass(value_ty, (Module, Type)):
                 result_types.add(self._unbounded_attr(value_ty, node.attr))
             else:
-                result_types.add(self._bounded_attr(value_types, value_ty, node.attr))
+                result_types.add(self._bounded_attr(value_ty, node.attr))
         return result_types
 
     def visit_Subscript(self, node):

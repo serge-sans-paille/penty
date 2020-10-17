@@ -1,14 +1,11 @@
 from penty.types import Cst as _Cst, Module as _Module, astype as _astype
 
-def bytes_(int_types):
-    result_types = set()
-    for s in int_types:
-        s = _astype(s)
-        if s is int:
-            result_types.add(str)
-        else:
-            raise NotImplementedError
-    return result_types
+def bytes_(int_ty):
+    int_ty = _astype(int_ty)
+    if int_ty is int:
+        return str
+    else:
+        raise NotImplementedError
 
 def register(registry):
     if _Module['numpy.random'] not in registry:

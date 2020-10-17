@@ -20,6 +20,10 @@ class CstMeta(type):
     def __repr__(self):
         return 'Cst[{}]'.format(self.__args__[0])
 
+    def __call__(self, *args):
+        # utility for constant functions
+        return self.__args__[0](*args)
+
 
 class Cst(metaclass=CstMeta):
     pass
