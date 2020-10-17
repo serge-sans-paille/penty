@@ -201,6 +201,8 @@ class TestExpr(TestCase):
     def test_attr_ty(self):
         self.assertIsType('x.count("1")', int,
                           env={'x': typing.List[str]})
+        self.assertIsType('dict.clear(x)', pentyping.Cst[None],
+                          env={'x': typing.Dict[str, int]})
 
     def test_subscript_ty(self):
         self.assertIsType('x[y]', int, env={'x': typing.List[int], 'y': int})

@@ -267,6 +267,7 @@ def dict_instanciate(ty):
     }
 
 _dict_attrs = {
+    'clear': _Cst[lambda x: set.union(*(dict_clear(y, x) for y in x))],
     'from_keys': _Cst[dict_fromkeys],
 }
 
