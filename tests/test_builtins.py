@@ -22,6 +22,19 @@ class TestBuiltins(TestCase):
         self.assertIsType('int(x)', int, env={'x': float})
         self.assertIsType('int(x)', int, env={'x': str})
 
+    def test_len(self):
+        self.assertIsType('len(x)', pentyping.Cst[2],
+                          env={'x': typing.Tuple[int, int]})
+        self.assertIsType('len(x)', int,
+                          env={'x': typing.List[int]})
+        self.assertIsType('len(x)', int,
+                          env={'x': typing.Set[int]})
+        self.assertIsType('len(x)', int,
+                          env={'x': typing.Dict[int, str]})
+        self.assertIsType('len(x)', int,
+                          env={'x': str})
+        self.assertIsType('len("hello")', pentyping.Cst[5])
+
 
 class TestDict(TestCase):
 

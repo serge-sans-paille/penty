@@ -232,6 +232,7 @@ def str_iter(self_types):
 
 _str_attrs = {
     '__iter__' : str_iter,
+    '__len__': lambda *args: int,
 }
 
 ##
@@ -263,6 +264,7 @@ def dict_fromkeys(iterable_types, value_types=None):
 
 def dict_instanciate(ty):
     return {
+        '__len__': lambda *args: int,
         'clear': lambda *args: dict_clear(ty, *args),
     }
 
@@ -319,7 +321,16 @@ def list_getitem(base_ty, self_types, key_types):
 def list_instanciate(ty):
     return {
         '__getitem__': lambda *args: list_getitem(ty, *args),
+        '__len__': lambda *args: int,
         'count': lambda *args: list_count(ty, *args),
+    }
+
+##
+#
+
+def set_instanciate(ty):
+    return {
+        '__len__': lambda *args: int,
     }
 
 ##
@@ -354,6 +365,7 @@ def tuple_getitem(base_ty, self_types, key_types):
 def tuple_instanciate(ty):
     return {
         '__getitem__': lambda *args: tuple_getitem(ty, *args),
+        '__len__': lambda *args: _Cst[len(ty.__args__)],
     }
 
 ##
@@ -397,6 +409,19 @@ def repr_(self_types):
 ##
 #
 
+def len_(self_types):
+    from penty.penty import Types
+    result_types = set()
+    for ty in self_types:
+        if issubclass(ty, _Cst):
+            result_types.add(_Cst[len(ty.__args__[0])])
+        else:
+            result_types.add(Types[ty]['__len__'](ty))
+    return result_types
+
+##
+#
+
 def slice_(lower_types, upper_types, step_types):
     if all(len(tys) == 1 for tys in (lower_types, upper_types, step_types)):
         lower_ty = next(iter(lower_types))
@@ -432,12 +457,14 @@ def register(registry):
         registry[str_iterator] = _str_iterator_attrs
         registry[_typing.Dict] = dict_instanciate
         registry[_typing.List] = list_instanciate
+        registry[_typing.Set] = set_instanciate
         registry[_typing.Tuple] = tuple_instanciate
 
         registry[_Module['builtins']] = {
             'dict': {_Ty[dict]},
             'id': {_Cst[id_]},
             'int': {_Ty[int]},
+            'len': {_Cst[len_]},
             'repr': {_Cst[repr_]},
             'slice': {_Cst[slice_]},
             'type': {_Cst[type_]},
