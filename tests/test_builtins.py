@@ -53,3 +53,20 @@ class TestDict(TestCase):
         self.assertIsType('dict.from_keys(x)',
                           typing.Dict[str, pentyping.Cst[None]],
                           env={'x': str})
+
+class TestList(TestCase):
+
+    def assertIsType(self, expr, ty, env={}):
+        if not isinstance(ty, set):
+            ty = {ty}
+        env = {k: v if isinstance(v, set) else {v}
+               for k, v in env.items()}
+        self.assertEqual(penty.type_eval(expr, env), ty)
+
+    def test_append(self):
+        self.assertIsType('x.append(y), x',
+                          typing.Tuple[pentyping.Cst[None], typing.List[int]],
+                          env={'x': list, 'y': int})
+        self.assertIsType('(x.append(y), x)[1]',
+                          {typing.List[int], typing.List[float]},
+                          env={'x': typing.List[float], 'y': int})

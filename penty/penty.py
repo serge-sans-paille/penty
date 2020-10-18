@@ -33,7 +33,8 @@ class TypeRegistry(object):
             return self.__getitem__(key.__args__[0])
         if issubclass(key, (typing.List, typing.Set, typing.Dict,
                             typing.Tuple)):
-            self.registry[key] = self.instanciate(key)
+            if getattr(key, '__args__', None) is not None:
+                self.registry[key] = self.instanciate(key)
         return self.registry[key]
 
     def instanciate(self, ty):
@@ -142,10 +143,17 @@ class Typer(ast.NodeVisitor):
         else:
             result_type = set()
             all_args = itertools.product(*args) if args else [[]]
-            for args_ty in all_args:
+            for args_ty in list(all_args):
                 rty = func(*args_ty)
                 if isinstance(rty, set):
                     result_type.update(rty)
+                elif isinstance(rty, tuple):
+                    rty, updated_tys = rty[0], rty[1]
+                    result_type.add(rty)
+                    for arg_ty, old_arg_ty, new_arg_ty in zip(args, args_ty, updated_tys):
+                        if old_arg_ty in (set, list, dict):
+                            arg_ty.remove(old_arg_ty)
+                        arg_ty.add(new_arg_ty)
                 else:
                     result_type.add(rty)
         return result_type
@@ -645,21 +653,31 @@ class Typer(ast.NodeVisitor):
     def visit_Constant(self, node):
         return {Cst[node.value]}
 
-    def _bounded_attr(self, value_ty, attr):
-        func = self._unbounded_attr(value_ty, attr)
-        return Cst[lambda *args: func(value_ty, *args)]
+    def _bounded_attr(self, self_set, self_ty, attr):
+        func = self._unbounded_attr(self_ty, attr)
+        def bounded_attr_adjustment(return_tuple):
+            if isinstance(return_tuple, tuple):
+                return_ty, update_ty = return_tuple
+                update_self_ty, adjusted_update_ty = update_ty[0], update_ty[1:]
+                if self_ty in (set, list, dict):
+                    self_set.remove(self_ty)
+                self_set.add(update_self_ty)
+                return return_ty, adjusted_update_ty
+            else:
+                return return_tuple
+        return Cst[lambda *args: bounded_attr_adjustment(func(self_ty, *args))]
 
     def _unbounded_attr(self, value_ty, attr):
         return Types[value_ty][attr]
 
     def visit_Attribute(self, node):
-        value_types = self.visit(node.value)
+        self_types = self.visit(node.value)
         result_types = set()
-        for value_ty in list(value_types):
-            if issubclass(value_ty, (Module, Type)):
-                result_types.add(self._unbounded_attr(value_ty, node.attr))
+        for self_ty in list(self_types):
+            if issubclass(self_ty, (Module, Type)):
+                result_types.add(self._unbounded_attr(self_ty, node.attr))
             else:
-                result_types.add(self._bounded_attr(value_ty, node.attr))
+                result_types.add(self._bounded_attr(self_types, self_ty, node.attr))
         return result_types
 
     def visit_Subscript(self, node):

@@ -234,6 +234,9 @@ _dict_attrs = {
 ##
 #
 
+def list_append(base_ty, self_ty, value_ty):
+    return _Cst[None], (_typing.List[value_ty], value_ty)
+
 def list_count(base_ty, self_ty, elt_ty):
     base_key_ty, = base_ty.__args__
     if self_ty is not base_ty:
@@ -271,8 +274,13 @@ def list_instanciate(ty):
     return {
         '__getitem__': _Cst[lambda *args: list_getitem(ty, *args)],
         '__len__': _Cst[lambda *args: int],
+        'append': _Cst[lambda *args: list_append(ty, *args)],
         'count': _Cst[lambda *args: list_count(ty, *args)],
     }
+
+_list_attrs = {
+    'append': _Cst[lambda self, elt: list_append(self, self, elt)],
+}
 
 ##
 #
@@ -378,8 +386,9 @@ def register(registry):
     if _Module['builtins'] not in registry:
         registry[bool] = _bool_attrs
         registry[dict] = _dict_attrs
-        registry[int] = _int_attrs
+        registry[list] = _list_attrs
         registry[float] = _float_attrs
+        registry[int] = _int_attrs
         registry[str] = _str_attrs
         registry[str_iterator] = _str_iterator_attrs
         registry[_typing.Dict] = dict_instanciate
