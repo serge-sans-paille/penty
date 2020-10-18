@@ -31,10 +31,8 @@ class TypeRegistry(object):
             return self.registry[type(key.__args__[0])]
         if issubclass(key, Type):
             return self.__getitem__(key.__args__[0])
-        if issubclass(key, (typing.List, typing.Set, typing.Dict,
-                            typing.Tuple)):
-            if getattr(key, '__args__', None) is not None:
-                self.registry[key] = self.instanciate(key)
+        if getattr(key, '__args__', None) is not None:
+            self.registry[key] = self.instanciate(key)
         return self.registry[key]
 
     def instanciate(self, ty):
