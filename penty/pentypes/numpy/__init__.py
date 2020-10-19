@@ -77,6 +77,19 @@ def ndarray_getitem(base_ty, self_ty, key_ty):
             return dtype_ty
     raise TypeError(key_ty)
 
+def ndarray_len(base_ty, self_ty):
+    _, shape_ty = base_ty.__args__
+    return shape_ty.__args__[0]
+
+def ndarray_bool(base_ty, self_ty):
+    _, shape_ty = base_ty.__args__
+    dims = shape_ty.__args__
+    if all((issubclass(d, _Cst) and d.__args__[0]) for d in dims):
+        return _Cst[True]
+    if any((issubclass(d, _Cst) and not d.__args__[0]) for d in dims):
+        return _Cst[False]
+    return bool
+
 #
 ##
 
@@ -95,7 +108,9 @@ def ones_(shape_ty, dtype_ty=None):
 
 def ndarray_instanciate(ty):
     return {
+        '__bool__': _Cst[lambda *args: ndarray_bool(ty, *args)],
         '__getitem__': _Cst[lambda *args: ndarray_getitem(ty, *args)],
+        '__len__': _Cst[lambda *args: ndarray_len(ty, *args)],
     }
 
 #
