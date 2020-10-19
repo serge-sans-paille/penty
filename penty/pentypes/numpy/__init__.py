@@ -4,6 +4,25 @@ from penty.types import astype as _astype
 import typing as _typing
 import numpy
 import itertools
+import operator as _operator
+
+def _broadcast_dim(self, other):
+    if self is other:
+        return self
+    if self is int or other is int:
+        return int
+    if issubclass(self, _Cst) and issubclass(other, _Cst):
+        if self.__args__[0] == 1:
+            return other
+        if other.__args__[0] == 1:
+            return self
+        raise TypeError
+    raise TypeError
+
+def _broadcast_shape(self, other):
+    return _typing.Tuple[tuple(_broadcast_dim(*dims) for dims in
+                               itertools.zip_longest(self.__args__, other.__args__,
+                                                     fillvalue=_Cst[1]))]
 
 #
 ##
@@ -24,6 +43,20 @@ class NDArrayMeta(type):
 
 class NDArray(metaclass=NDArrayMeta):
     pass
+
+def ndarray_make_binop(op):
+    def binop(self_ty, other_ty):
+        from penty.penty import Types
+        dtype_ty, shape_ty = self_ty.__args__
+        other_ty =_astype(other_ty)
+        if other_ty in (bool, int, float):
+            return NDArray[Types[dtype_ty][op](dtype_ty, other_ty), shape_ty]
+        if issubclass(other_ty, NDArray):
+            other_dtype_ty, other_shape_ty = other_ty.__args__
+            return NDArray[Types[dtype_ty][op](dtype_ty, other_dtype_ty),
+                           _broadcast_shape(shape_ty, other_shape_ty)]
+        raise TypeError
+    return _Cst[binop]
 
 def ndarray_getitem(base_ty, self_ty, key_ty):
     from penty.penty import Types
@@ -109,6 +142,7 @@ def ones_(shape_ty, dtype_ty=None):
 def ndarray_instanciate(ty):
     return {
         '__bool__': _Cst[lambda *args: ndarray_bool(ty, *args)],
+        '__add__': _Cst[ndarray_make_binop('__add__')],
         '__getitem__': _Cst[lambda *args: ndarray_getitem(ty, *args)],
         '__len__': _Cst[lambda *args: ndarray_len(ty, *args)],
     }

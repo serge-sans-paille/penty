@@ -103,3 +103,17 @@ class TestNDArray(TestCase):
         self.assertIsType('bool(x)',
                           pentyping.Cst[False],
                           env={'x': NDArray[float, typing.Tuple[pentyping.Cst[0]]]})
+
+    def test_add(self):
+        self.assertIsType('x + 1',
+                          NDArray[int, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x + x[1]',
+                          NDArray[int, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x + x[1]',
+                          NDArray[int, typing.Tuple[int, pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[int, pentyping.Cst[1]]]})
+        self.assertIsType('x + x[1]',
+                          NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]]})
