@@ -35,6 +35,28 @@ class TestBuiltins(TestCase):
                           env={'x': str})
         self.assertIsType('len("hello")', pentyping.Cst[5])
 
+    def test_bool(self):
+        self.assertIsType('bool(True)', pentyping.Cst[True])
+        self.assertIsType('bool(False)', pentyping.Cst[False])
+        self.assertIsType('bool(x)', bool, env={'x': bool})
+        self.assertIsType('bool(x)', bool,
+                          env={'x': int})
+        self.assertIsType('bool(x)', bool,
+                          env={'x': float})
+        self.assertIsType('bool(x)', pentyping.Cst[True],
+                          env={'x': typing.Tuple[int, int]})
+        self.assertIsType('bool(2)', pentyping.Cst[True])
+        self.assertIsType('bool(x)', bool,
+                          env={'x': typing.List[int]})
+        self.assertIsType('bool(x)', bool,
+                          env={'x': typing.Set[int]})
+        self.assertIsType('bool(x)', bool,
+                          env={'x': typing.Dict[int, str]})
+        self.assertIsType('bool(x)', bool,
+                          env={'x': str})
+        self.assertIsType('bool("")', pentyping.Cst[False])
+        self.assertIsType('bool("hello")', pentyping.Cst[True])
+
 
 class TestDict(TestCase):
 

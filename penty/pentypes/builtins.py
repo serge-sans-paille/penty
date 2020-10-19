@@ -6,15 +6,24 @@ import operator as _operator
 ##
 #
 
+def bool_bool(self_ty):
+    return self_ty
+
+def bool_init(value_ty):
+    from penty.penty import Types
+    return Types[_astype(value_ty)]['__bool__'](value_ty)
+
 def bool_not(self_ty):
     if self_ty is bool:
         return bool
     elif issubclass(self_ty, _Cst):
         return _Cst[not self_ty.__args__[0]]
     else:
-        raise NotImplementedError
+        raise TypeError
 
 _bool_attrs = {
+    '__bool__' : _Cst[bool_bool],
+    '__init__': _Cst[bool_init],
     '__not__' : _Cst[bool_not],
 }
 
@@ -27,7 +36,7 @@ def int_init(self_ty):
     elif issubclass(self_ty, _Cst):
         return _Cst[int(ty.__args__[0])]
     else:
-        raise NotImplementedError
+        raise TypeError
 
 
 def int_make_binop(operator):
@@ -41,7 +50,7 @@ def int_make_binop(operator):
                 return _Cst[operator(self_ty.__args__[0],
                                      other_ty.__args__[0])]
             else:
-                raise NotImplementedError
+                raise TypeError
         elif self_ty is int:
             if other_ty in (bool, int):
                 return int
@@ -50,9 +59,9 @@ def int_make_binop(operator):
             elif issubclass(other_ty, _Cst):
                 return int
             else:
-                raise NotImplementedError
+                raise TypeError
         else:
-            raise NotImplementedError
+            raise TypeError
         return result_types
     return _Cst[binop]
 
@@ -65,16 +74,16 @@ def int_make_bitop(operator):
                 return _Cst[operator(self_ty.__args__[0],
                                      other_ty.__args__[0])]
             else:
-                raise NotImplementedError
+                raise TypeError
         elif self_ty is int:
             if other_ty in (bool, int):
                 return int
             elif isinstance(other_ty, int):
                 return int
             else:
-                raise NotImplementedError
+                raise TypeError
         else:
-            raise NotImplementedError
+            raise TypeError
     return _Cst[binop]
 
 def int_truediv(self_ty, other_ty):
@@ -84,16 +93,16 @@ def int_truediv(self_ty, other_ty):
         elif issubclass(other_ty, _Cst):
             return _Cst[self_ty.__args__[0] / other_ty.__args__[0]]
         else:
-            raise NotImplementedError
+            raise TypeError
     elif self_ty is int:
         if other_ty in (bool, int, float):
             return float
         elif issubclass(other_ty, _Cst):
             return float
         else:
-            raise NotImplementedError
+            raise TypeError
     else:
-        raise NotImplementedError
+        raise TypeError
 
 def int_make_unaryop(operator):
     def unaryop(self_ty):
@@ -102,7 +111,7 @@ def int_make_unaryop(operator):
         elif issubclass(self_ty, _Cst):
             return _Cst[operator(self_ty.__args__[0])]
         else:
-            raise NotImplementedError
+            raise TypeError
     return _Cst[unaryop]
 
 def int_boolean(self_ty):
@@ -111,7 +120,7 @@ def int_boolean(self_ty):
     elif issubclass(self_ty, _Cst):
         return _Cst[bool(self_ty.__args__[0])]
     else:
-        raise NotImplementedError
+        raise TypeError
 
 def int_make_boolop(operator):
     def boolop(self_ty, other_ty):
@@ -122,16 +131,16 @@ def int_make_boolop(operator):
                 return _Cst[operator(self_ty.__args__[0],
                                      other_ty.__args__[0])]
             else:
-                raise NotImplementedError
+                raise TypeError
         elif self_ty is int:
             if other_ty in (bool, int, float):
                 return bool
             elif issubclass(other_ty, _Cst):
                 return bool
             else:
-                raise NotImplementedError
+                raise TypeError
         else:
-            raise NotImplementedError
+            raise TypeError
     return _Cst[boolop]
 
 def int_make_biniop(operator):
@@ -181,12 +190,29 @@ _int_attrs.update({
 ##
 #
 
+def float_bool(self_ty):
+    if issubclass(self_ty, _Cst):
+        return _Cst[bool(self_ty.__args__[0])]
+    else:
+        return bool
+
+
 _float_attrs = {
+    '__bool__' : _Cst[float_bool],
 }
 
 ##
 #
 str_iterator = type(iter(""))
+
+def str_bool(self_ty):
+    if self_ty is str:
+        return bool
+    elif issubclass(self_ty, _Cst):
+        return _Cst[bool(self_ty.__args__[0])]
+    else:
+        raise TypeError
+
 
 def str_iter(self_ty):
     if self_ty is str:
@@ -194,9 +220,10 @@ def str_iter(self_ty):
     elif issubclass(self_ty, _Cst):
         return str_iterator
     else:
-        raise NotImplementedError
+        raise TypeError
 
 _str_attrs = {
+    '__bool__': _Cst[str_bool],
     '__iter__' : _Cst[str_iter],
     '__len__': _Cst[lambda *args: int],
 }
@@ -206,7 +233,7 @@ _str_attrs = {
 
 def dict_clear(base_ty, self_ty):
     if self_ty is not base_ty:
-        raise NotImplementedError
+        raise TypeError
     return _Cst[None]
 
 def dict_fromkeys(iterable_ty, value_ty=None):
@@ -222,6 +249,7 @@ def dict_fromkeys(iterable_ty, value_ty=None):
 
 def dict_instanciate(ty):
     return {
+        '__bool__': _Cst[lambda *args: bool],
         '__len__': _Cst[lambda *args: int],
         'clear': _Cst[lambda *args: dict_clear(ty, *args)],
     }
@@ -240,7 +268,7 @@ def list_append(base_ty, self_ty, value_ty):
 def list_count(base_ty, self_ty, elt_ty):
     base_key_ty, = base_ty.__args__
     if self_ty is not base_ty:
-        raise NotImplementedError
+        raise TypeError
     if elt_ty is base_key_ty:
         return int
     elif issubclass(elt_ty, _Cst):
@@ -248,15 +276,15 @@ def list_count(base_ty, self_ty, elt_ty):
         if type(elt_v) is base_key_ty:
             return int
         else:
-            raise NotImplementedError
+            raise TypeError
     else:
-        raise NotImplementedError
+        raise TypeError
 
 def list_getitem(base_ty, self_ty, key_ty):
     base_value_ty, = base_ty.__args__
 
     if self_ty is not base_ty:
-        raise NotImplementedError
+        raise TypeError
     if key_ty in (bool, int):
         return base_value_ty
     elif key_ty is slice:
@@ -268,10 +296,11 @@ def list_getitem(base_ty, self_ty, key_ty):
         elif isinstance(key_v, slice):
             return base_ty
     else:
-        raise NotImplementedError
+        raise TypeError
 
 def list_instanciate(ty):
     return {
+        '__bool__': _Cst[lambda *args: bool],
         '__getitem__': _Cst[lambda *args: list_getitem(ty, *args)],
         '__len__': _Cst[lambda *args: int],
         'append': _Cst[lambda *args: list_append(ty, *args)],
@@ -287,17 +316,24 @@ _list_attrs = {
 
 def set_instanciate(ty):
     return {
+        '__bool__': _Cst[lambda *args: bool],
         '__len__': _Cst[lambda *args: int],
     }
 
+_set_attrs = {
+}
+
 ##
 #
+
+def tuple_bool(base_ty, self_ty):
+    return _Cst[bool(base_ty.__args__)]
 
 def tuple_getitem(base_ty, self_ty, key_ty):
     base_value_types = base_ty.__args__
 
     if self_ty is not base_ty:
-        raise NotImplementedError
+        raise TypeError
     if key_ty in (bool, int):
         return set(base_value_types)
     elif key_ty is slice:
@@ -309,13 +345,14 @@ def tuple_getitem(base_ty, self_ty, key_ty):
         elif isinstance(key_v, slice):
             return _typing.Tuple[base_value_types[key_v]]
         else:
-            raise NotImplementedError
+            raise TypeError
     else:
-        raise NotImplementedError
+        raise TypeError
 
 
 def tuple_instanciate(ty):
     return {
+        '__bool__': _Cst[lambda *args: tuple_bool(ty, *args)],
         '__getitem__': _Cst[lambda *args: tuple_getitem(ty, *args)],
         '__len__': _Cst[lambda *args: _Cst[len(ty.__args__)]],
     }
@@ -329,7 +366,7 @@ def str_iterator_next(self_ty):
     elif isinstance(self_ty, str_iterator):
         return str
     else:
-        raise NotImplementedError
+        raise TypeError
 
 _str_iterator_attrs = {
     '__next__' : _Cst[str_iterator_next],
@@ -389,6 +426,7 @@ def register(registry):
         registry[list] = _list_attrs
         registry[float] = _float_attrs
         registry[int] = _int_attrs
+        registry[set] = _set_attrs
         registry[str] = _str_attrs
         registry[str_iterator] = _str_iterator_attrs
         registry[_typing.Dict] = dict_instanciate
@@ -397,6 +435,7 @@ def register(registry):
         registry[_typing.Tuple] = tuple_instanciate
 
         registry[_Module['builtins']] = {
+            'bool': {_Ty[bool]},
             'dict': {_Ty[dict]},
             'id': {_Cst[id_]},
             'int': {_Ty[int]},
