@@ -81,13 +81,33 @@ class TestNDArray(TestCase):
                           env={'x': NDArray[float, typing.Tuple[int, int]],
                                'y': int})
 
-    def test_len(self):
-        self.assertIsType('len(x)',
-                          int,
-                          env={'x': NDArray[float, typing.Tuple[int, int]]})
-        self.assertIsType('len(x)',
-                          pentyping.Cst[1],
-                          env={'x': NDArray[float, typing.Tuple[pentyping.Cst[1], int]]})
+    def test_add(self):
+        self.assertIsType('x + 1',
+                          NDArray[int, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x + x[1]',
+                          NDArray[int, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x + x[1]',
+                          NDArray[int, typing.Tuple[int, pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[int, pentyping.Cst[1]]]})
+        self.assertIsType('x + x[1]',
+                          NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]]})
+
+    def test_and(self):
+        self.assertIsType('x & 1',
+                          NDArray[int, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x & x[1]',
+                          NDArray[int, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x & x[1]',
+                          NDArray[int, typing.Tuple[int, pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[int, pentyping.Cst[1]]]})
+        self.assertIsType('x & x[1]',
+                          NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]]})
 
     def test_bool(self):
         self.assertIsType('bool(x)',
@@ -104,16 +124,276 @@ class TestNDArray(TestCase):
                           pentyping.Cst[False],
                           env={'x': NDArray[float, typing.Tuple[pentyping.Cst[0]]]})
 
-    def test_add(self):
-        self.assertIsType('x + 1',
+
+    def test_eq(self):
+        self.assertIsType('x == 1',
+                          NDArray[bool, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x == x[1]',
+                          NDArray[bool, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x == x[1]',
+                          NDArray[bool, typing.Tuple[int, pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[int, pentyping.Cst[1]]]})
+        self.assertIsType('x == x[1]',
+                          NDArray[bool, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]]})
+
+    def test_floordiv(self):
+        self.assertIsType('x // 1',
                           NDArray[int, typing.Tuple[int, int]],
                           env={'x': NDArray[int, typing.Tuple[int, int]]})
-        self.assertIsType('x + x[1]',
+        self.assertIsType('x // x[1]',
                           NDArray[int, typing.Tuple[int, int]],
                           env={'x': NDArray[int, typing.Tuple[int, int]]})
-        self.assertIsType('x + x[1]',
+        self.assertIsType('x // x[1]',
                           NDArray[int, typing.Tuple[int, pentyping.Cst[1]]],
                           env={'x': NDArray[int, typing.Tuple[int, pentyping.Cst[1]]]})
-        self.assertIsType('x + x[1]',
+        self.assertIsType('x // x[1]',
+                          NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]]})
+
+    def test_ge(self):
+        self.assertIsType('x >= 1',
+                          NDArray[bool, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x >= x[1]',
+                          NDArray[bool, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x >= x[1]',
+                          NDArray[bool, typing.Tuple[int, pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[int, pentyping.Cst[1]]]})
+        self.assertIsType('x >= x[1]',
+                          NDArray[bool, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]]})
+
+    def test_gt(self):
+        self.assertIsType('x > 1',
+                          NDArray[bool, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x > x[1]',
+                          NDArray[bool, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x > x[1]',
+                          NDArray[bool, typing.Tuple[int, pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[int, pentyping.Cst[1]]]})
+        self.assertIsType('x > x[1]',
+                          NDArray[bool, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]]})
+
+    def test_invert(self):
+        with self.assertRaises(TypeError):
+            env = {'x': {NDArray[float, typing.Tuple[int, int]]}}
+            penty.type_eval('~x', env)
+
+        self.assertIsType('~x',
+                          NDArray[int, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+
+    def test_le(self):
+        self.assertIsType('x <= 1',
+                          NDArray[bool, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x <= x[1]',
+                          NDArray[bool, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x <= x[1]',
+                          NDArray[bool, typing.Tuple[int, pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[int, pentyping.Cst[1]]]})
+        self.assertIsType('x <= x[1]',
+                          NDArray[bool, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]]})
+
+    def test_len(self):
+        self.assertIsType('len(x)',
+                          int,
+                          env={'x': NDArray[float, typing.Tuple[int, int]]})
+        self.assertIsType('len(x)',
+                          pentyping.Cst[1],
+                          env={'x': NDArray[float, typing.Tuple[pentyping.Cst[1], int]]})
+
+    def test_lshift(self):
+        self.assertIsType('x << 1',
+                          NDArray[int, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x << x[1]',
+                          NDArray[int, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x << x[1]',
+                          NDArray[int, typing.Tuple[int, pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[int, pentyping.Cst[1]]]})
+        self.assertIsType('x << x[1]',
+                          NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]]})
+
+    def test_lt(self):
+        self.assertIsType('x < 1',
+                          NDArray[bool, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x < x[1]',
+                          NDArray[bool, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x < x[1]',
+                          NDArray[bool, typing.Tuple[int, pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[int, pentyping.Cst[1]]]})
+        self.assertIsType('x < x[1]',
+                          NDArray[bool, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]]})
+
+    def test_rshift(self):
+        self.assertIsType('x >> 1',
+                          NDArray[int, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x >> x[1]',
+                          NDArray[int, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x >> x[1]',
+                          NDArray[int, typing.Tuple[int, pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[int, pentyping.Cst[1]]]})
+        self.assertIsType('x >> x[1]',
+                          NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]]})
+
+    def test_matmul(self):
+        with self.assertRaises(TypeError):
+            env = {'x': {NDArray[int, typing.Tuple[int, int]]}}
+            penty.type_eval('x @ 1', env)
+
+        self.assertIsType('x @ x[1]',
+                          NDArray[int, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x @ x[1]',
+                          NDArray[int, typing.Tuple[int, pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[int, pentyping.Cst[1]]]})
+        self.assertIsType('x @ x[1]',
+                          NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]]})
+
+    def test_mod(self):
+        self.assertIsType('x % 1',
+                          NDArray[int, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x % x[1]',
+                          NDArray[int, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x % x[1]',
+                          NDArray[int, typing.Tuple[int, pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[int, pentyping.Cst[1]]]})
+        self.assertIsType('x % x[1]',
+                          NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]]})
+
+    def test_mul(self):
+        self.assertIsType('x * 1',
+                          NDArray[int, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x * x[1]',
+                          NDArray[int, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x * x[1]',
+                          NDArray[int, typing.Tuple[int, pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[int, pentyping.Cst[1]]]})
+        self.assertIsType('x * x[1]',
+                          NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]]})
+
+    def test_ne(self):
+        self.assertIsType('x != 1',
+                          NDArray[bool, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x != x[1]',
+                          NDArray[bool, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x != x[1]',
+                          NDArray[bool, typing.Tuple[int, pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[int, pentyping.Cst[1]]]})
+        self.assertIsType('x != x[1]',
+                          NDArray[bool, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]]})
+
+    def test_neg(self):
+        self.assertIsType('-x',
+                          NDArray[int, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('-x',
+                          NDArray[int, typing.Tuple[pentyping.Cst[5]]],
+                          env={'x': NDArray[int, typing.Tuple[pentyping.Cst[5]]]})
+
+    def test_or(self):
+        self.assertIsType('x | 1',
+                          NDArray[int, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x | x[1]',
+                          NDArray[int, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x | x[1]',
+                          NDArray[int, typing.Tuple[int, pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[int, pentyping.Cst[1]]]})
+        self.assertIsType('x | x[1]',
+                          NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]]})
+
+    def test_pos(self):
+        self.assertIsType('+x',
+                          NDArray[int, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('+x',
+                          NDArray[int, typing.Tuple[pentyping.Cst[5]]],
+                          env={'x': NDArray[int, typing.Tuple[pentyping.Cst[5]]]})
+
+    def test_pow(self):
+        self.assertIsType('x ** 1',
+                          NDArray[int, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x ** x[1]',
+                          NDArray[int, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x ** x[1]',
+                          NDArray[int, typing.Tuple[int, pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[int, pentyping.Cst[1]]]})
+        self.assertIsType('x ** x[1]',
+                          NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]]})
+
+
+    def test_sub(self):
+        self.assertIsType('x - 1',
+                          NDArray[int, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x - x[1]',
+                          NDArray[int, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x - x[1]',
+                          NDArray[int, typing.Tuple[int, pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[int, pentyping.Cst[1]]]})
+        self.assertIsType('x - x[1]',
+                          NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]]})
+
+    def test_truediv(self):
+        self.assertIsType('x / 1',
+                          NDArray[float, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x / x[1]',
+                          NDArray[float, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x / x[1]',
+                          NDArray[float, typing.Tuple[int, pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[int, pentyping.Cst[1]]]})
+        self.assertIsType('x / x[1]',
+                          NDArray[float, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]]})
+
+    def test_xor(self):
+        self.assertIsType('x ^ 1',
+                          NDArray[int, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x ^ x[1]',
+                          NDArray[int, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x ^ x[1]',
+                          NDArray[int, typing.Tuple[int, pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[int, pentyping.Cst[1]]]})
+        self.assertIsType('x ^ x[1]',
                           NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]],
                           env={'x': NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]]})

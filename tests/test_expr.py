@@ -36,6 +36,8 @@ class TestExpr(TestCase):
         self.assertIsType('x | x', int, env={"x": int})
         self.assertIsType('x & x', int, env={"x": int})
         self.assertIsType('x ^ x', int, env={"x": int})
+        self.assertIsType('x << x', int, env={"x": int})
+        self.assertIsType('x >> x', int, env={"x": int})
         self.assertIsType('x ** x', int, env={"x": int})
 
     def test_unaryop_ty(self):
@@ -189,6 +191,8 @@ class TestExpr(TestCase):
         self.assertIsType('1 + 1', pentyping.Cst[1+1])
         self.assertIsType('1 - 1', pentyping.Cst[1 - 1])
         self.assertIsType('1 * 1', pentyping.Cst[1 * 1])
+        self.assertIsType('1 << 1', pentyping.Cst[1 << 1])
+        self.assertIsType('1 >> 1', pentyping.Cst[1 >> 1])
         #self.assertIsType('x @ x', int, env={"x": int})
         self.assertIsType('1 / 1', pentyping.Cst[1 / 1])
         self.assertIsType('1 % 1', pentyping.Cst[1 % 1])
