@@ -19,6 +19,12 @@ class TestBuiltins(TestPenty):
     def test_type(self):
         self.assertIsType('type(x) is int', pentyping.Cst[True], env={'x':int})
 
+    def test_float(self):
+        self.assertIsType('float(x)', float, env={'x': bool})
+        self.assertIsType('float(x)', float, env={'x': int})
+        self.assertIsType('float(x)', float, env={'x': float})
+        self.assertIsType('float(x)', float, env={'x': str})
+
     def test_int(self):
         self.assertIsType('int(x)', int, env={'x': bool})
         self.assertIsType('int(x)', int, env={'x': int})
@@ -94,9 +100,13 @@ class TestFloat(TestPenty):
     def test_init(self):
         self.assertIsType('float(1.2)', pentyping.Cst[float(1.2)])
         self.assertIsType('float(x)', float, env={'x': bool})
+        self.assertIsType('float(True)', pentyping.Cst[float(True)])
         self.assertIsType('float(x)', float, env={'x': int})
+        self.assertIsType('float(3)', pentyping.Cst[float(3)])
         self.assertIsType('float(x)', float, env={'x': float})
+        self.assertIsType('float(2.1)', pentyping.Cst[float(2.1)])
         self.assertIsType('float(x)', float, env={'x': str})
+        self.assertIsType('float("3.14")', pentyping.Cst[float("3.14")])
 
     def test_le(self):
         self.assertIsType('1. <= 3.4', pentyping.Cst[1 <= 3.4])

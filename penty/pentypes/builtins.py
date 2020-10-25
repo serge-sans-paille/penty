@@ -9,9 +9,30 @@ import operator as _operator
 def bool_bool(self_ty):
     return self_ty
 
+def bool_int(value_ty):
+    if issubclass(value_ty, _Cst):
+        return _Cst[int(value_ty.__args__[0])]
+    else:
+        return int
+
+def bool_float(value_ty):
+    if issubclass(value_ty, _Cst):
+        return _Cst[float(value_ty.__args__[0])]
+    else:
+        return float
+
+def bool_str(value_ty):
+    if issubclass(value_ty, _Cst):
+        return _Cst[str(value_ty.__args__[0])]
+    else:
+        return str
+
 def bool_init(value_ty):
-    from penty.penty import Types
-    return Types[_astype(value_ty)]['__bool__'](value_ty)
+    if issubclass(value_ty, _Cst):
+        return _Cst[bool(value_ty.__args__[0])]
+    else:
+        from penty.penty import Types
+        return Types[_astype(value_ty)]['__bool__'](value_ty)
 
 def bool_not(self_ty):
     if self_ty is bool:
@@ -23,21 +44,22 @@ def bool_not(self_ty):
 
 _bool_attrs = {
     '__bool__' : _Cst[bool_bool],
+    '__float__' : _Cst[bool_float],
     '__init__': _Cst[bool_init],
+    '__int__' : _Cst[bool_int],
     '__not__' : _Cst[bool_not],
+    '__str__' : _Cst[bool_str],
 }
 
 ##
 #
 
 def int_init(self_ty):
-    if self_ty in (bool, int, float, str):
-        return int
-    elif issubclass(self_ty, _Cst):
+    if issubclass(self_ty, _Cst):
         return _Cst[int(self_ty.__args__[0])]
     else:
-        raise TypeError
-
+        from penty.penty import Types
+        return Types[self_ty]['__int__'](self_ty)
 
 def int_make_binop(operator):
     def binop(self_ty, other_ty):
@@ -114,11 +136,36 @@ def int_make_unaryop(operator):
             raise TypeError
     return _Cst[unaryop]
 
-def int_boolean(self_ty):
+def int_bool(self_ty):
     if self_ty is int:
         return bool
     elif issubclass(self_ty, _Cst):
         return _Cst[bool(self_ty.__args__[0])]
+    else:
+        raise TypeError
+
+def int_int(self_ty):
+    if self_ty is int:
+        return int
+    elif issubclass(self_ty, _Cst):
+        return _Cst[int(self_ty.__args__[0])]
+    else:
+        raise TypeError
+
+
+def int_float(self_ty):
+    if self_ty is int:
+        return float
+    elif issubclass(self_ty, _Cst):
+        return _Cst[float(self_ty.__args__[0])]
+    else:
+        raise TypeError
+
+def int_str(self_ty):
+    if self_ty is int:
+        return str
+    elif issubclass(self_ty, _Cst):
+        return _Cst[str(self_ty.__args__[0])]
     else:
         raise TypeError
 
@@ -154,11 +201,13 @@ def int_make_biniop(operator):
 _int_attrs = {
     '__add__': int_make_binop(_operator.add),
     '__and__': int_make_bitop(_operator.and_),
-    '__bool__': _Cst[int_boolean],
+    '__bool__': _Cst[int_bool],
     '__eq__': int_make_boolop(_operator.eq),
+    '__float__': _Cst[int_float],
     '__floordiv__': int_make_binop(_operator.floordiv),
     '__ge__': int_make_boolop(_operator.ge),
     '__gt__': int_make_boolop(_operator.gt),
+    '__int__': _Cst[int_int],
     '__init__': _Cst[int_init],
     '__invert__': int_make_unaryop(_operator.inv),
     '__le__': int_make_boolop(_operator.le),
@@ -172,10 +221,12 @@ _int_attrs = {
     '__pos__': int_make_unaryop(_operator.pos),
     '__pow__': int_make_binop(_operator.pow),
     '__rshift__': int_make_bitop(_operator.rshift),
+    '__str__': _Cst[int_str],
     '__sub__': int_make_binop(_operator.sub),
     '__truediv__': _Cst[int_truediv],
     '__xor__': int_make_bitop(_operator.xor),
 }
+
 _int_attrs.update({
     '__iadd__': int_make_biniop(_int_attrs['__add__']),
     '__iand__': int_make_biniop(_int_attrs['__and__']),
@@ -198,14 +249,30 @@ def float_bool(self_ty):
     else:
         return bool
 
-def float_init(self_ty):
-    if self_ty in (bool, int, float, str):
-        return float
-    elif issubclass(self_ty, _Cst):
+def float_int(self_ty):
+    if issubclass(self_ty, _Cst):
+        return _Cst[int(self_ty.__args__[0])]
+    else:
+        return int
+
+def float_float(self_ty):
+    if issubclass(self_ty, _Cst):
         return _Cst[float(self_ty.__args__[0])]
     else:
-        raise TypeError
+        return float
 
+def float_str(self_ty):
+    if issubclass(self_ty, _Cst):
+        return _Cst[str(self_ty.__args__[0])]
+    else:
+        return str
+
+def float_init(self_ty):
+    if issubclass(self_ty, _Cst):
+        return _Cst[float(self_ty.__args__[0])]
+    else:
+        from penty.penty import Types
+        return Types[self_ty]['__float__'](self_ty)
 
 def float_make_binop(operator):
     def binop(self_ty, other_ty):
@@ -274,9 +341,11 @@ _float_attrs = {
     '__bool__' : _Cst[float_bool],
     '__eq__': float_make_boolop(_operator.eq),
     '__floordiv__': float_make_binop(_operator.floordiv),
+    '__float__': _Cst[float_float],
     '__ge__': float_make_boolop(_operator.ge),
     '__gt__': float_make_boolop(_operator.gt),
     '__init__': _Cst[float_init],
+    '__int__': _Cst[float_int],
     '__le__': float_make_boolop(_operator.le),
     '__lt__': float_make_boolop(_operator.lt),
     '__mul__': float_make_binop(_operator.mul),
@@ -285,6 +354,7 @@ _float_attrs = {
     '__neg__': float_make_unaryop(_operator.neg),
     '__pos__': float_make_unaryop(_operator.pos),
     '__pow__': float_make_binop(_operator.pow),
+    '__str__': _Cst[float_str],
     '__sub__': float_make_binop(_operator.sub),
     '__truediv__': float_make_binop(_operator.truediv),
 }
@@ -301,6 +371,38 @@ def str_bool(self_ty):
     else:
         raise TypeError
 
+def str_int(self_ty):
+    if self_ty is str:
+        return int
+    elif issubclass(self_ty, _Cst):
+        return _Cst[int(self_ty.__args__[0])]
+    else:
+        raise TypeError
+
+def str_init(self_ty):
+    if issubclass(self_ty, _Cst):
+        return _Cst[str(self_ty.__args__[0])]
+    else:
+        from penty.penty import Types
+        return Types[self_ty]['__str__'](self_ty)
+
+
+def str_float(self_ty):
+    if self_ty is str:
+        return float
+    elif issubclass(self_ty, _Cst):
+        return _Cst[float(self_ty.__args__[0])]
+    else:
+        raise TypeError
+
+def str_str(self_ty):
+    if self_ty is str:
+        return str
+    elif issubclass(self_ty, _Cst):
+        return _Cst[str(self_ty.__args__[0])]
+    else:
+        raise TypeError
+
 
 def str_iter(self_ty):
     if self_ty is str:
@@ -312,8 +414,12 @@ def str_iter(self_ty):
 
 _str_attrs = {
     '__bool__': _Cst[str_bool],
+    '__float__': _Cst[str_float],
+    '__init__': _Cst[str_init],
+    '__int__': _Cst[str_int],
     '__iter__' : _Cst[str_iter],
     '__len__': _Cst[lambda *args: int],
+    '__str__': _Cst[str_str],
 }
 
 ##
