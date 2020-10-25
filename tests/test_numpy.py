@@ -45,6 +45,14 @@ class TestNDArray(TestCase):
         env = penty.type_exec("import numpy as np", env)
         self.assertEqual(penty.type_eval(expr, env), ty)
 
+    def test_abs(self):
+        self.assertIsType('x.__abs__()',
+                          NDArray[int, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x.__abs__()',
+                          NDArray[int, typing.Tuple[pentyping.Cst[5]]],
+                          env={'x': NDArray[int, typing.Tuple[pentyping.Cst[5]]]})
+
     def test_getitem(self):
         self.assertIsType('x[0]',
                           NDArray[float, typing.Tuple[int]],

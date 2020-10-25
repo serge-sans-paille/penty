@@ -190,6 +190,7 @@ def ones_(shape_ty, dtype_ty=None):
 
 def ndarray_instanciate(ty):
     return {
+        '__abs__': _Cst[ndarray_make_unaryop('__abs__')],
         '__add__': _Cst[ndarray_make_binop('__add__')],
         '__and__': _Cst[ndarray_make_bitop('__and__')],
         '__bool__': _Cst[lambda *args: ndarray_bool(ty, *args)],

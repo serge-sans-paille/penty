@@ -6,6 +6,12 @@ import operator as _operator
 ##
 #
 
+def bool_abs(value_ty):
+    if issubclass(value_ty, _Cst):
+        return _Cst[abs(value_ty.__args__[0])]
+    else:
+        return int
+
 def bool_bool(self_ty):
     return self_ty
 
@@ -43,6 +49,7 @@ def bool_not(self_ty):
         raise TypeError
 
 _bool_attrs = {
+    '__abs__' : _Cst[bool_abs],
     '__bool__' : _Cst[bool_bool],
     '__float__' : _Cst[bool_float],
     '__init__': _Cst[bool_init],
@@ -152,6 +159,13 @@ def int_int(self_ty):
     else:
         raise TypeError
 
+def int_abs(self_ty):
+    if self_ty is int:
+        return int
+    elif issubclass(self_ty, _Cst):
+        return _Cst[abs(self_ty.__args__[0])]
+    else:
+        raise TypeError
 
 def int_float(self_ty):
     if self_ty is int:
@@ -199,6 +213,7 @@ def int_make_biniop(operator):
 
 
 _int_attrs = {
+    '__abs__': _Cst[int_abs],
     '__add__': int_make_binop(_operator.add),
     '__and__': int_make_bitop(_operator.and_),
     '__bool__': _Cst[int_bool],
@@ -242,6 +257,14 @@ _int_attrs.update({
 
 ##
 #
+
+def float_abs(self_ty):
+    if issubclass(self_ty, _Cst):
+        return _Cst[abs(self_ty.__args__[0])]
+    elif self_ty is float:
+        return float
+    else:
+        raise TypeError
 
 def float_bool(self_ty):
     if issubclass(self_ty, _Cst):
@@ -337,6 +360,7 @@ def float_make_biniop(operator):
 
 
 _float_attrs = {
+    '__abs__' : _Cst[float_abs],
     '__add__': float_make_binop(_operator.add),
     '__bool__' : _Cst[float_bool],
     '__eq__': float_make_boolop(_operator.eq),
@@ -569,6 +593,16 @@ _str_iterator_attrs = {
 ##
 #
 
+def abs_(self_type):
+    from penty.penty import Types
+    if issubclass(self_type, _Cst):
+        return _Cst[abs(self_type.__args__[0])]
+    else:
+        return Types[self_type]['__abs__'](self_type)
+
+##
+#
+
 def id_(self_types):
     return int
 
@@ -629,6 +663,7 @@ def register(registry):
         registry[_typing.Tuple] = tuple_instanciate
 
         registry[_Module['builtins']] = {
+            'abs': {_Cst[abs_]},
             'bool': {_Ty[bool]},
             'dict': {_Ty[dict]},
             'id': {_Cst[id_]},

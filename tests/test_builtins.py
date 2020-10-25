@@ -19,6 +19,11 @@ class TestBuiltins(TestPenty):
     def test_type(self):
         self.assertIsType('type(x) is int', pentyping.Cst[True], env={'x':int})
 
+    def test_abs(self):
+        self.assertIsType('abs(x)', int, env={'x': bool})
+        self.assertIsType('abs(x)', int, env={'x': int})
+        self.assertIsType('abs(x)', float, env={'x': float})
+
     def test_float(self):
         self.assertIsType('float(x)', float, env={'x': bool})
         self.assertIsType('float(x)', float, env={'x': int})
@@ -67,6 +72,10 @@ class TestBuiltins(TestPenty):
         self.assertIsType('bool("hello")', pentyping.Cst[True])
 
 class TestFloat(TestPenty):
+
+    def test_abs(self):
+        self.assertIsType('abs(-1.)', pentyping.Cst[abs(-1.)])
+        self.assertIsType('abs(x)', float, env={'x': float})
 
     def test_add(self):
         self.assertIsType('1. + 3.4', pentyping.Cst[1 + 3.4])
