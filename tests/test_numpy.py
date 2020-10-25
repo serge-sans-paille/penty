@@ -85,12 +85,21 @@ class TestNDArray(TestCase):
         self.assertIsType('x + 1',
                           NDArray[int, typing.Tuple[int, int]],
                           env={'x': NDArray[int, typing.Tuple[int, int]]})
+        self.assertIsType('x + 1.',
+                          NDArray[float, typing.Tuple[int, int]],
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
         self.assertIsType('x + x[1]',
                           NDArray[int, typing.Tuple[int, int]],
                           env={'x': NDArray[int, typing.Tuple[int, int]]})
         self.assertIsType('x + x[1]',
                           NDArray[int, typing.Tuple[int, pentyping.Cst[1]]],
                           env={'x': NDArray[int, typing.Tuple[int, pentyping.Cst[1]]]})
+        self.assertIsType('x + y',
+                          NDArray[float, typing.Tuple[int, pentyping.Cst[1]]],
+                          env={'x': NDArray[int, typing.Tuple[int,
+                                                              pentyping.Cst[1]]],
+                               'y': NDArray[float, typing.Tuple[int, pentyping.Cst[1]]]
+                         })
         self.assertIsType('x + x[1]',
                           NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]],
                           env={'x': NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]]})
@@ -108,6 +117,9 @@ class TestNDArray(TestCase):
         self.assertIsType('x & x[1]',
                           NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]],
                           env={'x': NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]]})
+        with self.assertRaises(TypeError):
+            env = {'x': {NDArray[float, typing.Tuple[int, int]]}}
+            penty.type_eval('x & 1', env)
 
     def test_bool(self):
         self.assertIsType('bool(x)',
@@ -354,6 +366,11 @@ class TestNDArray(TestCase):
         self.assertIsType('x ** x[1]',
                           NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]],
                           env={'x': NDArray[int, typing.Tuple[pentyping.Cst[5], pentyping.Cst[1]]]})
+
+    def test_str(self):
+        self.assertIsType('x.__str__()',
+                          str,
+                          env={'x': NDArray[int, typing.Tuple[int, int]]})
 
 
     def test_sub(self):
