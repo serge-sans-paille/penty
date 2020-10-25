@@ -4,7 +4,7 @@ import penty
 import penty.types as pentyping
 import typing
 
-class TestBuiltins(TestCase):
+class TestPenty(TestCase):
 
     def assertIsType(self, expr, ty, env={}):
         if not isinstance(ty, set):
@@ -12,6 +12,9 @@ class TestBuiltins(TestCase):
         env = {k: v if isinstance(v, set) else {v}
                for k, v in env.items()}
         self.assertEqual(penty.type_eval(expr, env), ty)
+
+
+class TestBuiltins(TestPenty):
 
     def test_type(self):
         self.assertIsType('type(x) is int', pentyping.Cst[True], env={'x':int})
@@ -57,8 +60,89 @@ class TestBuiltins(TestCase):
         self.assertIsType('bool("")', pentyping.Cst[False])
         self.assertIsType('bool("hello")', pentyping.Cst[True])
 
+class TestFloat(TestPenty):
 
-class TestDict(TestCase):
+    def test_add(self):
+        self.assertIsType('1. + 3.4', pentyping.Cst[1 + 3.4])
+        self.assertIsType('x + 3.4', float, env={'x': float})
+        self.assertIsType('x + x', float, env={'x': float})
+
+    def test_bool(self):
+        self.assertIsType('bool(1.)', pentyping.Cst[bool(1.)])
+        self.assertIsType('bool(x)', bool, env={'x': float})
+
+    def test_eq(self):
+        self.assertIsType('1. == 3.4', pentyping.Cst[1 == 3.4])
+        self.assertIsType('x == 3.4', bool, env={'x': float})
+        self.assertIsType('x == x', bool, env={'x': float})
+
+    def test_floordiv(self):
+        self.assertIsType('1. // 3.4', pentyping.Cst[1 // 3.4])
+        self.assertIsType('x // 3.4', float, env={'x': float})
+        self.assertIsType('x // x', float, env={'x': float})
+
+    def test_ge(self):
+        self.assertIsType('1. >= 3.4', pentyping.Cst[1 >= 3.4])
+        self.assertIsType('x >= 3.4', bool, env={'x': float})
+        self.assertIsType('x >= x', bool, env={'x': float})
+
+    def test_gt(self):
+        self.assertIsType('1. > 3.4', pentyping.Cst[1 > 3.4])
+        self.assertIsType('x > 3.4', bool, env={'x': float})
+        self.assertIsType('x > x', bool, env={'x': float})
+
+    def test_init(self):
+        self.assertIsType('float(1.2)', pentyping.Cst[float(1.2)])
+        self.assertIsType('float(x)', float, env={'x': bool})
+        self.assertIsType('float(x)', float, env={'x': int})
+        self.assertIsType('float(x)', float, env={'x': float})
+        self.assertIsType('float(x)', float, env={'x': str})
+
+    def test_le(self):
+        self.assertIsType('1. <= 3.4', pentyping.Cst[1 <= 3.4])
+        self.assertIsType('x <= 3.4', bool, env={'x': float})
+        self.assertIsType('x <= x', bool, env={'x': float})
+
+    def test_lt(self):
+        self.assertIsType('1. < 3.4', pentyping.Cst[1 < 3.4])
+        self.assertIsType('x < 3.4', bool, env={'x': float})
+        self.assertIsType('x < x', bool, env={'x': float})
+
+    def test_mul(self):
+        self.assertIsType('1. * 3.4', pentyping.Cst[1 * 3.4])
+        self.assertIsType('x * 3.4', float, env={'x': float})
+        self.assertIsType('x * x', float, env={'x': float})
+
+    def test_mod(self):
+        self.assertIsType('1. % 3.4', pentyping.Cst[1 % 3.4])
+        self.assertIsType('x % 3.4', float, env={'x': float})
+        self.assertIsType('x % x', float, env={'x': float})
+
+    def test_ne(self):
+        self.assertIsType('1. != 3.4', pentyping.Cst[1 != 3.4])
+        self.assertIsType('x != 3.4', bool, env={'x': float})
+        self.assertIsType('x != x', bool, env={'x': float})
+
+    def test_neg(self):
+        self.assertIsType('-(1.4)', pentyping.Cst[-(1.4)])
+        self.assertIsType('-x', float, env={'x': float})
+
+    def test_pos(self):
+        self.assertIsType('+(1.4)', pentyping.Cst[+(1.4)])
+        self.assertIsType('+x', float, env={'x': float})
+
+    def test_pow(self):
+        self.assertIsType('1. ** 3.4', pentyping.Cst[1 ** 3.4])
+        self.assertIsType('x ** 3.4', float, env={'x': float})
+        self.assertIsType('x ** x', float, env={'x': float})
+
+    def test_sub(self):
+        self.assertIsType('1. - 3.4', pentyping.Cst[1 - 3.4])
+        self.assertIsType('x - 3.4', float, env={'x': float})
+        self.assertIsType('x - x', float, env={'x': float})
+
+
+class TestDict(TestPenty):
 
     def assertIsType(self, expr, ty, env={}):
         if not isinstance(ty, set):
@@ -76,7 +160,7 @@ class TestDict(TestCase):
                           typing.Dict[str, pentyping.Cst[None]],
                           env={'x': str})
 
-class TestList(TestCase):
+class TestList(TestPenty):
 
     def assertIsType(self, expr, ty, env={}):
         if not isinstance(ty, set):

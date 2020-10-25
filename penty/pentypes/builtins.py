@@ -34,7 +34,7 @@ def int_init(self_ty):
     if self_ty in (bool, int, float, str):
         return int
     elif issubclass(self_ty, _Cst):
-        return _Cst[int(ty.__args__[0])]
+        return _Cst[int(self_ty.__args__[0])]
     else:
         raise TypeError
 
@@ -198,9 +198,95 @@ def float_bool(self_ty):
     else:
         return bool
 
+def float_init(self_ty):
+    if self_ty in (bool, int, float, str):
+        return float
+    elif issubclass(self_ty, _Cst):
+        return _Cst[float(self_ty.__args__[0])]
+    else:
+        raise TypeError
+
+
+def float_make_binop(operator):
+    def binop(self_ty, other_ty):
+        if issubclass(self_ty, _Cst):
+            if other_ty in (bool, int, float):
+                return float
+            elif issubclass(other_ty, _Cst):
+                return _Cst[operator(self_ty.__args__[0],
+                                     other_ty.__args__[0])]
+            else:
+                raise TypeError
+        elif self_ty is float:
+            if other_ty in (bool, int, float):
+                return float
+            elif issubclass(other_ty, _Cst):
+                return float
+            else:
+                raise TypeError
+        else:
+            raise TypeError
+        return result_types
+    return _Cst[binop]
+
+def float_make_unaryop(operator):
+    def unaryop(self_ty):
+        if self_ty is float:
+            return float
+        elif issubclass(self_ty, _Cst):
+            return _Cst[operator(self_ty.__args__[0])]
+        else:
+            raise TypeError
+    return _Cst[unaryop]
+
+
+def float_make_boolop(operator):
+    def boolop(self_ty, other_ty):
+        if issubclass(self_ty, _Cst):
+            if other_ty in (bool, int, float):
+                return bool
+            elif issubclass(other_ty, _Cst):
+                return _Cst[operator(self_ty.__args__[0],
+                                     other_ty.__args__[0])]
+            else:
+                raise TypeError
+        elif self_ty is float:
+            if other_ty in (bool, int, float):
+                return bool
+            elif issubclass(other_ty, _Cst):
+                return bool
+            else:
+                raise TypeError
+        else:
+            raise TypeError
+    return _Cst[boolop]
+
+def float_make_biniop(operator):
+    def biniop(self_ty, other_ty):
+        result_ty = operator(self_ty, other_ty)
+        # floatt are immutable so we don't update self_ty
+        return result_ty
+    return _Cst[biniop]
+
 
 _float_attrs = {
+    '__add__': float_make_binop(_operator.add),
     '__bool__' : _Cst[float_bool],
+    '__eq__': float_make_boolop(_operator.eq),
+    '__floordiv__': float_make_binop(_operator.floordiv),
+    '__ge__': float_make_boolop(_operator.ge),
+    '__gt__': float_make_boolop(_operator.gt),
+    '__init__': _Cst[float_init],
+    '__le__': float_make_boolop(_operator.le),
+    '__lt__': float_make_boolop(_operator.lt),
+    '__mul__': float_make_binop(_operator.mul),
+    '__mod__': float_make_binop(_operator.mod),
+    '__ne__': float_make_boolop(_operator.ne),
+    '__neg__': float_make_unaryop(_operator.neg),
+    '__pos__': float_make_unaryop(_operator.pos),
+    '__pow__': float_make_binop(_operator.pow),
+    '__sub__': float_make_binop(_operator.sub),
+    '__truediv__': float_make_binop(_operator.truediv),
 }
 
 ##
@@ -441,6 +527,7 @@ def register(registry):
             'dict': {_Ty[dict]},
             'id': {_Cst[id_]},
             'int': {_Ty[int]},
+            'float': {_Ty[float]},
             'len': {_Cst[len_]},
             'repr': {_Cst[repr_]},
             'slice': {_Cst[slice_]},
