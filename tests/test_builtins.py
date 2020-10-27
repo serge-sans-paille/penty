@@ -17,7 +17,13 @@ class TestPenty(TestCase):
 class TestBuiltins(TestPenty):
 
     def test_type(self):
-        self.assertIsType('type(x) is int', pentyping.Cst[True], env={'x':int})
+        #self.assertIsType('type(x) is int',
+        #                  pentyping.FilteringBool[True, 'x', (int,)],
+        #                  env={'x':int})
+        self.assertIsType('abs(x) if type(x) is int else x',
+                          {int, pentyping.Cst[None]},
+                          env={'x': {int, pentyping.Cst[None]}})
+        #self.assertIsType('type(x)(x)', int, env={'x': int})
 
     def test_abs(self):
         self.assertIsType('abs(x)', int, env={'x': bool})

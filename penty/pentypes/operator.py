@@ -1,5 +1,5 @@
 from penty.types import FunctionType, FunctionTypeMeta, Cst, Module, astype
-from penty.types import Type
+from penty.types import Type, TypeOf, FilteringBool
 
 class UnaryOperatorMeta(FunctionTypeMeta):
     cache = {}
@@ -48,6 +48,15 @@ class BinaryOperator(FunctionType, metaclass=BinaryOperatorMeta):
 class IsOperatorMeta(BinaryOperatorMeta):
 
     def __call__(self, left_ty, right_ty):
+        if issubclass(left_ty, TypeOf):
+            if issubclass(right_ty, (Cst, Type)):
+                return FilteringBool[(left_ty.__args__[0] is right_ty.__args__[0]),
+                                     left_ty.__args__[1], (left_ty.__args__[0],)]
+            elif astype(left_ty) == right_ty:
+                return bool
+            else:
+                return Cst[False]
+
         if issubclass(left_ty, (Cst, Type)):
             if issubclass(right_ty, (Cst, Type)):
                 return Cst[left_ty.__args__[0] is right_ty.__args__[0]]

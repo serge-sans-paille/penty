@@ -64,6 +64,13 @@ class TestExpr(TestCase):
                           int, env={'x': int, 'y': float})
         self.assertIsType('x if 0 else y',
                           float, env={'x': int, 'y': float})
+        self.assertIsType('y if x is None else abs(x)',
+                          float,
+                          env={'x': {pentyping.Cst[None], float},
+                               'y': float})
+        self.assertIsType('x if x is None else (x.append(1), x)[1]',
+                          {pentyping.Cst[None], typing.List[int]},
+                          env={'x': {pentyping.Cst[None], list}})
 
     def test_dict_ty(self):
         self.assertIsType('{}', dict)
@@ -163,12 +170,14 @@ class TestExpr(TestCase):
         self.assertIsType('y is 1.', bool, env={'x': int, 'y': float})
         self.assertIsType('1 is y', pentyping.Cst[False], env={'x': int, 'y': float})
         self.assertIsType('y is 1', pentyping.Cst[False], env={'x': int, 'y': float})
+        self.assertIsType('3 is 1', pentyping.Cst[False])
+        self.assertIsType('3. is 1', pentyping.Cst[False])
 
         self.assertIsType('x is not y', bool, env={'x': int, 'y': int})
         self.assertIsType('x is not y', pentyping.Cst[True], env={'x': int, 'y': float})
 
-        #self.assertIsType('x in y', bool, env={'x': int, 'y': int})
-        #self.assertIsType('x not in y', bool, env={'x': int, 'y': int})
+        #self.assertIsType('x in [y]', bool, env={'x': int, 'y': int})
+        #self.assertIsType('x not in [y]', bool, env={'x': int, 'y': int})
 
     def test_repr(self):
         self.assertIsType('repr(x)', str, env={'x': int})
@@ -251,7 +260,34 @@ class TestExpr(TestCase):
                           env={'x': int, 'y': float})
 
     def test_static_expression_ty(self):
-        self.assertIsType('x is None', pentyping.Cst[False], env={'x': int})
+        self.assertIsType('x is None',
+                          pentyping.Cst[False],
+                          env={'x': int})
+        self.assertIsType('None is x',
+                          pentyping.Cst[True],
+                          env={'x': pentyping.Cst[None]})
+        self.assertIsType('x is None or abs(x)',
+                          {pentyping.FilteringBool[True, 'x', (pentyping.Cst[None],)],
+                           int},
+                          env={'x': {int, pentyping.Cst[None]}})
+        self.assertIsType('type(x) is int and abs(x)',
+                          {pentyping.FilteringBool[False, 'x', (pentyping.Cst[None],)],
+                           int},
+                          env={'x': {int, pentyping.Cst[None]}})
+        self.assertIsType('x is None or None is y or (x + y)',
+                          {pentyping.FilteringBool[True, 'x', (pentyping.Cst[None],)],
+                           pentyping.FilteringBool[True, 'y', (pentyping.Cst[None],)],
+                           int},
+                          env={'x': {int, pentyping.Cst[None]},
+                               'y': {int, pentyping.Cst[None]},
+                              })
+        self.assertIsType('x is y is None',
+                          {pentyping.FilteringBool[False, 'x', (int,)],
+                           pentyping.FilteringBool[True, 'x', (pentyping.Cst[None],)],
+                           pentyping.Cst[True]},
+                          env={'x': {int, pentyping.Cst[None]},
+                               'y': {pentyping.Cst[None]},
+                              })
         self.assertIsType('x is not None', pentyping.Cst[True], env={'x': int})
         self.assertIsType('x is None or x == 1', bool, env={'x': int})
         self.assertIsType('x is not None and x is not 2.', pentyping.Cst[True], env={'x': int})

@@ -144,7 +144,7 @@ class TestStmt(TestCase):
 
     def test_while_loop_simple_incr(self):
         self.assertIsType('j = 0\nwhile id(j): j += 1',
-                          'j', int)
+                          'j', {pentyping.Cst[0], int})
 
     def test_while_early_return(self):
         self.assertIsType('j = 0\nwhile id(j):\n j += 1\n return',
@@ -156,7 +156,7 @@ class TestStmt(TestCase):
 
     def test_while_early_continue(self):
         self.assertIsType('j = 0\nwhile id(j):\n j += 1\n continue',
-                          'j', int)
+                          'j', {pentyping.Cst[0], int})
 
     def test_while_early_return_else(self):
         self.assertIsType('j = 0\nwhile id(j): return\nelse: j = 1',
@@ -168,7 +168,12 @@ class TestStmt(TestCase):
 
     def test_while_early_continue_else(self):
         self.assertIsType('j = 0\nwhile id(j):\n continue\nelse: j = 1',
-                          'j', pentyping.Cst[1])
+                          'j', {pentyping.Cst[0], pentyping.Cst[1]})
+
+    def test_while_isnone(self):
+        self.assertIsType('i = id(None) or None\nj=1.\nwhile i is None: j = i',
+                          'j', {pentyping.Cst[1.], pentyping.Cst[None]})
+
 
     def test_if_true_branch(self):
         self.assertIsType('j = 0\nif j != 1: j = 1',
@@ -279,6 +284,18 @@ class TestStmt(TestCase):
         self.assertIsType(code,
                           'f(y)', {int, pentyping.Cst["x"], pentyping.Cst[None]},
                           env = {'y': int})
+
+    def test_if_isnone(self):
+        code = '''
+        def f(x, y):
+            if x is None:
+                return y
+            else:
+                return abs(x)'''
+        self.assertIsType(code,
+                          'f(x, y)', float,
+                          env = {'x': {pentyping.Cst[None], float},
+                                 'y': float})
 
     def test_import(self):
         self.assertIsType('import operator; x = operator.add(1, 2)',

@@ -1,5 +1,12 @@
 def astype(ty):
-    return type(ty.__args__[0]) if hasattr(ty, 'mro') and issubclass(ty, Cst) else ty
+    if issubclass(ty, Cst):
+        cst = ty.__args__[0]
+        if cst is None:
+            return ty
+        else:
+            return type(cst)
+    else:
+        return ty
 
 class CstMeta(type):
     cache = {}
@@ -27,6 +34,33 @@ class CstMeta(type):
 
 class Cst(metaclass=CstMeta):
     pass
+
+
+class FilteringBoolMeta(CstMeta):
+    cache = {}
+
+    def __getitem__(self, args):
+        if args not in FilteringBoolMeta.cache:
+            class LocalFilteringBool(FilteringBool):
+                __args__ = args
+
+            FilteringBoolMeta.cache[args] = LocalFilteringBool
+        return FilteringBoolMeta.cache[args]
+
+    def __repr__(self):
+        return 'FilteringBool[{}]'.format(', '.join(map(str, self.__args__)))
+
+    @staticmethod
+    def bindings(ty):
+        if issubclass(ty, FilteringBool):
+            k, v = ty.__args__[1:]
+            return {k: set(v)}
+        else:
+            return {}
+
+
+class FilteringBool(Cst, metaclass=FilteringBoolMeta):
+    __args__ = ()
 
 class FDefMeta(type):
     cache = {}
@@ -116,4 +150,22 @@ class TypeMeta(type):
 
 
 class Type(metaclass=TypeMeta):
+    pass
+
+class TypeOfMeta(TypeMeta):
+    cache = {}
+
+    def __getitem__(self, args):
+        if args not in TypeOfMeta.cache:
+            class LocalTypeOf(TypeOf):
+                __args__ = args
+
+            TypeOfMeta.cache[args] = LocalTypeOf
+        return TypeOfMeta.cache[args]
+
+    def __repr__(self):
+        return 'TypeOf[{}]'.format(', '.join(map(str, self.__args__)))
+
+
+class TypeOf(Type, metaclass=TypeOfMeta):
     pass

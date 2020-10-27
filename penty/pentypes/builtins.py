@@ -1,5 +1,5 @@
 from penty.types import Cst as _Cst, Module as _Module, Type as _Ty
-from penty.types import astype as _astype
+from penty.types import astype as _astype, TypeOf as _TypeOf
 import typing as _typing
 import operator as _operator
 
@@ -449,6 +449,16 @@ _str_attrs = {
 ##
 #
 
+def none_eq(self_ty, other_ty):
+    return _Cst[bool(other_ty is _Cst[None])]
+
+_none_attrs = {
+    '__eq__': _Cst[none_eq],
+}
+
+##
+#
+
 def dict_clear(base_ty, self_ty):
     if self_ty is not base_ty:
         raise TypeError
@@ -481,7 +491,7 @@ _dict_attrs = {
 #
 
 def list_append(base_ty, self_ty, value_ty):
-    return _Cst[None], (_typing.List[value_ty], value_ty)
+    return _Cst[None], (_typing.List[_astype(value_ty)], value_ty)
 
 def list_count(base_ty, self_ty, elt_ty):
     base_key_ty, = base_ty.__args__
@@ -640,9 +650,11 @@ def slice_(lower_ty, upper_ty, step_ty):
 ##
 #
 
-def type_(self_ty):
-    from penty.penty import Types
-    return _Ty[_astype(self_ty)]
+def type_(self_ty, node=None):
+    if node is None:
+        return _Ty[_astype(self_ty)]
+    else:
+        return _TypeOf[_astype(self_ty), node.id]
 
 ##
 #
@@ -656,6 +668,7 @@ def register(registry):
         registry[int] = _int_attrs
         registry[set] = _set_attrs
         registry[str] = _str_attrs
+        registry[type(None)] = _none_attrs
         registry[str_iterator] = _str_iterator_attrs
         registry[_typing.Dict] = dict_instanciate
         registry[_typing.List] = list_instanciate

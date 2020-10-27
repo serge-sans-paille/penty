@@ -5,7 +5,7 @@ import operator
 from functools import reduce
 
 import penty.pentypes as pentypes
-from penty.types import Cst, FDef, Module, astype, Lambda, Type
+from penty.types import Cst, FDef, Module, astype, Lambda, Type, FilteringBool
 
 
 class UnboundIdentifier(RuntimeError):
@@ -93,8 +93,21 @@ IOps = {
 
 
 def normalize_test_ty(types):
-    return {Cst[bool(ty.__args__[0])] if issubclass(ty, Cst) else ty
-            for ty in types}
+    if isinstance(types, set):
+        return {normalize_test_ty(ty) for ty in types}
+    elif issubclass(types, Cst):
+        return Cst[bool(types.__args__[0])]
+    else:
+        return types
+
+def is_isnone(op, left, left_ty, right, right_ty):
+    if not isinstance(op, ast.Is):
+        return False
+    if isinstance(left, ast.Name) and right_ty == {Cst[None]}:
+        return True
+    if isinstance(right, ast.Name) and left_ty == {Cst[None]}:
+        return True
+    return False
 
 class Typer(ast.NodeVisitor):
 
@@ -104,6 +117,10 @@ class Typer(ast.NodeVisitor):
         if env:
             self.bindings[0].update(env)
         self.callstack = []
+
+    def assertValid(self):
+        assert len(self.bindings) == 1, "symmetric binding pop/append"
+        assert not self.callstack, "symmetric callstack pop/append"
 
     def _call(self, func, *args):
         # Just to make it easier to call operators
@@ -151,8 +168,12 @@ class Typer(ast.NodeVisitor):
                     rty, updated_tys = rty[0], rty[1]
                     result_type.add(rty)
                     for arg_ty, old_arg_ty, new_arg_ty in zip(args, args_ty, updated_tys):
-                        if old_arg_ty in (set, list, dict):
-                            arg_ty.remove(old_arg_ty)
+                        # This is a type refinement
+                        try:
+                            if issubclass(new_arg_ty, old_arg_ty):
+                                arg_ty.remove(old_arg_ty)
+                        except TypeError:
+                            pass  # happens when old_arg_ty is a parametric type
                         arg_ty.add(new_arg_ty)
                 else:
                     result_type.add(rty)
@@ -293,15 +314,28 @@ class Typer(ast.NodeVisitor):
 
     def visit_While(self, node):
         test_types = self.visit(node.test)
-        test_types = normalize_test_ty(test_types)
 
+        body_bindings, orelse_bindings = {}, {}
+        for test_ty in test_types:
+            ntest_ty = normalize_test_ty(test_ty)
+            if ntest_ty is Cst[True]:
+                for k, v in FilteringBool.bindings(test_ty).items():
+                    body_bindings.setdefault(k, set()).update(v)
+            elif ntest_ty is Cst[False]:
+                for k, v in FilteringBool.bindings(test_ty).items():
+                    orelse_bindings.setdefault(k, set()).update(v)
+
+        test_types = normalize_test_ty(test_types)
         is_trivial_true = test_types == {Cst[True]}
         is_trivial_false = test_types == {Cst[False]}
 
         if is_trivial_false:
+            for k, v in orelse_bindings.items():
+                self.bindings[-1][k] = v
             return node,
 
         if is_trivial_true:
+            self.bindings.append(body_bindings)
             for stmt in node.body:
                 prev = self.visit(stmt)
                 if not prev :
@@ -309,7 +343,10 @@ class Typer(ast.NodeVisitor):
                 if all(isinstance(p, (ast.Break, ast.Continue)) for p in prev):
                     break
 
+            updated_bindings = self.bindings.pop()
             if not prev:
+                for k, v in updated_bindings.items():
+                    self.bindings[-1][k] = v
                 return ()
 
             if all(isinstance(p, ast.Break) for p in prev):
@@ -317,6 +354,8 @@ class Typer(ast.NodeVisitor):
                     prev = self.visit(stmt)
                     if not prev:
                         break
+                for k, v in updated_bindings.items():
+                    self.bindings[-1][k] = v
                 return prev
             elif all(not isinstance(p, ast.Break) for p in prev):
                 test_types = self.visit(node.test)
@@ -326,30 +365,56 @@ class Typer(ast.NodeVisitor):
                 # infinite loop detected
                 if is_trivial_true:
                     self.visit_Loop(node)
+                    for k, v in updated_bindings.items():
+                        self.bindings[-1][k] = v
                     return ()
+            for k, v in updated_bindings.items():
+                self.bindings[-1][k] = v
 
-            # other cases default to normal loop handling
-
-        return self.visit_Loop(node)
+        # other cases default to normal loop handling
+        self.bindings.append(body_bindings)
+        rets = self.visit_Loop(node)
+        updated_bindings = self.bindings.pop()
+        for k, v in updated_bindings.items():
+            self.bindings[-1].setdefault(k, set()).update(v)
+        for k, v in orelse_bindings.items():
+            self.bindings[-1].setdefault(k, set()).update(v)
+        return rets
 
 
     def visit_If(self, node):
         test_types = self.visit(node.test)
+
+        body_bindings, orelse_bindings = {}, {}
+        for test_ty in test_types:
+            ntest_ty = normalize_test_ty(test_ty)
+            if ntest_ty is Cst[True]:
+                for k, v in FilteringBool.bindings(test_ty).items():
+                    body_bindings.setdefault(k, set()).update(v)
+            elif ntest_ty is Cst[False]:
+                for k, v in FilteringBool.bindings(test_ty).items():
+                    orelse_bindings.setdefault(k, set()).update(v)
+
         test_types = normalize_test_ty(test_types)
 
         is_trivial_true = test_types == {Cst[True]}
         is_trivial_false = test_types == {Cst[False]}
 
         if is_trivial_true:
+            self.bindings.append(body_bindings)
             for stmt in node.body:
                 prev = self.visit(stmt)
                 if not prev:
                     break
                 if all(isinstance(p, (ast.Break, ast.Continue)) for p in prev):
                     break
+            updated_bindings = self.bindings.pop()
+            for k, v in updated_bindings.items():
+                self.bindings[-1][k] = v
             return prev
 
         if is_trivial_false:
+            self.bindings.append(orelse_bindings)
             prev = node,
             for stmt in node.orelse:
                 prev = self.visit(stmt)
@@ -357,10 +422,12 @@ class Typer(ast.NodeVisitor):
                     break
                 if all(isinstance(p, (ast.Break, ast.Continue)) for p in prev):
                     break
+            updated_bindings = self.bindings.pop()
+            for k, v in updated_bindings.items():
+                self.bindings[-1][k] = v
             return prev
 
         prev_body = ()
-        body_bindings = {}
         self.bindings.append(body_bindings)
         try:
             for stmt in node.body:
@@ -376,7 +443,6 @@ class Typer(ast.NodeVisitor):
             self.bindings.pop()
 
         prev_orelse = node,
-        orelse_bindings = {}
         self.bindings.append(orelse_bindings)
         try:
             for stmt in node.orelse:
@@ -459,27 +525,38 @@ class Typer(ast.NodeVisitor):
         return node,
 
     # expr
+
+    def _eval_chain(self, test_types, values, neutral):
+        if not values:
+            return test_types
+
+        value = values.pop(0)
+        next_types = set()
+        for test_ty in test_types:
+            ntest_ty = normalize_test_ty(test_ty)
+            # neutral element => continue
+            if ntest_ty is Cst[neutral]:
+                next_types.add(test_ty)
+                continue
+
+            # before evaluating value, update bindings
+            self.bindings.append(FilteringBool.bindings(test_ty))
+            value_types = self.visit(value)
+            tail_types = self._eval_chain(value_types, values, neutral)
+            next_types.update(tail_types)
+
+            # absorbing element => scoop
+            if ntest_ty is Cst[not neutral]:
+                pass
+            else:
+                next_types.add(test_ty)
+            self.bindings.pop()
+        return next_types
+
     def visit_BoolOp(self, node):
-        test_ty = set()
-        if isinstance(node.op, ast.And):
-            for value in node.values:
-                ntest_ty = normalize_test_ty(test_ty)
-                if ntest_ty == {Cst[False]}:
-                    break
-                if ntest_ty == {Cst[True]}:
-                    test_ty = self.visit(value)
-                else:
-                    test_ty.update(self.visit(value))
-        else:
-            for value in node.values:
-                ntest_ty = normalize_test_ty(test_ty)
-                if ntest_ty == {Cst[True]}:
-                    break
-                if ntest_ty == {Cst[False]}:
-                    test_ty = self.visit(value)
-                else:
-                    test_ty.update(self.visit(value))
-        return test_ty
+        value_types = self.visit(node.values[0])
+        neutral = isinstance(node.op, ast.Or)
+        return self._eval_chain(value_types, node.values[1:], neutral)
 
     def visit_BinOp(self, node):
         operands_ty = self.visit(node.left), self.visit(node.right)
@@ -493,14 +570,22 @@ class Typer(ast.NodeVisitor):
         return {Lambda[node]}
 
     def visit_IfExp(self, node):
-        test_ty = self.visit(node.test)
-        test_ty = normalize_test_ty(test_ty)
-
+        test_types = self.visit(node.test)
         result_types = set()
-        if test_ty != {Cst[False]}:
-            result_types.update(self.visit(node.body))
-        if test_ty != {Cst[True]}:
-            result_types.update(self.visit(node.orelse))
+        for test_ty in test_types:
+            ntest_ty = normalize_test_ty(test_ty)
+            self.bindings.append(FilteringBool.bindings(test_ty))
+
+            if ntest_ty is Cst[True]:
+                result_types.update(self.visit(node.body))
+            elif ntest_ty is Cst[False]:
+                result_types.update(self.visit(node.orelse))
+            else:
+                result_types.update(self.visit(node.body))
+                result_types.update(self.visit(node.orelse))
+
+            # Should we check that there's no change here before discarding
+            self.bindings.pop()
         return result_types
 
     def visit_Dict(self, node):
@@ -620,29 +705,74 @@ class Typer(ast.NodeVisitor):
         else:
             return {typing.Generator[astype(elt_ty), None, None] for elt_ty in elt_types}
 
+    def _handle_is(self, prev, prev_ty, comparator, comparator_ty):
+        cmp_ty = set()
+        for pty, cty in itertools.product(prev_ty, comparator_ty):
+            rem_pty = tuple(prev_ty - {pty})
+            rem_cty = tuple(comparator_ty - {cty})
+            if pty is cty:
+                # special handling for singleton types
+                if issubclass(pty, (Cst, Module, Type)):
+                    tmp_ty = set()
+                    if rem_pty and isinstance(prev, ast.Name):
+                        tmp_ty.add(FilteringBool[True, prev.id, (pty,)])
+                    if rem_cty and isinstance(comparator, ast.Name):
+                        tmp_ty.add(FilteringBool[True, comparator.id, (cty,)])
+                    if tmp_ty:
+                        cmp_ty.update(tmp_ty)
+                    else:
+                        cmp_ty.add(Cst[True])
+                else:
+                    cmp_ty.add(bool)
+            elif astype(pty) is astype(cty):
+                if issubclass(pty, (Cst, Module, Type)) and issubclass(cty, (Cst, Module, Type)):
+                    cmp_ty.add(Cst[False])
+                else:
+                    cmp_ty.add(bool)
+            else:
+                tmp_ty = set()
+                if rem_pty and isinstance(prev, ast.Name):
+                    tmp_ty.add(FilteringBool[False, prev.id, (pty,)])
+                if rem_cty and isinstance(comparator, ast.Name):
+                    tmp_ty.add(FilteringBool[False, comparator.id, (cty,)])
+                if tmp_ty:
+                    cmp_ty.update(tmp_ty)
+                else:
+                    tmp_ty = self._call(Ops[ast.Is], prev_ty, comparator_ty)
+                    cmp_ty.update(tmp_ty)
+        return cmp_ty
+
+
     def visit_Compare(self, node):
+        prev = node.left
         prev_ty = left_ty = self.visit(node.left)
-        is_false = False
-        result_types = set()
+        filters = set()
         for op, comparator in zip(node.ops, node.comparators):
             comparator_ty = self.visit(comparator)
-            cmp_ty = self._call(Ops[type(op)], prev_ty, comparator_ty)
-            is_false |= cmp_ty == {Cst[False]}
-            result_types.update(cmp_ty)
-            prev_ty = comparator_ty
+            if isinstance(op, ast.Is):
+                cmp_ty = self._handle_is(prev, prev_ty, comparator, comparator_ty)
+            else:
+                cmp_ty = self._call(Ops[type(op)], prev_ty, comparator_ty)
+            if normalize_test_ty(cmp_ty) == {Cst[False]}:
+                return cmp_ty
+            filters.update(ty for ty in cmp_ty if issubclass(ty, FilteringBool))
+            prev, prev_ty = comparator, comparator_ty
 
-        if is_false:
-            return {Cst[False]}
-        elif result_types == {Cst[True]}:
-            return result_types
-        else:
-            return set(map(astype, result_types))
+        return cmp_ty | filters
 
     def visit_Call(self, node):
         args_ty = [self.visit(arg) for arg in node.args]
         func_ty = self.visit(node.func)
+
         return_ty = set()
-        return_ty.update(*[self._call(fty, *args_ty) for fty in func_ty])
+        istype_compat = node.args and isinstance(node.args[0], ast.Name)
+        typety = Types[Module['builtins']]['type']
+        for fty in func_ty:
+            if func_ty is typety and istype_compat:
+                return_ty.update({fty(arg_ty, node.args[0])
+                                  for arg_ty in args_ty[0]})
+            else:
+                return_ty.update(self._call(fty, *args_ty))
         return return_ty
 
     def visit_Repr(self, node):
@@ -659,8 +789,12 @@ class Typer(ast.NodeVisitor):
             if isinstance(return_tuple, tuple):
                 return_ty, update_ty = return_tuple
                 update_self_ty, adjusted_update_ty = update_ty[0], update_ty[1:]
-                if self_ty in (set, list, dict):
-                    self_set.remove(self_ty)
+                # This is a type refinement
+                try:
+                    if issubclass(update_self_ty, self_ty):
+                        self_set.remove(self_ty)
+                except TypeError:
+                    pass  # happens when self_ty is a parametric_type
                 self_set.add(update_self_ty)
                 return return_ty, adjusted_update_ty
             else:
@@ -745,6 +879,7 @@ def type_eval(expr, env):
     expr_node = ast.parse(expr, mode='eval')
     typer = Typer(env)
     expr_ty = typer.visit(expr_node.body)
+    typer.assertValid()
     return expr_ty
 
 def type_exec(stmt, env):
@@ -755,5 +890,6 @@ def type_exec(stmt, env):
     stmt_node = ast.parse(stmt, mode='exec')
     typer = Typer(env)
     typer.visit(stmt_node)
+    typer.assertValid()
     top_level_bindings, = typer.bindings
     return top_level_bindings
