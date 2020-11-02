@@ -27,10 +27,6 @@ class CstMeta(type):
     def __repr__(self):
         return 'Cst[{}]'.format(self.__args__[0])
 
-    def __call__(self, *args):
-        # utility for constant functions
-        return self.__args__[0](*args)
-
 
 class Cst(metaclass=CstMeta):
     pass
@@ -80,7 +76,7 @@ class FDefMeta(type):
 class FDef(metaclass=FDefMeta):
     pass
 
-class FunctionTypeMeta(type):
+class FunctionTypeMeta(CstMeta):
     cache = {}
 
     def __getitem__(self, args):
@@ -94,8 +90,11 @@ class FunctionTypeMeta(type):
     def __repr__(self):
         return 'FunctionType[{}]'.format(self.__args__[0])
 
+    def __call__(self, *args):
+        return self.__args__[0](*args)
 
-class FunctionType(metaclass=FunctionTypeMeta):
+
+class FunctionType(Cst, metaclass=FunctionTypeMeta):
     pass
 
 class ModuleMeta(type):

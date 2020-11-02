@@ -9,7 +9,7 @@ class UnaryOperatorMeta(FunctionTypeMeta):
             class LocalUnaryOperator(UnaryOperator):
                 __args__ = args,
 
-            UnaryOperatorMeta.cache[args] = Cst[LocalUnaryOperator]
+            UnaryOperatorMeta.cache[args] = FunctionType[LocalUnaryOperator]
         return UnaryOperatorMeta.cache[args]
 
     def __repr__(self):
@@ -31,7 +31,7 @@ class BinaryOperatorMeta(FunctionTypeMeta):
             class LocalBinaryOperator(BinaryOperator):
                 __args__ = args,
 
-            BinaryOperatorMeta.cache[args] = Cst[LocalBinaryOperator]
+            BinaryOperatorMeta.cache[args] = FunctionType[LocalBinaryOperator]
         return BinaryOperatorMeta.cache[args]
 
     def __repr__(self):
@@ -75,7 +75,7 @@ class IsOperatorMeta(BinaryOperatorMeta):
 class IsOperator(BinaryOperator, metaclass=IsOperatorMeta):
     __args__ = "is",
 
-IsOperator = Cst[IsOperator]
+IsOperator = FunctionType[IsOperator]
 
 class IsNotOperatorMeta(BinaryOperatorMeta):
 
@@ -98,7 +98,7 @@ class IsNotOperatorMeta(BinaryOperatorMeta):
 class IsNotOperator(BinaryOperator, metaclass=IsNotOperatorMeta):
     __args__ = "is not",
 
-IsNotOperator = Cst[IsNotOperator]
+IsNotOperator = FunctionType[IsNotOperator]
 
 class NotOperatorMeta(UnaryOperatorMeta):
 
@@ -116,7 +116,7 @@ class NotOperatorMeta(UnaryOperatorMeta):
 class NotOperator(UnaryOperator, metaclass=NotOperatorMeta):
     __args__ = "not",
 
-NotOperator = Cst[NotOperator]
+NotOperator = FunctionType[NotOperator]
 
 def register(registry):
     if Module['operator'] not in registry:

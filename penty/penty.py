@@ -6,6 +6,7 @@ from functools import reduce
 
 import penty.pentypes as pentypes
 from penty.types import Cst, FDef, Module, astype, Lambda, Type, FilteringBool
+from penty.types import FunctionType as FT
 
 
 class UnboundIdentifier(RuntimeError):
@@ -725,7 +726,7 @@ class Typer(ast.NodeVisitor):
                 else:
                     cmp_ty.add(bool)
             elif astype(pty) is astype(cty):
-                if issubclass(pty, (Cst, Module, Type)) and issubclass(cty, (Cst, Module, Type)):
+                if all(issubclass(ty, (Cst, Module, Type)) for ty in (cty, pty)):
                     cmp_ty.add(Cst[False])
                 else:
                     cmp_ty.add(bool)
@@ -785,7 +786,7 @@ class Typer(ast.NodeVisitor):
 
     def _bounded_attr(self, self_set, self_ty, attr):
         func = self._unbounded_attr(self_ty, attr)
-        if issubclass(func, (Type, Module)):
+        if not issubclass(func, (FT, Lambda, FDef)):
             return func
         def bounded_attr_adjustment(return_tuple):
             if isinstance(return_tuple, tuple):
@@ -801,7 +802,7 @@ class Typer(ast.NodeVisitor):
                 return return_ty, adjusted_update_ty
             else:
                 return return_tuple
-        return Cst[lambda *args: bounded_attr_adjustment(func(self_ty, *args))]
+        return FT[lambda *args: bounded_attr_adjustment(func(self_ty, *args))]
 
     def _unbounded_attr(self, value_ty, attr):
         return Types[value_ty][attr]

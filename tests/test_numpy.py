@@ -152,6 +152,22 @@ class TestNDArray(TestCase):
                           pentyping.Cst[True],
                           env={'x': NDArray[float, typing.Tuple[pentyping.Cst[1]]]})
 
+    def test_ndim(self):
+        self.assertIsType('x.ndim',
+                          pentyping.Cst[1],
+                          env={'x': NDArray[float, typing.Tuple[int]]})
+        self.assertIsType('x.ndim',
+                          pentyping.Cst[2],
+                          env={'x': NDArray[float, typing.Tuple[int, int]]})
+
+    def test_shape(self):
+        self.assertIsType('x.shape',
+                          typing.Tuple[int],
+                          env={'x': NDArray[float, typing.Tuple[int]]})
+        self.assertIsType('x.shape',
+                          typing.Tuple[pentyping.Cst[1]],
+                          env={'x': NDArray[float, typing.Tuple[pentyping.Cst[1]]]})
+
     def test_eq(self):
         self.assertIsType('x == 1',
                           NDArray[bool, typing.Tuple[int, int]],

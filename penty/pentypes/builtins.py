@@ -1,5 +1,6 @@
 from penty.types import Cst as _Cst, Module as _Module, Type as _Ty
 from penty.types import astype as _astype, TypeOf as _TypeOf
+from penty.types import FunctionType as _FT
 import typing as _typing
 import operator as _operator
 
@@ -49,13 +50,13 @@ def bool_not(self_ty):
         raise TypeError
 
 _bool_attrs = {
-    '__abs__' : _Cst[bool_abs],
-    '__bool__' : _Cst[bool_bool],
-    '__float__' : _Cst[bool_float],
-    '__init__': _Cst[bool_init],
-    '__int__' : _Cst[bool_int],
-    '__not__' : _Cst[bool_not],
-    '__str__' : _Cst[bool_str],
+    '__abs__' : _FT[bool_abs],
+    '__bool__' : _FT[bool_bool],
+    '__float__' : _FT[bool_float],
+    '__init__': _FT[bool_init],
+    '__int__' : _FT[bool_int],
+    '__not__' : _FT[bool_not],
+    '__str__' : _FT[bool_str],
 }
 
 ##
@@ -92,7 +93,7 @@ def int_make_binop(operator):
         else:
             raise TypeError
         return result_types
-    return _Cst[binop]
+    return _FT[binop]
 
 def int_make_bitop(operator):
     def binop(self_ty, other_ty):
@@ -113,7 +114,7 @@ def int_make_bitop(operator):
                 raise TypeError
         else:
             raise TypeError
-    return _Cst[binop]
+    return _FT[binop]
 
 def int_truediv(self_ty, other_ty):
     if issubclass(self_ty, _Cst):
@@ -141,7 +142,7 @@ def int_make_unaryop(operator):
             return _Cst[operator(self_ty.__args__[0])]
         else:
             raise TypeError
-    return _Cst[unaryop]
+    return _FT[unaryop]
 
 def int_bool(self_ty):
     if self_ty is int:
@@ -202,28 +203,28 @@ def int_make_boolop(operator):
                 raise TypeError
         else:
             raise TypeError
-    return _Cst[boolop]
+    return _FT[boolop]
 
 def int_make_biniop(operator):
     def biniop(self_ty, other_ty):
         result_ty = operator(self_ty, other_ty)
         # int are immutable so we don't update self_ty
         return result_ty
-    return _Cst[biniop]
+    return _FT[biniop]
 
 
 _int_attrs = {
-    '__abs__': _Cst[int_abs],
+    '__abs__': _FT[int_abs],
     '__add__': int_make_binop(_operator.add),
     '__and__': int_make_bitop(_operator.and_),
-    '__bool__': _Cst[int_bool],
+    '__bool__': _FT[int_bool],
     '__eq__': int_make_boolop(_operator.eq),
-    '__float__': _Cst[int_float],
+    '__float__': _FT[int_float],
     '__floordiv__': int_make_binop(_operator.floordiv),
     '__ge__': int_make_boolop(_operator.ge),
     '__gt__': int_make_boolop(_operator.gt),
-    '__int__': _Cst[int_int],
-    '__init__': _Cst[int_init],
+    '__int__': _FT[int_int],
+    '__init__': _FT[int_init],
     '__invert__': int_make_unaryop(_operator.inv),
     '__le__': int_make_boolop(_operator.le),
     '__lshift__': int_make_bitop(_operator.lshift),
@@ -236,9 +237,9 @@ _int_attrs = {
     '__pos__': int_make_unaryop(_operator.pos),
     '__pow__': int_make_binop(_operator.pow),
     '__rshift__': int_make_bitop(_operator.rshift),
-    '__str__': _Cst[int_str],
+    '__str__': _FT[int_str],
     '__sub__': int_make_binop(_operator.sub),
-    '__truediv__': _Cst[int_truediv],
+    '__truediv__': _FT[int_truediv],
     '__xor__': int_make_bitop(_operator.xor),
 }
 
@@ -317,7 +318,7 @@ def float_make_binop(operator):
         else:
             raise TypeError
         return result_types
-    return _Cst[binop]
+    return _FT[binop]
 
 def float_make_unaryop(operator):
     def unaryop(self_ty):
@@ -327,7 +328,7 @@ def float_make_unaryop(operator):
             return _Cst[operator(self_ty.__args__[0])]
         else:
             raise TypeError
-    return _Cst[unaryop]
+    return _FT[unaryop]
 
 
 def float_make_boolop(operator):
@@ -349,27 +350,27 @@ def float_make_boolop(operator):
                 raise TypeError
         else:
             raise TypeError
-    return _Cst[boolop]
+    return _FT[boolop]
 
 def float_make_biniop(operator):
     def biniop(self_ty, other_ty):
         result_ty = operator(self_ty, other_ty)
         # floatt are immutable so we don't update self_ty
         return result_ty
-    return _Cst[biniop]
+    return _FT[biniop]
 
 
 _float_attrs = {
-    '__abs__' : _Cst[float_abs],
+    '__abs__' : _FT[float_abs],
     '__add__': float_make_binop(_operator.add),
-    '__bool__' : _Cst[float_bool],
+    '__bool__' : _FT[float_bool],
     '__eq__': float_make_boolop(_operator.eq),
     '__floordiv__': float_make_binop(_operator.floordiv),
-    '__float__': _Cst[float_float],
+    '__float__': _FT[float_float],
     '__ge__': float_make_boolop(_operator.ge),
     '__gt__': float_make_boolop(_operator.gt),
-    '__init__': _Cst[float_init],
-    '__int__': _Cst[float_int],
+    '__init__': _FT[float_init],
+    '__int__': _FT[float_int],
     '__le__': float_make_boolop(_operator.le),
     '__lt__': float_make_boolop(_operator.lt),
     '__mul__': float_make_binop(_operator.mul),
@@ -378,7 +379,7 @@ _float_attrs = {
     '__neg__': float_make_unaryop(_operator.neg),
     '__pos__': float_make_unaryop(_operator.pos),
     '__pow__': float_make_binop(_operator.pow),
-    '__str__': _Cst[float_str],
+    '__str__': _FT[float_str],
     '__sub__': float_make_binop(_operator.sub),
     '__truediv__': float_make_binop(_operator.truediv),
 }
@@ -437,13 +438,13 @@ def str_iter(self_ty):
         raise TypeError
 
 _str_attrs = {
-    '__bool__': _Cst[str_bool],
-    '__float__': _Cst[str_float],
-    '__init__': _Cst[str_init],
-    '__int__': _Cst[str_int],
-    '__iter__' : _Cst[str_iter],
-    '__len__': _Cst[lambda *args: int],
-    '__str__': _Cst[str_str],
+    '__bool__': _FT[str_bool],
+    '__float__': _FT[str_float],
+    '__init__': _FT[str_init],
+    '__int__': _FT[str_int],
+    '__iter__' : _FT[str_iter],
+    '__len__': _FT[lambda *args: int],
+    '__str__': _FT[str_str],
 }
 
 ##
@@ -453,7 +454,7 @@ def none_eq(self_ty, other_ty):
     return _Cst[bool(other_ty is _Cst[None])]
 
 _none_attrs = {
-    '__eq__': _Cst[none_eq],
+    '__eq__': _FT[none_eq],
 }
 
 ##
@@ -477,14 +478,14 @@ def dict_fromkeys(iterable_ty, value_ty=None):
 
 def dict_instanciate(ty):
     return {
-        '__bool__': _Cst[lambda *args: bool],
-        '__len__': _Cst[lambda *args: int],
-        'clear': _Cst[lambda *args: dict_clear(ty, *args)],
+        '__bool__': _FT[lambda *args: bool],
+        '__len__': _FT[lambda *args: int],
+        'clear': _FT[lambda *args: dict_clear(ty, *args)],
     }
 
 _dict_attrs = {
-    'clear': _Cst[lambda x: dict_clear(x, x)],
-    'from_keys': _Cst[dict_fromkeys],
+    'clear': _FT[lambda x: dict_clear(x, x)],
+    'from_keys': _FT[dict_fromkeys],
 }
 
 ##
@@ -528,15 +529,15 @@ def list_getitem(base_ty, self_ty, key_ty):
 
 def list_instanciate(ty):
     return {
-        '__bool__': _Cst[lambda *args: bool],
-        '__getitem__': _Cst[lambda *args: list_getitem(ty, *args)],
-        '__len__': _Cst[lambda *args: int],
-        'append': _Cst[lambda *args: list_append(ty, *args)],
-        'count': _Cst[lambda *args: list_count(ty, *args)],
+        '__bool__': _FT[lambda *args: bool],
+        '__getitem__': _FT[lambda *args: list_getitem(ty, *args)],
+        '__len__': _FT[lambda *args: int],
+        'append': _FT[lambda *args: list_append(ty, *args)],
+        'count': _FT[lambda *args: list_count(ty, *args)],
     }
 
 _list_attrs = {
-    'append': _Cst[lambda self, elt: list_append(self, self, elt)],
+    'append': _FT[lambda self, elt: list_append(self, self, elt)],
 }
 
 ##
@@ -544,8 +545,8 @@ _list_attrs = {
 
 def set_instanciate(ty):
     return {
-        '__bool__': _Cst[lambda *args: bool],
-        '__len__': _Cst[lambda *args: int],
+        '__bool__': _FT[lambda *args: bool],
+        '__len__': _FT[lambda *args: int],
     }
 
 _set_attrs = {
@@ -580,9 +581,9 @@ def tuple_getitem(base_ty, self_ty, key_ty):
 
 def tuple_instanciate(ty):
     return {
-        '__bool__': _Cst[lambda *args: tuple_bool(ty, *args)],
-        '__getitem__': _Cst[lambda *args: tuple_getitem(ty, *args)],
-        '__len__': _Cst[lambda *args: _Cst[len(ty.__args__)]],
+        '__bool__': _FT[lambda *args: tuple_bool(ty, *args)],
+        '__getitem__': _FT[lambda *args: tuple_getitem(ty, *args)],
+        '__len__': _FT[lambda *args: _Cst[len(ty.__args__)]],
     }
 
 ##
@@ -597,7 +598,7 @@ def str_iterator_next(self_ty):
         raise TypeError
 
 _str_iterator_attrs = {
-    '__next__' : _Cst[str_iterator_next],
+    '__next__' : _FT[str_iterator_next],
 }
 
 ##
@@ -676,14 +677,14 @@ def register(registry):
         registry[_typing.Tuple] = tuple_instanciate
 
         registry[_Module['builtins']] = {
-            'abs': {_Cst[abs_]},
+            'abs': {_FT[abs_]},
             'bool': {_Ty[bool]},
             'dict': {_Ty[dict]},
-            'id': {_Cst[id_]},
+            'id': {_FT[id_]},
             'int': {_Ty[int]},
             'float': {_Ty[float]},
-            'len': {_Cst[len_]},
-            'repr': {_Cst[repr_]},
-            'slice': {_Cst[slice_]},
-            'type': {_Cst[type_]},
+            'len': {_FT[len_]},
+            'repr': {_FT[repr_]},
+            'slice': {_FT[slice_]},
+            'type': {_FT[type_]},
         }

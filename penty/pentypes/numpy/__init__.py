@@ -2,7 +2,7 @@ from penty.pentypes.numpy import random
 
 from penty.pentypes import builtins as penbuiltins
 from penty.types import Module as _Module, Cst as _Cst, Type as _Type
-from penty.types import astype as _astype
+from penty.types import astype as _astype, FunctionType as _FT
 import typing as _typing
 import numpy
 import itertools
@@ -58,14 +58,14 @@ def ndarray_make_binop(op):
             return NDArray[Types[dtype_ty][op](dtype_ty, other_dtype_ty),
                            _broadcast_shape(shape_ty, other_shape_ty)]
         raise TypeError
-    return _Cst[binop]
+    return _FT[binop]
 
 def ndarray_make_unaryop(op):
     def unaryop(self_ty):
         from penty.penty import Types
         dtype_ty, shape_ty = self_ty.__args__
         return NDArray[Types[dtype_ty][op](dtype_ty), shape_ty]
-    return _Cst[unaryop]
+    return _FT[unaryop]
 
 def ndarray_make_bitop(op):
     def binop(self_ty, other_ty):
@@ -83,7 +83,7 @@ def ndarray_make_bitop(op):
             return NDArray[Types[dtype_ty][op](dtype_ty, other_dtype_ty),
                            _broadcast_shape(shape_ty, other_shape_ty)]
         raise TypeError
-    return _Cst[binop]
+    return _FT[binop]
 
 def ndarray_invert(self_ty):
     from penty.penty import Types
@@ -193,34 +193,36 @@ def ones_(shape_ty, dtype_ty=None):
 
 def ndarray_instanciate(ty):
     return {
-        '__abs__': _Cst[ndarray_make_unaryop('__abs__')],
-        '__add__': _Cst[ndarray_make_binop('__add__')],
-        '__and__': _Cst[ndarray_make_bitop('__and__')],
-        '__bool__': _Cst[lambda *args: ndarray_bool(ty, *args)],
-        '__eq__': _Cst[ndarray_make_binop('__eq__')],
-        '__floordiv__': _Cst[ndarray_make_binop('__floordiv__')],
-        '__ge__': _Cst[ndarray_make_binop('__ge__')],
-        '__gt__': _Cst[ndarray_make_binop('__gt__')],
-        '__getitem__': _Cst[lambda *args: ndarray_getitem(ty, *args)],
-        '__invert__': _Cst[ndarray_invert],
-        '__le__': _Cst[ndarray_make_binop('__le__')],
-        '__len__': _Cst[lambda *args: ndarray_len(ty, *args)],
-        '__lshift__': _Cst[ndarray_make_bitop('__lshift__')],
-        '__lt__': _Cst[ndarray_make_binop('__lt__')],
-        '__matmul__': _Cst[ndarray_matmul],
-        '__mod__': _Cst[ndarray_make_binop('__mod__')],
-        '__mul__': _Cst[ndarray_make_binop('__mul__')],
-        '__ne__': _Cst[ndarray_make_binop('__ne__')],
-        '__neg__': _Cst[ndarray_make_unaryop('__neg__')],
-        '__or__': _Cst[ndarray_make_bitop('__or__')],
-        '__pos__': _Cst[ndarray_make_unaryop('__pos__')],
-        '__pow__': _Cst[ndarray_make_binop('__pow__')],
-        '__rshift__': _Cst[ndarray_make_bitop('__rshift__')],
-        '__str__': _Cst[lambda *args: ndarray_str(ty, *args)],
-        '__sub__': _Cst[ndarray_make_binop('__sub__')],
-        '__truediv__': _Cst[ndarray_make_binop('__truediv__')],
-        '__xor__': _Cst[ndarray_make_bitop('__xor__')],
+        '__abs__': _FT[ndarray_make_unaryop('__abs__')],
+        '__add__': _FT[ndarray_make_binop('__add__')],
+        '__and__': _FT[ndarray_make_bitop('__and__')],
+        '__bool__': _FT[lambda *args: ndarray_bool(ty, *args)],
+        '__eq__': _FT[ndarray_make_binop('__eq__')],
+        '__floordiv__': _FT[ndarray_make_binop('__floordiv__')],
+        '__ge__': _FT[ndarray_make_binop('__ge__')],
+        '__gt__': _FT[ndarray_make_binop('__gt__')],
+        '__getitem__': _FT[lambda *args: ndarray_getitem(ty, *args)],
+        '__invert__': _FT[ndarray_invert],
+        '__le__': _FT[ndarray_make_binop('__le__')],
+        '__len__': _FT[lambda *args: ndarray_len(ty, *args)],
+        '__lshift__': _FT[ndarray_make_bitop('__lshift__')],
+        '__lt__': _FT[ndarray_make_binop('__lt__')],
+        '__matmul__': _FT[ndarray_matmul],
+        '__mod__': _FT[ndarray_make_binop('__mod__')],
+        '__mul__': _FT[ndarray_make_binop('__mul__')],
+        '__ne__': _FT[ndarray_make_binop('__ne__')],
+        '__neg__': _FT[ndarray_make_unaryop('__neg__')],
+        '__or__': _FT[ndarray_make_bitop('__or__')],
+        '__pos__': _FT[ndarray_make_unaryop('__pos__')],
+        '__pow__': _FT[ndarray_make_binop('__pow__')],
+        '__rshift__': _FT[ndarray_make_bitop('__rshift__')],
+        '__str__': _FT[lambda *args: ndarray_str(ty, *args)],
+        '__sub__': _FT[ndarray_make_binop('__sub__')],
+        '__truediv__': _FT[ndarray_make_binop('__truediv__')],
+        '__xor__': _FT[ndarray_make_bitop('__xor__')],
         'dtype': _Type[ty.__args__[0]],
+        'ndim': _Cst[len(ty.__args__[1].__args__)],
+        'shape': ty.__args__[1],
     }
 
 #
@@ -230,6 +232,6 @@ def register(registry):
     if _Module['numpy'] not in registry:
         registry[NDArray] = ndarray_instanciate
         registry[_Module['numpy']] = {
-            'ones': _Cst[ones_],
+            'ones': _FT[ones_],
             'random': _Module['numpy.random'],
         }
