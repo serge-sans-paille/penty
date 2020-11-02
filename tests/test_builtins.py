@@ -17,13 +17,13 @@ class TestPenty(TestCase):
 class TestBuiltins(TestPenty):
 
     def test_type(self):
-        #self.assertIsType('type(x) is int',
-        #                  pentyping.FilteringBool[True, 'x', (int,)],
-        #                  env={'x':int})
+        self.assertIsType('type(x) is int',
+                          pentyping.FilteringBool[True, 'x', (int,)],
+                          env={'x':int})
         self.assertIsType('abs(x) if type(x) is int else x',
                           {int, pentyping.Cst[None]},
                           env={'x': {int, pentyping.Cst[None]}})
-        #self.assertIsType('type(x)(x)', int, env={'x': int})
+        self.assertIsType('type(x)(x)', int, env={'x': int})
 
     def test_abs(self):
         self.assertIsType('abs(x)', int, env={'x': bool})
@@ -169,13 +169,6 @@ class TestFloat(TestPenty):
 
 class TestDict(TestPenty):
 
-    def assertIsType(self, expr, ty, env={}):
-        if not isinstance(ty, set):
-            ty = {ty}
-        env = {k: v if isinstance(v, set) else {v}
-               for k, v in env.items()}
-        self.assertEqual(penty.type_eval(expr, env), ty)
-
     def test_clear(self):
         self.assertIsType('x.clear()', pentyping.Cst[None],
                           env={'x':typing.Dict[int, int]})
@@ -187,13 +180,6 @@ class TestDict(TestPenty):
 
 class TestList(TestPenty):
 
-    def assertIsType(self, expr, ty, env={}):
-        if not isinstance(ty, set):
-            ty = {ty}
-        env = {k: v if isinstance(v, set) else {v}
-               for k, v in env.items()}
-        self.assertEqual(penty.type_eval(expr, env), ty)
-
     def test_append(self):
         self.assertIsType('x.append(y), x',
                           typing.Tuple[pentyping.Cst[None], typing.List[int]],
@@ -201,3 +187,8 @@ class TestList(TestPenty):
         self.assertIsType('(x.append(y), x)[1]',
                           {typing.List[int], typing.List[float]},
                           env={'x': typing.List[float], 'y': int})
+
+class TestStr(TestPenty):
+
+    def test_iter(self):
+        self.assertIsType('x.__iter__().__next__()', str, env={'x': str})
