@@ -785,6 +785,8 @@ class Typer(ast.NodeVisitor):
 
     def _bounded_attr(self, self_set, self_ty, attr):
         func = self._unbounded_attr(self_ty, attr)
+        if issubclass(func, (Type, Module)):
+            return func
         def bounded_attr_adjustment(return_tuple):
             if isinstance(return_tuple, tuple):
                 return_ty, update_ty = return_tuple

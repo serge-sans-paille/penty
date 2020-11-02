@@ -163,6 +163,9 @@ def ndarray_len(base_ty, self_ty):
 def ndarray_str(base_ty, self_ty):
     return str
 
+def ndarray_dtype(base_ty, self_ty):
+    return self_ty.__args__[0]
+
 def ndarray_bool(base_ty, self_ty):
     _, shape_ty = base_ty.__args__
     dims = shape_ty.__args__
@@ -217,6 +220,7 @@ def ndarray_instanciate(ty):
         '__sub__': _Cst[ndarray_make_binop('__sub__')],
         '__truediv__': _Cst[ndarray_make_binop('__truediv__')],
         '__xor__': _Cst[ndarray_make_bitop('__xor__')],
+        'dtype': _Type[ty.__args__[0]],
     }
 
 #

@@ -144,6 +144,13 @@ class TestNDArray(TestCase):
                           pentyping.Cst[False],
                           env={'x': NDArray[float, typing.Tuple[pentyping.Cst[0]]]})
 
+    def test_dtype(self):
+        self.assertIsType('x.dtype(0)',
+                          pentyping.Cst[0.],
+                          env={'x': NDArray[float, typing.Tuple[int]]})
+        self.assertIsType('x.dtype is float',
+                          pentyping.Cst[True],
+                          env={'x': NDArray[float, typing.Tuple[pentyping.Cst[1]]]})
 
     def test_eq(self):
         self.assertIsType('x == 1',
