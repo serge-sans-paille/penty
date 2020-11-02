@@ -1,12 +1,8 @@
 from penty.pentypes.numpy import random
 
-from penty.pentypes import builtins as penbuiltins
 from penty.types import Module as _Module, Cst as _Cst, Type as _Type
-from penty.types import astype as _astype, FunctionType as _FT
-import typing as _typing
-import numpy
+from penty.types import astype as _astype, FunctionType as _FT, Tuple as _Tuple
 import itertools
-import operator as _operator
 
 def _broadcast_dim(self, other):
     if self is other:
@@ -22,7 +18,7 @@ def _broadcast_dim(self, other):
     raise TypeError
 
 def _broadcast_shape(self, other):
-    return _typing.Tuple[tuple(_broadcast_dim(*dims) for dims in
+    return _Tuple[tuple(_broadcast_dim(*dims) for dims in
                                itertools.zip_longest(self.__args__, other.__args__,
                                                      fillvalue=_Cst[1]))]
 
@@ -105,7 +101,6 @@ def ndarray_matmul(self_ty, other_ty):
     raise TypeError
 
 def ndarray_getitem(base_ty, self_ty, key_ty):
-    from penty.penty import Types
     dtype_ty, shape_ty= base_ty.__args__
 
     if _astype(key_ty) is int:
@@ -113,11 +108,11 @@ def ndarray_getitem(base_ty, self_ty, key_ty):
             return dtype_ty
         else:
             return NDArray[dtype_ty,
-                           _typing.Tuple[shape_ty.__args__[1:]]]
+                           _Tuple[shape_ty.__args__[1:]]]
     if _astype(key_ty) is slice:
-        return ndarray_getitem(base_ty, self_ty, _typing.Tuple[key_ty])
+        return ndarray_getitem(base_ty, self_ty, _Tuple[key_ty])
 
-    if issubclass(_astype(key_ty), tuple) :
+    if issubclass(_astype(key_ty), tuple):
         if len(shape_ty.__args__) < len(key_ty.__args__):
             raise TypeError
         new_shape = ()
@@ -151,7 +146,7 @@ def ndarray_getitem(base_ty, self_ty, key_ty):
                 raise TypeError
             raise TypeError
         if new_shape:
-            return NDArray[dtype_ty, _typing.Tuple[new_shape]]
+            return NDArray[dtype_ty, _Tuple[new_shape]]
         else:
             return dtype_ty
     raise TypeError(key_ty)
@@ -166,6 +161,7 @@ def ndarray_str(base_ty, self_ty):
 def ndarray_dtype(base_ty, self_ty):
     return self_ty.__args__[0]
 
+
 def ndarray_bool(base_ty, self_ty):
     _, shape_ty = base_ty.__args__
     dims = shape_ty.__args__
@@ -178,6 +174,7 @@ def ndarray_bool(base_ty, self_ty):
 #
 ##
 
+
 def ones_(shape_ty, dtype_ty=None):
     if dtype_ty is None:
         dtype_ty = float
@@ -186,10 +183,11 @@ def ones_(shape_ty, dtype_ty=None):
     else:
         raise NotImplementedError
     if shape_ty is int or issubclass(shape_ty, _Cst):
-        return NDArray[dtype_ty, _typing.Tuple[shape_ty]]
-    if issubclass(shape_ty, _typing.Tuple):
+        return NDArray[dtype_ty, _Tuple[shape_ty]]
+    if issubclass(shape_ty, _Tuple):
         return NDArray[dtype_ty, shape_ty]
     raise NotImplementedError
+
 
 def ndarray_instanciate(ty):
     return {

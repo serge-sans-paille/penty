@@ -1,12 +1,11 @@
 import gast as ast
 import typing
 import itertools
-import operator
 from functools import reduce
 
 import penty.pentypes as pentypes
 from penty.types import Cst, FDef, Module, astype, Lambda, Type, FilteringBool
-from penty.types import FunctionType as FT
+from penty.types import FunctionType as FT, Tuple, List, Set, Dict
 
 
 class UnboundIdentifier(RuntimeError):
@@ -41,7 +40,6 @@ class TypeRegistry(object):
             return self.registry[ty]
         base = ty.__bases__[0]
         return self.registry[base](ty)
-
 
 
 Types = TypeRegistry()
@@ -101,6 +99,7 @@ def normalize_test_ty(types):
     else:
         return types
 
+
 def is_isnone(op, left, left_ty, right, right_ty):
     if not isinstance(op, ast.Is):
         return False
@@ -109,6 +108,7 @@ def is_isnone(op, left, left_ty, right, right_ty):
     if isinstance(right, ast.Name) and left_ty == {Cst[None]}:
         return True
     return False
+
 
 class Typer(ast.NodeVisitor):
 
@@ -157,7 +157,8 @@ class Typer(ast.NodeVisitor):
             result_type = self.visit(lnode.body)
             self.bindings.pop()
         elif issubclass(func, Type):
-            result_type = self._call(Types[func.__args__[0]]['__init__'], *args)
+            result_type = self._call(Types[func.__args__[0]]['__init__'],
+                                     *args)
         else:
             result_type = set()
             all_args = itertools.product(*args) if args else [[]]
@@ -168,13 +169,15 @@ class Typer(ast.NodeVisitor):
                 elif isinstance(rty, tuple):
                     rty, updated_tys = rty[0], rty[1]
                     result_type.add(rty)
-                    for arg_ty, old_arg_ty, new_arg_ty in zip(args, args_ty, updated_tys):
+                    for pack in zip(args, args_ty, updated_tys):
+                        arg_ty, old_arg_ty, new_arg_ty = pack
                         # This is a type refinement
                         try:
                             if issubclass(new_arg_ty, old_arg_ty):
                                 arg_ty.remove(old_arg_ty)
+                        # happens when old_arg_ty is a parametric type
                         except TypeError:
-                            pass  # happens when old_arg_ty is a parametric type
+                            pass
                         arg_ty.add(new_arg_ty)
                 else:
                     result_type.add(rty)
@@ -186,7 +189,7 @@ class Typer(ast.NodeVisitor):
                             for ty in types])
         value_types = set()
         value_types.update(*[self._call(Types[ty]['__next__'], {ty})
-                            for ty in iter_types])
+                             for ty in iter_types])
         return value_types
 
     def _type_destructuring_assign(self, node, types):
@@ -201,13 +204,12 @@ class Typer(ast.NodeVisitor):
         else:
             raise NotImplementedError
 
-
     # stmt
     def visit_Module(self, node):
         prev = ()
         for stmt in node.body:
             prev = self.visit(stmt)
-            if not prev :
+            if not prev:
                 break
         return prev
 
@@ -247,7 +249,7 @@ class Typer(ast.NodeVisitor):
 
         for stmt in node.body:
             prev = self.visit(stmt)
-            if not prev :
+            if not prev:
                 break
             if all(isinstance(p, (ast.Break, ast.Continue)) for p in prev):
                 break
@@ -283,7 +285,6 @@ class Typer(ast.NodeVisitor):
 
         if not prev:
             return ()
-
 
         if all(not isinstance(p, ast.Break) for p in prev):
             for stmt in node.orelse:
@@ -339,7 +340,7 @@ class Typer(ast.NodeVisitor):
             self.bindings.append(body_bindings)
             for stmt in node.body:
                 prev = self.visit(stmt)
-                if not prev :
+                if not prev:
                     break
                 if all(isinstance(p, (ast.Break, ast.Continue)) for p in prev):
                     break
@@ -381,7 +382,6 @@ class Typer(ast.NodeVisitor):
         for k, v in orelse_bindings.items():
             self.bindings[-1].setdefault(k, set()).update(v)
         return rets
-
 
     def visit_If(self, node):
         test_types = self.visit(node.test)
@@ -438,7 +438,7 @@ class Typer(ast.NodeVisitor):
                 if all(isinstance(p, (ast.Break, ast.Continue)) for p in
                        prev_body):
                     break
-        except UnboundIdentifier as ui:
+        except UnboundIdentifier:
             pass
         finally:
             self.bindings.pop()
@@ -453,7 +453,7 @@ class Typer(ast.NodeVisitor):
                 if all(isinstance(p, (ast.Break, ast.Continue)) for p in
                        prev_orelse):
                     break
-        except UnboundIdentifier as ui:
+        except UnboundIdentifier:
             pass
         finally:
             self.bindings.pop()
@@ -593,7 +593,7 @@ class Typer(ast.NodeVisitor):
         if node.keys:
             result_types = set()
             for k, v in zip(node.keys, node.values):
-                dict_types = {typing.Dict[kty, vty] for kty, vty in
+                dict_types = {Dict[kty, vty] for kty, vty in
                               itertools.product(self.visit(k), self.visit(v))}
                 result_types.update(dict_types)
             return result_types
@@ -603,57 +603,39 @@ class Typer(ast.NodeVisitor):
     def visit_Set(self, node):
         result_types = set()
         for e in node.elts:
-            set_types = {typing.Set[ty] for ty in self.visit(e)}
+            set_types = {Set[ty] for ty in self.visit(e)}
             result_types.update(set_types)
         return result_types
 
-    def visit_ListComp(self, node):
+    def _handle_comp(self, node, empty_ty, container_ty):
         new_bindings = {}
-        no_list = False
+        no_element = False
         for generator in node.generators:
             test_types = set()
             for if_ in generator.ifs:
                 test_types.update(self.visit(if_))
             test_types = normalize_test_ty(test_types)
             if test_types == {Cst[False]}:
-                no_list = True
+                no_element = True
 
             iter_types = self.visit(generator.iter)
             if isinstance(generator.target, ast.Name):
-                new_bindings[generator.target.id] = self._iterator_value_ty(iter_types)
+                iter_value_ty = self._iterator_value_ty(iter_types)
+                new_bindings[generator.target.id] = iter_value_ty
 
         self.bindings.append(new_bindings)
-        result_types = set()
         elt_types = self.visit(node.elt)
         self.bindings.pop()
-        if no_list:
-            return {list}
+        if no_element:
+            return {empty_ty}
         else:
-            return {typing.List[astype(elt_ty)] for elt_ty in elt_types}
+            return {container_ty[astype(elt_ty)] for elt_ty in elt_types}
+
+    def visit_ListComp(self, node):
+        return self._handle_comp(node, list, List)
 
     def visit_SetComp(self, node):
-        new_bindings = {}
-        no_set = False
-        for generator in node.generators:
-            test_types = set()
-            for if_ in generator.ifs:
-                test_types.update(self.visit(if_))
-            test_types = normalize_test_ty(test_types)
-            if test_types == {Cst[False]}:
-                no_set = True
-
-            iter_types = self.visit(generator.iter)
-            if isinstance(generator.target, ast.Name):
-                new_bindings[generator.target.id] = self._iterator_value_ty(iter_types)
-
-        self.bindings.append(new_bindings)
-        result_types = set()
-        elt_types = self.visit(node.elt)
-        self.bindings.pop()
-        if no_set:
-            return {set}
-        else:
-            return {typing.Set[astype(elt_ty)] for elt_ty in elt_types}
+        return self._handle_comp(node, set, Set)
 
     def visit_DictComp(self, node):
         new_bindings = {}
@@ -668,43 +650,26 @@ class Typer(ast.NodeVisitor):
 
             iter_types = self.visit(generator.iter)
             if isinstance(generator.target, ast.Name):
-                new_bindings[generator.target.id] = self._iterator_value_ty(iter_types)
+                iter_value_ty = self._iterator_value_ty(iter_types)
+                new_bindings[generator.target.id] = iter_value_ty
 
         self.bindings.append(new_bindings)
-        result_types = set()
         key_types = self.visit(node.key)
         value_types = self.visit(node.value)
         self.bindings.pop()
         if no_dict:
             return {dict}
         else:
-            return {typing.Dict[astype(k), astype(v)]
+            return {Dict[astype(k), astype(v)]
                     for k in key_types
                     for v in value_types}
 
     def visit_GeneratorExp(self, node):
-        new_bindings = {}
-        no_gen = False
-        for generator in node.generators:
-            test_types = set()
-            for if_ in generator.ifs:
-                test_types.update(self.visit(if_))
-            test_types = normalize_test_ty(test_types)
-            if test_types == {Cst[False]}:
-                no_gen = True
+        class GenGen:
+            def __getitem__(self, elt_ty):
+                return typing.Generator[elt_ty, None, None]
 
-            iter_types = self.visit(generator.iter)
-            if isinstance(generator.target, ast.Name):
-                new_bindings[generator.target.id] = self._iterator_value_ty(iter_types)
-
-        self.bindings.append(new_bindings)
-        result_types = set()
-        elt_types = self.visit(node.elt)
-        self.bindings.pop()
-        if no_gen:
-            return {typing.Generator}
-        else:
-            return {typing.Generator[astype(elt_ty), None, None] for elt_ty in elt_types}
+        return self._handle_comp(node, typing.Generator, GenGen())
 
     def _handle_is(self, prev, prev_ty, comparator, comparator_ty):
         cmp_ty = set()
@@ -726,7 +691,8 @@ class Typer(ast.NodeVisitor):
                 else:
                     cmp_ty.add(bool)
             elif astype(pty) is astype(cty):
-                if all(issubclass(ty, (Cst, Module, Type)) for ty in (cty, pty)):
+                if all(issubclass(ty, (Cst, Module, Type))
+                       for ty in (cty, pty)):
                     cmp_ty.add(Cst[False])
                 else:
                     cmp_ty.add(bool)
@@ -743,20 +709,21 @@ class Typer(ast.NodeVisitor):
                     cmp_ty.update(tmp_ty)
         return cmp_ty
 
-
     def visit_Compare(self, node):
         prev = node.left
-        prev_ty = left_ty = self.visit(node.left)
+        prev_ty = self.visit(node.left)
         filters = set()
         for op, comparator in zip(node.ops, node.comparators):
             comparator_ty = self.visit(comparator)
             if isinstance(op, ast.Is):
-                cmp_ty = self._handle_is(prev, prev_ty, comparator, comparator_ty)
+                cmp_ty = self._handle_is(prev, prev_ty,
+                                         comparator, comparator_ty)
             else:
                 cmp_ty = self._call(Ops[type(op)], prev_ty, comparator_ty)
             if normalize_test_ty(cmp_ty) == {Cst[False]}:
                 return cmp_ty
-            filters.update(ty for ty in cmp_ty if issubclass(ty, FilteringBool))
+            filters.update(ty for ty in cmp_ty
+                           if issubclass(ty, FilteringBool))
             prev, prev_ty = comparator, comparator_ty
 
         return cmp_ty | filters
@@ -788,10 +755,12 @@ class Typer(ast.NodeVisitor):
         func = self._unbounded_attr(self_ty, attr)
         if not issubclass(func, (FT, Lambda, FDef)):
             return func
+
         def bounded_attr_adjustment(return_tuple):
             if isinstance(return_tuple, tuple):
                 return_ty, update_ty = return_tuple
-                update_self_ty, adjusted_update_ty = update_ty[0], update_ty[1:]
+                update_self_ty = update_ty[0]
+                adjusted_update_ty = update_ty[1:]
                 # This is a type refinement
                 try:
                     if issubclass(update_self_ty, self_ty):
@@ -814,7 +783,8 @@ class Typer(ast.NodeVisitor):
             if issubclass(self_ty, (Module, Type)):
                 result_types.add(self._unbounded_attr(self_ty, node.attr))
             else:
-                result_types.add(self._bounded_attr(self_types, self_ty, node.attr))
+                attr_ty = self._bounded_attr(self_types, self_ty, node.attr)
+                result_types.add(attr_ty)
         return result_types
 
     def visit_Subscript(self, node):
@@ -832,7 +802,7 @@ class Typer(ast.NodeVisitor):
         for elt in node.elts:
             elt_types = self.visit(elt)
             result_types.update(map(astype, elt_types))
-        return {typing.List[ty] for ty in result_types}
+        return {List[ty] for ty in result_types}
 
     def visit_Tuple(self, node):
         if not node.elts:
@@ -841,7 +811,7 @@ class Typer(ast.NodeVisitor):
         for elt in node.elts:
             elt_types = self.visit(elt)
             result_types.append(elt_types)
-        return {typing.Tuple[tys] for tys in itertools.product(*result_types)}
+        return {Tuple[tys] for tys in itertools.product(*result_types)}
 
     def visit_Slice(self, node):
         if node.lower:
@@ -856,7 +826,8 @@ class Typer(ast.NodeVisitor):
             step_types = self.visit(node.step)
         else:
             step_types = {Cst[None]}
-        return self._call(Types[Module['builtins']]['slice'], lower_types, upper_types, step_types)
+        return self._call(Types[Module['builtins']]['slice'],
+                          lower_types, upper_types, step_types)
 
     def visit_Name(self, node):
         # the store here is surprising, but it comes from augassign
@@ -874,6 +845,7 @@ class Typer(ast.NodeVisitor):
 
         raise UnboundIdentifier(node.id)
 
+
 def type_eval(expr, env):
     '''
     Returns the type set of `expr`,
@@ -884,6 +856,7 @@ def type_eval(expr, env):
     expr_ty = typer.visit(expr_node.body)
     typer.assertValid()
     return expr_ty
+
 
 def type_exec(stmt, env):
     '''

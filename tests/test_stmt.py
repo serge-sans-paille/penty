@@ -26,7 +26,7 @@ class TestStmt(TestCase):
 
     def test_fdef_forward_multiarg_ty(self):
         self.assertIsType('def func(x, y): return x, y',
-                          'func(x, x)', typing.Tuple[int, int],
+                          'func(x, x)', pentyping.Tuple[int, int],
                           env={'x':int})
 
     def test_recursive_function_ty(self):
@@ -70,18 +70,18 @@ class TestStmt(TestCase):
 
     def test_type_destructuring_assign(self):
         self.assertIsType('x, y = 1, 2',
-                          'x, y', typing.Tuple[pentyping.Cst[1],
+                          'x, y', pentyping.Tuple[pentyping.Cst[1],
                                                pentyping.Cst[2]])
 
     def test_type_destructuring_assign_ex(self):
         self.assertIsType('x, (y, z) = 1, (2, "3")',
-                          'x, y, z', typing.Tuple[pentyping.Cst[1],
+                          'x, y, z', pentyping.Tuple[pentyping.Cst[1],
                                                   pentyping.Cst[2],
                                                   pentyping.Cst["3"]])
 
     def test_multi_assign(self):
         self.assertIsType('x = y = 1',
-                          'x, y', typing.Tuple[pentyping.Cst[1],
+                          'x, y', pentyping.Tuple[pentyping.Cst[1],
                                                pentyping.Cst[1]])
 
     def test_reassign(self):
@@ -206,7 +206,7 @@ class TestStmt(TestCase):
             else: s = v'''
         self.assertIsType(code,
                           'v, s',
-                          typing.Tuple[pentyping.Cst[1], pentyping.Cst[1]])
+                          pentyping.Tuple[pentyping.Cst[1], pentyping.Cst[1]])
 
     def test_if_else_in_loop_break(self):
         code = '''

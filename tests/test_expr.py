@@ -69,44 +69,44 @@ class TestExpr(TestCase):
                           env={'x': {pentyping.Cst[None], float},
                                'y': float})
         self.assertIsType('x if x is None else (x.append(1), x)[1]',
-                          {pentyping.Cst[None], typing.List[int]},
+                          {pentyping.Cst[None], pentyping.List[int]},
                           env={'x': {pentyping.Cst[None], list}})
 
     def test_dict_ty(self):
         self.assertIsType('{}', dict)
-        self.assertIsType('{x:y}', typing.Dict[int, str], env={'x': int,
+        self.assertIsType('{x:y}', pentyping.Dict[int, str], env={'x': int,
                                                                  'y': str})
         self.assertIsType('{x:y, y:x}',
-                          {typing.Dict[int, str], typing.Dict[str, int]},
+                          {pentyping.Dict[int, str], pentyping.Dict[str, int]},
                           env={'x': int, 'y': str})
         self.assertIsType('{x:y, y:x}',
-                          typing.Dict[int, int],
+                          pentyping.Dict[int, int],
                           env={'x': int, 'y': int})
 
     def test_set_ty(self):
-        self.assertIsType('{x}', typing.Set[int], env={'x': int})
-        self.assertIsType('{x, x}', typing.Set[int], env={'x': int})
+        self.assertIsType('{x}', pentyping.Set[int], env={'x': int})
+        self.assertIsType('{x, x}', pentyping.Set[int], env={'x': int})
         self.assertIsType('{x, y}',
-                          {typing.Set[float], typing.Set[int]},
+                          {pentyping.Set[float], pentyping.Set[int]},
                           env={'x': int, 'y': float})
 
     def test_list_comp_ty(self):
-        self.assertIsType('[x for x in y]', typing.List[str], env={'y': str})
+        self.assertIsType('[x for x in y]', pentyping.List[str], env={'y': str})
         self.assertIsType('[x for x in y if 0]', list, env={'y': str})
-        self.assertIsType('[1 for x in y if y]', typing.List[int], env={'y': str})
-        self.assertIsType('[1 for x in y for z in y]', typing.List[int], env={'y': str})
+        self.assertIsType('[1 for x in y if y]', pentyping.List[int], env={'y': str})
+        self.assertIsType('[1 for x in y for z in y]', pentyping.List[int], env={'y': str})
 
     def test_set_comp_ty(self):
-        self.assertIsType('{x for x in y}', typing.Set[str], env={'y': str})
+        self.assertIsType('{x for x in y}', pentyping.Set[str], env={'y': str})
         self.assertIsType('{x for x in y if 0}', set, env={'y': str})
-        self.assertIsType('{1 for x in y if y}', typing.Set[int], env={'y': str})
-        self.assertIsType('{1 for x in y for z in y}', typing.Set[int], env={'y': str})
+        self.assertIsType('{1 for x in y if y}', pentyping.Set[int], env={'y': str})
+        self.assertIsType('{1 for x in y for z in y}', pentyping.Set[int], env={'y': str})
 
     def test_dict_comp_ty(self):
-        self.assertIsType('{x:1 for x in y}', typing.Dict[str, int], env={'y': str})
+        self.assertIsType('{x:1 for x in y}', pentyping.Dict[str, int], env={'y': str})
         self.assertIsType('{1:x for x in y if 0}', dict, env={'y': str})
-        self.assertIsType('{1:1 for x in y if y}', typing.Dict[int, int], env={'y': str})
-        self.assertIsType('{1:"" for x in y for z in y}', typing.Dict[int,str], env={'y': str})
+        self.assertIsType('{1:1 for x in y if y}', pentyping.Dict[int, int], env={'y': str})
+        self.assertIsType('{1:"" for x in y for z in y}', pentyping.Dict[int,str], env={'y': str})
 
     def test_gen_expr_ty(self):
         self.assertIsType('(x for x in y)',
@@ -213,50 +213,50 @@ class TestExpr(TestCase):
 
     def test_attr_ty(self):
         self.assertIsType('x.count("1")', int,
-                          env={'x': typing.List[str]})
+                          env={'x': pentyping.List[str]})
         self.assertIsType('dict.clear(x)', pentyping.Cst[None],
-                          env={'x': typing.Dict[str, int]})
+                          env={'x': pentyping.Dict[str, int]})
 
     def test_subscript_ty(self):
-        self.assertIsType('x[y]', int, env={'x': typing.List[int], 'y': int})
-        self.assertIsType('x[0]', int, env={'x': typing.List[int]})
-        self.assertIsType('x[y]', typing.List[int],
-                          env={'x': typing.List[int], 'y': slice})
-        self.assertIsType('x[0:y]', typing.List[int],
-                          env={'x': typing.List[int], 'y': int})
-        self.assertIsType('x[0:1]', typing.List[int],
-                          env={'x': typing.List[int]})
-        self.assertIsType('x[::]', typing.List[int],
-                          env={'x': typing.List[int]})
+        self.assertIsType('x[y]', int, env={'x': pentyping.List[int], 'y': int})
+        self.assertIsType('x[0]', int, env={'x': pentyping.List[int]})
+        self.assertIsType('x[y]', pentyping.List[int],
+                          env={'x': pentyping.List[int], 'y': slice})
+        self.assertIsType('x[0:y]', pentyping.List[int],
+                          env={'x': pentyping.List[int], 'y': int})
+        self.assertIsType('x[0:1]', pentyping.List[int],
+                          env={'x': pentyping.List[int]})
+        self.assertIsType('x[::]', pentyping.List[int],
+                          env={'x': pentyping.List[int]})
 
         self.assertIsType('x[y]', {int, float},
-                          env={'x': typing.Tuple[int, float], 'y': int})
-        self.assertIsType('x[0]', int, env={'x': typing.Tuple[int, float]})
+                          env={'x': pentyping.Tuple[int, float], 'y': int})
+        self.assertIsType('x[0]', int, env={'x': pentyping.Tuple[int, float]})
         self.assertIsType('x[y]', tuple,
-                          env={'x': typing.Tuple[int, float], 'y': slice})
+                          env={'x': pentyping.Tuple[int, float], 'y': slice})
         self.assertIsType('x[0:y]', tuple,
-                          env={'x': typing.Tuple[int, float], 'y': int})
-        self.assertIsType('x[0:1]', typing.Tuple[int],
-                          env={'x': typing.Tuple[int, float]})
-        self.assertIsType('x[::]', typing.Tuple[int, float],
-                          env={'x': typing.Tuple[int, float]})
+                          env={'x': pentyping.Tuple[int, float], 'y': int})
+        self.assertIsType('x[0:1]', pentyping.Tuple[int],
+                          env={'x': pentyping.Tuple[int, float]})
+        self.assertIsType('x[::]', pentyping.Tuple[int, float],
+                          env={'x': pentyping.Tuple[int, float]})
 
     def test_list_ty(self):
         self.assertIsType('[]', list)
-        self.assertIsType('[1]', typing.List[int])
-        self.assertIsType('[x]', typing.List[int], env={'x': int})
-        self.assertIsType('[1, 1.]', {typing.List[int], typing.List[float]})
+        self.assertIsType('[1]', pentyping.List[int])
+        self.assertIsType('[x]', pentyping.List[int], env={'x': int})
+        self.assertIsType('[1, 1.]', {pentyping.List[int], pentyping.List[float]})
 
     def test_tuple_ty(self):
         self.assertIsType('()', tuple)
-        self.assertIsType('(1,)', typing.Tuple[pentyping.Cst[1]])
-        self.assertIsType('(1, x)', typing.Tuple[pentyping.Cst[1], int],
+        self.assertIsType('(1,)', pentyping.Tuple[pentyping.Cst[1]])
+        self.assertIsType('(1, x)', pentyping.Tuple[pentyping.Cst[1], int],
                           env={'x': int})
-        self.assertIsType('(x, y)', typing.Tuple[int, float],
+        self.assertIsType('(x, y)', pentyping.Tuple[int, float],
                           env={'x': int, 'y': float})
         self.assertIsType('(1, x or y)',
-                          {typing.Tuple[pentyping.Cst[1], float],
-                           typing.Tuple[pentyping.Cst[1], int]},
+                          {pentyping.Tuple[pentyping.Cst[1], float],
+                           pentyping.Tuple[pentyping.Cst[1], int]},
                           env={'x': int, 'y': float})
 
     def test_static_expression_ty(self):
