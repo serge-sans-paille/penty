@@ -1,7 +1,7 @@
 from penty.types import Cst as _Cst, Module as _Module, Type as _Ty
 from penty.types import astype as _astype, TypeOf as _TypeOf
-from penty.types import FunctionType as _FT
-import typing as _typing
+from penty.types import FunctionType as _FT, Tuple as _Tuple
+from penty.types import List as _List, Set as _Set, Dict as _Dict
 import operator as _operator
 
 ##
@@ -50,13 +50,13 @@ def bool_not(self_ty):
         raise TypeError
 
 _bool_attrs = {
-    '__abs__' : _FT[bool_abs],
-    '__bool__' : _FT[bool_bool],
-    '__float__' : _FT[bool_float],
+    '__abs__': _FT[bool_abs],
+    '__bool__': _FT[bool_bool],
+    '__float__': _FT[bool_float],
     '__init__': _FT[bool_init],
-    '__int__' : _FT[bool_int],
-    '__not__' : _FT[bool_not],
-    '__str__' : _FT[bool_str],
+    '__int__': _FT[bool_int],
+    '__not__': _FT[bool_not],
+    '__str__': _FT[bool_str],
 }
 
 ##
@@ -361,9 +361,9 @@ def float_make_biniop(operator):
 
 
 _float_attrs = {
-    '__abs__' : _FT[float_abs],
+    '__abs__': _FT[float_abs],
     '__add__': float_make_binop(_operator.add),
-    '__bool__' : _FT[float_bool],
+    '__bool__': _FT[float_bool],
     '__eq__': float_make_boolop(_operator.eq),
     '__floordiv__': float_make_binop(_operator.floordiv),
     '__float__': _FT[float_float],
@@ -442,7 +442,7 @@ _str_attrs = {
     '__float__': _FT[str_float],
     '__init__': _FT[str_init],
     '__int__': _FT[str_int],
-    '__iter__' : _FT[str_iter],
+    '__iter__': _FT[str_iter],
     '__len__': _FT[lambda *args: int],
     '__str__': _FT[str_str],
 }
@@ -472,9 +472,9 @@ def dict_fromkeys(iterable_ty, value_ty=None):
     key_ty = Types[iter_ty]['__next__'](iter_ty)
 
     if value_ty is None:
-        return _typing.Dict[key_ty, _Cst[None]]
+        return _Dict[key_ty, _Cst[None]]
     else:
-        return _typing.Dict[key_ty, value_ty]
+        return _Dict[key_ty, value_ty]
 
 def dict_instanciate(ty):
     return {
@@ -492,7 +492,7 @@ _dict_attrs = {
 #
 
 def list_append(base_ty, self_ty, value_ty):
-    return _Cst[None], (_typing.List[_astype(value_ty)], value_ty)
+    return _Cst[None], (_List[_astype(value_ty)], value_ty)
 
 def list_count(base_ty, self_ty, elt_ty):
     base_key_ty, = base_ty.__args__
@@ -572,7 +572,7 @@ def tuple_getitem(base_ty, self_ty, key_ty):
         if isinstance(key_v, (bool, int)):
             return base_value_types[key_v]
         elif isinstance(key_v, slice):
-            return _typing.Tuple[base_value_types[key_v]]
+            return _Tuple[base_value_types[key_v]]
         else:
             raise TypeError
     else:
@@ -598,7 +598,7 @@ def str_iterator_next(self_ty):
         raise TypeError
 
 _str_iterator_attrs = {
-    '__next__' : _FT[str_iterator_next],
+    '__next__': _FT[str_iterator_next],
 }
 
 ##
@@ -671,10 +671,10 @@ def register(registry):
         registry[str] = _str_attrs
         registry[type(None)] = _none_attrs
         registry[str_iterator] = _str_iterator_attrs
-        registry[_typing.Dict] = dict_instanciate
-        registry[_typing.List] = list_instanciate
-        registry[_typing.Set] = set_instanciate
-        registry[_typing.Tuple] = tuple_instanciate
+        registry[_Dict] = dict_instanciate
+        registry[_List] = list_instanciate
+        registry[_Set] = set_instanciate
+        registry[_Tuple] = tuple_instanciate
 
         registry[_Module['builtins']] = {
             'abs': {_FT[abs_]},

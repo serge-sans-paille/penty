@@ -8,6 +8,7 @@ def astype(ty):
     else:
         return ty
 
+
 class CstMeta(type):
     cache = {}
 
@@ -58,6 +59,7 @@ class FilteringBoolMeta(CstMeta):
 class FilteringBool(Cst, metaclass=FilteringBoolMeta):
     __args__ = ()
 
+
 class FDefMeta(type):
     cache = {}
 
@@ -75,6 +77,7 @@ class FDefMeta(type):
 
 class FDef(metaclass=FDefMeta):
     pass
+
 
 class FunctionTypeMeta(CstMeta):
     cache = {}
@@ -97,6 +100,7 @@ class FunctionTypeMeta(CstMeta):
 class FunctionType(Cst, metaclass=FunctionTypeMeta):
     pass
 
+
 class ModuleMeta(type):
     cache = {}
 
@@ -114,6 +118,7 @@ class ModuleMeta(type):
 
 class Module(metaclass=ModuleMeta):
     pass
+
 
 class LambdaMeta(type):
     cache = {}
@@ -133,6 +138,7 @@ class LambdaMeta(type):
 class Lambda(metaclass=LambdaMeta):
     pass
 
+
 class TypeMeta(type):
     cache = {}
 
@@ -151,6 +157,7 @@ class TypeMeta(type):
 class Type(metaclass=TypeMeta):
     pass
 
+
 class TypeOfMeta(TypeMeta):
     cache = {}
 
@@ -167,4 +174,82 @@ class TypeOfMeta(TypeMeta):
 
 
 class TypeOf(Type, metaclass=TypeOfMeta):
+    pass
+
+
+class TupleMeta(type):
+    cache = {}
+
+    def __getitem__(self, args):
+        if not isinstance(args, tuple):
+            args = args,
+        if args not in TupleMeta.cache:
+            class LocalTuple(Tuple):
+                __args__ = args
+
+            TupleMeta.cache[args] = LocalTuple
+        return TupleMeta.cache[args]
+
+    def __repr__(self):
+        return 'Tuple[{}]'.format(', '.join(map(str, self.__args__)))
+
+
+class Tuple(tuple, metaclass=TupleMeta):
+    pass
+
+
+class ListMeta(type):
+    cache = {}
+
+    def __getitem__(self, args):
+        if args not in ListMeta.cache:
+            class LocalList(List):
+                __args__ = args,
+
+            ListMeta.cache[args] = LocalList
+        return ListMeta.cache[args]
+
+    def __repr__(self):
+        return 'List[{}]'.format(', '.join(map(str, self.__args__)))
+
+
+class List(list, metaclass=ListMeta):
+    pass
+
+
+class SetMeta(type):
+    cache = {}
+
+    def __getitem__(self, args):
+        if args not in SetMeta.cache:
+            class LocalSet(Set):
+                __args__ = args,
+
+            SetMeta.cache[args] = LocalSet
+        return SetMeta.cache[args]
+
+    def __repr__(self):
+        return 'Set[{}]'.format(', '.join(map(str, self.__args__)))
+
+
+class Set(set, metaclass=SetMeta):
+    pass
+
+
+class DictMeta(type):
+    cache = {}
+
+    def __getitem__(self, args):
+        if args not in DictMeta.cache:
+            class LocalDict(Dict):
+                __args__ = args
+
+            DictMeta.cache[args] = LocalDict
+        return DictMeta.cache[args]
+
+    def __repr__(self):
+        return 'Dict[{}]'.format(', '.join(map(str, self.__args__)))
+
+
+class Dict(set, metaclass=DictMeta):
     pass

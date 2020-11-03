@@ -1,6 +1,7 @@
 from penty.types import FunctionType, FunctionTypeMeta, Cst, Module, astype
 from penty.types import Type, TypeOf, FilteringBool
 
+
 class UnaryOperatorMeta(FunctionTypeMeta):
     cache = {}
 
@@ -23,6 +24,7 @@ class UnaryOperatorMeta(FunctionTypeMeta):
 class UnaryOperator(FunctionType, metaclass=UnaryOperatorMeta):
     pass
 
+
 class BinaryOperatorMeta(FunctionTypeMeta):
     cache = {}
 
@@ -44,6 +46,7 @@ class BinaryOperatorMeta(FunctionTypeMeta):
 
 class BinaryOperator(FunctionType, metaclass=BinaryOperatorMeta):
     pass
+
 
 class IsOperatorMeta(BinaryOperatorMeta):
 
@@ -72,10 +75,13 @@ class IsOperatorMeta(BinaryOperatorMeta):
             else:
                 return Cst[False]
 
+
 class IsOperator(BinaryOperator, metaclass=IsOperatorMeta):
     __args__ = "is",
 
+
 IsOperator = FunctionType[IsOperator]
+
 
 class IsNotOperatorMeta(BinaryOperatorMeta):
 
@@ -95,10 +101,13 @@ class IsNotOperatorMeta(BinaryOperatorMeta):
             else:
                 return Cst[True]
 
+
 class IsNotOperator(BinaryOperator, metaclass=IsNotOperatorMeta):
     __args__ = "is not",
 
+
 IsNotOperator = FunctionType[IsNotOperator]
+
 
 class NotOperatorMeta(UnaryOperatorMeta):
 
@@ -113,10 +122,13 @@ class NotOperatorMeta(UnaryOperatorMeta):
 
         return func(operand_ty)
 
+
 class NotOperator(UnaryOperator, metaclass=NotOperatorMeta):
     __args__ = "not",
 
+
 NotOperator = FunctionType[NotOperator]
+
 
 def register(registry):
     if Module['operator'] not in registry:

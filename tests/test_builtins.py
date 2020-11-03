@@ -44,13 +44,13 @@ class TestBuiltins(TestPenty):
 
     def test_len(self):
         self.assertIsType('len(x)', pentyping.Cst[2],
-                          env={'x': typing.Tuple[int, int]})
+                          env={'x': pentyping.Tuple[int, int]})
         self.assertIsType('len(x)', int,
-                          env={'x': typing.List[int]})
+                          env={'x': pentyping.List[int]})
         self.assertIsType('len(x)', int,
-                          env={'x': typing.Set[int]})
+                          env={'x': pentyping.Set[int]})
         self.assertIsType('len(x)', int,
-                          env={'x': typing.Dict[int, str]})
+                          env={'x': pentyping.Dict[int, str]})
         self.assertIsType('len(x)', int,
                           env={'x': str})
         self.assertIsType('len("hello")', pentyping.Cst[5])
@@ -64,14 +64,14 @@ class TestBuiltins(TestPenty):
         self.assertIsType('bool(x)', bool,
                           env={'x': float})
         self.assertIsType('bool(x)', pentyping.Cst[True],
-                          env={'x': typing.Tuple[int, int]})
+                          env={'x': pentyping.Tuple[int, int]})
         self.assertIsType('bool(2)', pentyping.Cst[True])
         self.assertIsType('bool(x)', bool,
-                          env={'x': typing.List[int]})
+                          env={'x': pentyping.List[int]})
         self.assertIsType('bool(x)', bool,
-                          env={'x': typing.Set[int]})
+                          env={'x': pentyping.Set[int]})
         self.assertIsType('bool(x)', bool,
-                          env={'x': typing.Dict[int, str]})
+                          env={'x': pentyping.Dict[int, str]})
         self.assertIsType('bool(x)', bool,
                           env={'x': str})
         self.assertIsType('bool("")', pentyping.Cst[False])
@@ -171,22 +171,22 @@ class TestDict(TestPenty):
 
     def test_clear(self):
         self.assertIsType('x.clear()', pentyping.Cst[None],
-                          env={'x':typing.Dict[int, int]})
+                          env={'x': pentyping.Dict[int, int]})
 
     def test_from_keys(self):
         self.assertIsType('dict.from_keys(x)',
-                          typing.Dict[str, pentyping.Cst[None]],
+                          pentyping.Dict[str, pentyping.Cst[None]],
                           env={'x': str})
 
 class TestList(TestPenty):
 
     def test_append(self):
         self.assertIsType('x.append(y), x',
-                          typing.Tuple[pentyping.Cst[None], typing.List[int]],
+                          pentyping.Tuple[pentyping.Cst[None], pentyping.List[int]],
                           env={'x': list, 'y': int})
         self.assertIsType('(x.append(y), x)[1]',
-                          {typing.List[int], typing.List[float]},
-                          env={'x': typing.List[float], 'y': int})
+                          {pentyping.List[int], pentyping.List[float]},
+                          env={'x': pentyping.List[float], 'y': int})
 
 class TestStr(TestPenty):
 
