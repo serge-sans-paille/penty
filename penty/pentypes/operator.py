@@ -1,8 +1,10 @@
 from penty.types import FunctionType, FunctionTypeMeta, Cst, Module, astype
 from penty.types import Type, TypeOf, FilteringBool
+from penty.types import ConstFunctionType, ConstFunctionTypeMeta
+import operator
 
 
-class UnaryOperatorMeta(FunctionTypeMeta):
+class UnaryOperatorMeta(ConstFunctionTypeMeta):
     cache = {}
 
     def __getitem__(self, args):
@@ -10,7 +12,8 @@ class UnaryOperatorMeta(FunctionTypeMeta):
             class LocalUnaryOperator(UnaryOperator):
                 __args__ = args,
 
-            UnaryOperatorMeta.cache[args] = FunctionType[LocalUnaryOperator]
+            UnaryOperatorMeta.cache[args] = ConstFunctionType[LocalUnaryOperator,
+                                                             getattr(operator, args)]
         return UnaryOperatorMeta.cache[args]
 
     def __repr__(self):
@@ -21,11 +24,11 @@ class UnaryOperatorMeta(FunctionTypeMeta):
         return Types[operand_ty][self.__args__[0]](operand_ty)
 
 
-class UnaryOperator(FunctionType, metaclass=UnaryOperatorMeta):
+class UnaryOperator(ConstFunctionType, metaclass=UnaryOperatorMeta):
     pass
 
 
-class BinaryOperatorMeta(FunctionTypeMeta):
+class BinaryOperatorMeta(ConstFunctionTypeMeta):
     cache = {}
 
     def __getitem__(self, args):
@@ -33,7 +36,8 @@ class BinaryOperatorMeta(FunctionTypeMeta):
             class LocalBinaryOperator(BinaryOperator):
                 __args__ = args,
 
-            BinaryOperatorMeta.cache[args] = FunctionType[LocalBinaryOperator]
+            BinaryOperatorMeta.cache[args] = ConstFunctionType[LocalBinaryOperator,
+                                                              getattr(operator, args)]
         return BinaryOperatorMeta.cache[args]
 
     def __repr__(self):
@@ -44,7 +48,7 @@ class BinaryOperatorMeta(FunctionTypeMeta):
         return Types[left_ty][self.__args__[0]](left_ty, right_ty)
 
 
-class BinaryOperator(FunctionType, metaclass=BinaryOperatorMeta):
+class BinaryOperator(ConstFunctionType, metaclass=BinaryOperatorMeta):
     pass
 
 
@@ -80,7 +84,7 @@ class IsOperator(BinaryOperator, metaclass=IsOperatorMeta):
     __args__ = "is",
 
 
-IsOperator = FunctionType[IsOperator]
+IsOperator = ConstFunctionType[IsOperator, operator.is_]
 
 
 class IsNotOperatorMeta(BinaryOperatorMeta):
@@ -106,7 +110,7 @@ class IsNotOperator(BinaryOperator, metaclass=IsNotOperatorMeta):
     __args__ = "is not",
 
 
-IsNotOperator = FunctionType[IsNotOperator]
+IsNotOperator = ConstFunctionType[IsNotOperator, operator.is_]
 
 
 class NotOperatorMeta(UnaryOperatorMeta):
@@ -127,7 +131,7 @@ class NotOperator(UnaryOperator, metaclass=NotOperatorMeta):
     __args__ = "not",
 
 
-NotOperator = FunctionType[NotOperator]
+NotOperator = ConstFunctionType[NotOperator, operator.not_]
 
 
 def register(registry):

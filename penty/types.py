@@ -101,6 +101,26 @@ class FunctionType(Cst, metaclass=FunctionTypeMeta):
     pass
 
 
+class ConstFunctionTypeMeta(FunctionTypeMeta):
+    cache = {}
+
+    def __getitem__(self, args):
+        if args not in ConstFunctionTypeMeta.cache:
+            class LocalConstFunctionType(ConstFunctionType):
+                __args__ = args
+
+            ConstFunctionTypeMeta.cache[args] = LocalConstFunctionType
+        return ConstFunctionTypeMeta.cache[args]
+
+    def __repr__(self):
+        return 'ConstFunctionType[{}, {}]'.format(self.__args__[0],
+                                                  self.__args__[1].__name__)
+
+
+class ConstFunctionType(FunctionType, metaclass=ConstFunctionTypeMeta):
+    pass
+
+
 class ModuleMeta(type):
     cache = {}
 

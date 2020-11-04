@@ -6,6 +6,7 @@ from functools import reduce
 import penty.pentypes as pentypes
 from penty.types import Cst, FDef, Module, astype, Lambda, Type, FilteringBool
 from penty.types import FunctionType as FT, Tuple, List, Set, Dict
+from penty.types import ConstFunctionType as CFT
 
 
 class UnboundIdentifier(RuntimeError):
@@ -110,6 +111,25 @@ def is_isnone(op, left, left_ty, right, right_ty):
     return False
 
 
+def is_constantcall(func, args_ty):
+    if not issubclass(func, CFT):
+        return False
+    return all(issubclass(ty, Cst) for ty in args_ty)
+
+
+def totype(value):
+    if value is None:
+        return Cst[None]
+    if isinstance(value, (bool, str, int, float)):
+        return Cst[value]
+    if isinstance(value, tuple):
+        elts_ty = tuple(totype(elt) for elt in value)
+        if any(elt_ty is None for elt_ty in elts_ty):
+            return None
+        return Tuple[elts_ty]
+    return None
+
+
 class Typer(ast.NodeVisitor):
 
     def __init__(self, env=None):
@@ -163,6 +183,16 @@ class Typer(ast.NodeVisitor):
             result_type = set()
             all_args = itertools.product(*args) if args else [[]]
             for args_ty in list(all_args):
+                args_ty = list(args_ty)
+                # automatically fold constant if possible
+                if is_constantcall(func, args_ty):
+                    _, realfunc = func.__args__
+                    realres = realfunc(*[arg.__args__[0] for arg in args_ty])
+                    tyres = totype(realres)
+                    if tyres is not None:
+                        result_type.add(tyres)
+                        continue
+
                 rty = func(*args_ty)
                 if isinstance(rty, set):
                     result_type.update(rty)
