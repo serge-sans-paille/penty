@@ -1,6 +1,7 @@
 from penty.types import Cst as _Cst, Module as _Module, Type as _Ty
 from penty.types import astype as _astype, TypeOf as _TypeOf
-from penty.types import FunctionType as _FT, Tuple as _Tuple
+from penty.types import ConstFunctionType as _CFT, Tuple as _Tuple
+from penty.types import FunctionType as _FT
 from penty.types import List as _List, Set as _Set, Dict as _Dict
 import operator as _operator
 
@@ -8,104 +9,66 @@ import operator as _operator
 #
 
 def bool_abs(value_ty):
-    if issubclass(value_ty, _Cst):
-        return _Cst[abs(value_ty.__args__[0])]
-    else:
-        return int
+    return int
 
 def bool_bool(self_ty):
     return self_ty
 
 def bool_int(value_ty):
-    if issubclass(value_ty, _Cst):
-        return _Cst[int(value_ty.__args__[0])]
-    else:
-        return int
+    return int
 
 def bool_float(value_ty):
-    if issubclass(value_ty, _Cst):
-        return _Cst[float(value_ty.__args__[0])]
-    else:
-        return float
+    return float
 
 def bool_str(value_ty):
-    if issubclass(value_ty, _Cst):
-        return _Cst[str(value_ty.__args__[0])]
-    else:
-        return str
+    return str
 
 def bool_init(value_ty):
-    if issubclass(value_ty, _Cst):
-        return _Cst[bool(value_ty.__args__[0])]
-    else:
-        from penty.penty import Types
-        return Types[_astype(value_ty)]['__bool__'](value_ty)
+    from penty.penty import Types
+    return Types[_astype(value_ty)]['__bool__'](value_ty)
 
 def bool_not(self_ty):
     if self_ty is bool:
         return bool
-    elif issubclass(self_ty, _Cst):
-        return _Cst[not self_ty.__args__[0]]
     else:
         raise TypeError
 
 _bool_attrs = {
-    '__abs__': _FT[bool_abs],
-    '__bool__': _FT[bool_bool],
-    '__float__': _FT[bool_float],
-    '__init__': _FT[bool_init],
-    '__int__': _FT[bool_int],
-    '__not__': _FT[bool_not],
-    '__str__': _FT[bool_str],
+    '__abs__': _CFT[bool_abs, bool.__abs__],
+    '__bool__': _CFT[bool_bool, bool.__bool__],
+    '__float__': _CFT[bool_float, bool.__float__],
+    '__init__': _CFT[bool_init, bool],
+    '__int__': _CFT[bool_int, bool.__int__],
+    '__not__': _CFT[bool_not, _operator.not_],
+    '__str__': _CFT[bool_str, bool.__str__],
 }
 
 ##
 #
 
 def int_init(self_ty):
-    if issubclass(self_ty, _Cst):
-        return _Cst[int(self_ty.__args__[0])]
-    else:
-        from penty.penty import Types
-        return Types[self_ty]['__int__'](self_ty)
+    from penty.penty import Types
+    return Types[self_ty]['__int__'](self_ty)
 
 def int_make_binop(operator):
     def binop(self_ty, other_ty):
-        if issubclass(self_ty, _Cst):
+        self_ty, other_ty = _astype(self_ty), _astype(other_ty)
+        if self_ty is int:
             if other_ty in (bool, int):
                 return int
             elif other_ty is float:
                 return float
-            elif issubclass(other_ty, _Cst):
-                return _Cst[operator(self_ty.__args__[0],
-                                     other_ty.__args__[0])]
-            else:
-                raise TypeError
-        elif self_ty is int:
-            if other_ty in (bool, int):
-                return int
-            elif other_ty is float:
-                return float
-            elif issubclass(other_ty, _Cst):
-                return int
             else:
                 raise TypeError
         else:
             raise TypeError
         return result_types
-    return _FT[binop]
+    return _CFT[binop, operator]
 
 def int_make_bitop(operator):
     def binop(self_ty, other_ty):
-        if issubclass(self_ty, _Cst):
-            if other_ty in (bool, int):
-                return int
-            elif issubclass(other_ty, _Cst):
-                return _Cst[operator(self_ty.__args__[0],
-                                     other_ty.__args__[0])]
-            else:
-                raise TypeError
-        elif self_ty is int:
+        self_ty, other_ty = _astype(self_ty), _astype(other_ty)
+        if self_ty is int:
             if other_ty in (bool, int):
                 return int
             elif isinstance(other_ty, int):
@@ -114,20 +77,12 @@ def int_make_bitop(operator):
                 raise TypeError
         else:
             raise TypeError
-    return _FT[binop]
+    return _CFT[binop, operator]
 
 def int_truediv(self_ty, other_ty):
-    if issubclass(self_ty, _Cst):
+    self_ty, other_ty = _astype(self_ty), _astype(other_ty)
+    if self_ty is int:
         if other_ty in (bool, int, float):
-            return float
-        elif issubclass(other_ty, _Cst):
-            return _Cst[self_ty.__args__[0] / other_ty.__args__[0]]
-        else:
-            raise TypeError
-    elif self_ty is int:
-        if other_ty in (bool, int, float):
-            return float
-        elif issubclass(other_ty, _Cst):
             return float
         else:
             raise TypeError
@@ -138,93 +93,72 @@ def int_make_unaryop(operator):
     def unaryop(self_ty):
         if self_ty is int:
             return int
-        elif issubclass(self_ty, _Cst):
-            return _Cst[operator(self_ty.__args__[0])]
         else:
             raise TypeError
-    return _FT[unaryop]
+    return _CFT[unaryop, operator]
 
 def int_bool(self_ty):
     if self_ty is int:
         return bool
-    elif issubclass(self_ty, _Cst):
-        return _Cst[bool(self_ty.__args__[0])]
     else:
         raise TypeError
 
 def int_int(self_ty):
     if self_ty is int:
         return int
-    elif issubclass(self_ty, _Cst):
-        return _Cst[int(self_ty.__args__[0])]
     else:
         raise TypeError
 
 def int_abs(self_ty):
     if self_ty is int:
         return int
-    elif issubclass(self_ty, _Cst):
-        return _Cst[abs(self_ty.__args__[0])]
     else:
         raise TypeError
 
 def int_float(self_ty):
     if self_ty is int:
         return float
-    elif issubclass(self_ty, _Cst):
-        return _Cst[float(self_ty.__args__[0])]
     else:
         raise TypeError
 
 def int_str(self_ty):
     if self_ty is int:
         return str
-    elif issubclass(self_ty, _Cst):
-        return _Cst[str(self_ty.__args__[0])]
     else:
         raise TypeError
 
 def int_make_boolop(operator):
     def boolop(self_ty, other_ty):
-        if issubclass(self_ty, _Cst):
+        self_ty, other_ty = _astype(self_ty), _astype(other_ty)
+        if self_ty is int:
             if other_ty in (bool, int, float):
-                return bool
-            elif issubclass(other_ty, _Cst):
-                return _Cst[operator(self_ty.__args__[0],
-                                     other_ty.__args__[0])]
-            else:
-                raise TypeError
-        elif self_ty is int:
-            if other_ty in (bool, int, float):
-                return bool
-            elif issubclass(other_ty, _Cst):
                 return bool
             else:
                 raise TypeError
         else:
             raise TypeError
-    return _FT[boolop]
+    return _CFT[boolop, operator]
 
 def int_make_biniop(operator):
     def biniop(self_ty, other_ty):
         result_ty = operator(self_ty, other_ty)
         # int are immutable so we don't update self_ty
         return result_ty
-    return _FT[biniop]
+    return _CFT[biniop, operator]
 
 
 _int_attrs = {
-    '__abs__': _FT[int_abs],
+    '__abs__': _CFT[int_abs, int.__abs__],
     '__add__': int_make_binop(_operator.add),
     '__and__': int_make_bitop(_operator.and_),
-    '__bool__': _FT[int_bool],
+    '__bool__': _CFT[int_bool, int.__bool__],
     '__eq__': int_make_boolop(_operator.eq),
-    '__float__': _FT[int_float],
+    '__float__': _CFT[int_float, int.__float__],
     '__floordiv__': int_make_binop(_operator.floordiv),
     '__ge__': int_make_boolop(_operator.ge),
     '__gt__': int_make_boolop(_operator.gt),
-    '__int__': _FT[int_int],
-    '__init__': _FT[int_init],
+    '__int__': _CFT[int_int, int],
+    '__init__': _CFT[int_init, int],
     '__invert__': int_make_unaryop(_operator.inv),
     '__le__': int_make_boolop(_operator.le),
     '__lshift__': int_make_bitop(_operator.lshift),
@@ -237,9 +171,9 @@ _int_attrs = {
     '__pos__': int_make_unaryop(_operator.pos),
     '__pow__': int_make_binop(_operator.pow),
     '__rshift__': int_make_bitop(_operator.rshift),
-    '__str__': _FT[int_str],
+    '__str__': _CFT[int_str, int.__str__],
     '__sub__': int_make_binop(_operator.sub),
-    '__truediv__': _FT[int_truediv],
+    '__truediv__': _CFT[int_truediv, _operator.truediv],
     '__xor__': int_make_bitop(_operator.xor),
 }
 
@@ -300,77 +234,56 @@ def float_init(self_ty):
 
 def float_make_binop(operator):
     def binop(self_ty, other_ty):
-        if issubclass(self_ty, _Cst):
+        self_ty, other_ty = _astype(self_ty), _astype(other_ty)
+        if self_ty is float:
             if other_ty in (bool, int, float):
-                return float
-            elif issubclass(other_ty, _Cst):
-                return _Cst[operator(self_ty.__args__[0],
-                                     other_ty.__args__[0])]
-            else:
-                raise TypeError
-        elif self_ty is float:
-            if other_ty in (bool, int, float):
-                return float
-            elif issubclass(other_ty, _Cst):
                 return float
             else:
                 raise TypeError
         else:
             raise TypeError
         return result_types
-    return _FT[binop]
+    return _CFT[binop, operator]
 
 def float_make_unaryop(operator):
     def unaryop(self_ty):
         if self_ty is float:
             return float
-        elif issubclass(self_ty, _Cst):
-            return _Cst[operator(self_ty.__args__[0])]
-        else:
             raise TypeError
-    return _FT[unaryop]
+    return _CFT[unaryop, operator]
 
 
 def float_make_boolop(operator):
     def boolop(self_ty, other_ty):
-        if issubclass(self_ty, _Cst):
+        self_ty, other_ty = _astype(self_ty), _astype(other_ty)
+        if self_ty is float:
             if other_ty in (bool, int, float):
-                return bool
-            elif issubclass(other_ty, _Cst):
-                return _Cst[operator(self_ty.__args__[0],
-                                     other_ty.__args__[0])]
-            else:
-                raise TypeError
-        elif self_ty is float:
-            if other_ty in (bool, int, float):
-                return bool
-            elif issubclass(other_ty, _Cst):
                 return bool
             else:
                 raise TypeError
         else:
             raise TypeError
-    return _FT[boolop]
+    return _CFT[boolop, operator]
 
 def float_make_biniop(operator):
     def biniop(self_ty, other_ty):
         result_ty = operator(self_ty, other_ty)
         # floatt are immutable so we don't update self_ty
         return result_ty
-    return _FT[biniop]
+    return _CFT[biniop, operator]
 
 
 _float_attrs = {
-    '__abs__': _FT[float_abs],
+    '__abs__': _CFT[float_abs, float.__abs__],
     '__add__': float_make_binop(_operator.add),
-    '__bool__': _FT[float_bool],
+    '__bool__': _CFT[float_bool, float.__bool__],
     '__eq__': float_make_boolop(_operator.eq),
     '__floordiv__': float_make_binop(_operator.floordiv),
-    '__float__': _FT[float_float],
+    '__float__': _CFT[float_float, float],
     '__ge__': float_make_boolop(_operator.ge),
     '__gt__': float_make_boolop(_operator.gt),
-    '__init__': _FT[float_init],
-    '__int__': _FT[float_int],
+    '__init__': _CFT[float_init, float],
+    '__int__': _CFT[float_int, float.__int__],
     '__le__': float_make_boolop(_operator.le),
     '__lt__': float_make_boolop(_operator.lt),
     '__mul__': float_make_binop(_operator.mul),
@@ -379,7 +292,7 @@ _float_attrs = {
     '__neg__': float_make_unaryop(_operator.neg),
     '__pos__': float_make_unaryop(_operator.pos),
     '__pow__': float_make_binop(_operator.pow),
-    '__str__': _FT[float_str],
+    '__str__': _CFT[float_str, float.__str__],
     '__sub__': float_make_binop(_operator.sub),
     '__truediv__': float_make_binop(_operator.truediv),
 }
@@ -391,40 +304,29 @@ str_iterator = type(iter(""))
 def str_bool(self_ty):
     if self_ty is str:
         return bool
-    elif issubclass(self_ty, _Cst):
-        return _Cst[bool(self_ty.__args__[0])]
     else:
         raise TypeError
 
 def str_int(self_ty):
     if self_ty is str:
         return int
-    elif issubclass(self_ty, _Cst):
-        return _Cst[int(self_ty.__args__[0])]
     else:
         raise TypeError
 
 def str_init(self_ty):
-    if issubclass(self_ty, _Cst):
-        return _Cst[str(self_ty.__args__[0])]
-    else:
-        from penty.penty import Types
-        return Types[self_ty]['__str__'](self_ty)
+    from penty.penty import Types
+    return Types[self_ty]['__str__'](self_ty)
 
 
 def str_float(self_ty):
     if self_ty is str:
         return float
-    elif issubclass(self_ty, _Cst):
-        return _Cst[float(self_ty.__args__[0])]
     else:
         raise TypeError
 
 def str_str(self_ty):
     if self_ty is str:
         return str
-    elif issubclass(self_ty, _Cst):
-        return _Cst[str(self_ty.__args__[0])]
     else:
         raise TypeError
 
@@ -438,13 +340,13 @@ def str_iter(self_ty):
         raise TypeError
 
 _str_attrs = {
-    '__bool__': _FT[str_bool],
-    '__float__': _FT[str_float],
-    '__init__': _FT[str_init],
-    '__int__': _FT[str_int],
+    '__bool__': _CFT[str_bool, bool],
+    '__float__': _CFT[str_float, float],
+    '__init__': _CFT[str_init, str],
+    '__int__': _CFT[str_int, int],
     '__iter__': _FT[str_iter],
-    '__len__': _FT[lambda *args: int],
-    '__str__': _FT[str_str],
+    '__len__': _CFT[lambda *args: int, str.__len__],
+    '__str__': _CFT[str_str, str.__str__],
 }
 
 ##
@@ -454,7 +356,7 @@ def none_eq(self_ty, other_ty):
     return _Cst[bool(other_ty is _Cst[None])]
 
 _none_attrs = {
-    '__eq__': _FT[none_eq],
+    '__eq__': _CFT[none_eq, _operator.eq],
 }
 
 ##
@@ -606,10 +508,7 @@ _str_iterator_attrs = {
 
 def abs_(self_type):
     from penty.penty import Types
-    if issubclass(self_type, _Cst):
-        return _Cst[abs(self_type.__args__[0])]
-    else:
-        return Types[self_type]['__abs__'](self_type)
+    return Types[self_type]['__abs__'](self_type)
 
 ##
 #
@@ -677,13 +576,13 @@ def register(registry):
         registry[_Tuple] = tuple_instanciate
 
         registry[_Module['builtins']] = {
-            'abs': {_FT[abs_]},
+            'abs': {_CFT[abs_, abs]},
             'bool': {_Ty[bool]},
             'dict': {_Ty[dict]},
             'id': {_FT[id_]},
             'int': {_Ty[int]},
             'float': {_Ty[float]},
-            'len': {_FT[len_]},
+            'len': {_CFT[len_, len]},
             'repr': {_FT[repr_]},
             'slice': {_FT[slice_]},
             'type': {_FT[type_]},
