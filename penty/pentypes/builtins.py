@@ -81,7 +81,6 @@ def int_make_binop(operator):
                 raise TypeError
         else:
             raise TypeError
-        return result_types
     return _CFT[binop, operator]
 
 def int_make_bitop(operator):
@@ -261,7 +260,6 @@ def float_make_binop(operator):
                 raise TypeError
         else:
             raise TypeError
-        return result_types
     return _CFT[binop, operator]
 
 def float_make_unaryop(operator):
