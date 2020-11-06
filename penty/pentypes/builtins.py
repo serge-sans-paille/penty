@@ -2,6 +2,7 @@ from penty.types import Cst as _Cst, Module as _Module, Type as _Ty
 from penty.types import astype as _astype, TypeOf as _TypeOf
 from penty.types import ConstFunctionType as _CFT, Tuple as _Tuple
 from penty.types import FunctionType as _FT
+from penty.types import FilteringBool as _FilteringBool
 from penty.types import List as _List, Set as _Set, Dict as _Dict
 import operator as _operator
 
@@ -41,6 +42,24 @@ _bool_attrs = {
     '__int__': _CFT[bool_int, bool.__int__],
     '__not__': _CFT[bool_not, _operator.not_],
     '__str__': _CFT[bool_str, bool.__str__],
+}
+
+##
+#
+
+def FilteringBool_bool(self_ty):
+    return _Cst[self_ty.__args__[0]]
+
+def FilteringBool_not(self_ty):
+    val, id_, filtered_tys = self_ty.__args__
+    return _FilteringBool[
+        not val,
+        id_,
+        filtered_tys]
+
+_FilteringBool_attrs = {
+    '__bool__': _FT[FilteringBool_bool],
+    '__not__': _FT[FilteringBool_not],
 }
 
 ##
@@ -569,6 +588,7 @@ def register(registry):
         registry[set] = _set_attrs
         registry[str] = _str_attrs
         registry[type(None)] = _none_attrs
+        registry[_FilteringBool] = _FilteringBool_attrs
         registry[str_iterator] = _str_iterator_attrs
         registry[_Dict] = dict_instanciate
         registry[_List] = list_instanciate
