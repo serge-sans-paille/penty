@@ -77,6 +77,41 @@ class TestBuiltins(TestPenty):
         self.assertIsType('bool("")', pentyping.Cst[False])
         self.assertIsType('bool("hello")', pentyping.Cst[True])
 
+
+class TestBool(TestPenty):
+
+    def test_abs(self):
+        self.assertIsType('abs(True)', pentyping.Cst[abs(True)])
+        self.assertIsType('abs(x)', int, env={'x': bool})
+
+    def test_add(self):
+        self.assertIsType('True + False', pentyping.Cst[True + False])
+        self.assertIsType('x + 1', int, env={'x': bool})
+        self.assertIsType('x + 1.', float, env={'x': bool})
+
+    def test_and(self):
+        self.assertIsType('True & False', pentyping.Cst[True & False])
+        self.assertIsType('False & 5', pentyping.Cst[False & 5])
+        self.assertIsType('x & x', bool, env={'x': bool})
+        self.assertIsType('x & 1', int, env={'x': bool})
+
+    def test_bool(self):
+        self.assertIsType('bool(True)', pentyping.Cst[bool(True)])
+        self.assertIsType('bool(x)', bool, env={'x': bool})
+
+    def test_or(self):
+        self.assertIsType('True | False', pentyping.Cst[True | True])
+        self.assertIsType('False | 5', pentyping.Cst[False | 5])
+        self.assertIsType('x | x', bool, env={'x': bool})
+        self.assertIsType('x | 1', int, env={'x': bool})
+
+    def test_xor(self):
+        self.assertIsType('True ^ False', pentyping.Cst[True ^ False])
+        self.assertIsType('False ^ 5', pentyping.Cst[False ^ 5])
+        self.assertIsType('x ^ x', bool, env={'x': bool})
+        self.assertIsType('x ^ 1', int, env={'x': bool})
+
+
 class TestFloat(TestPenty):
 
     def test_abs(self):
