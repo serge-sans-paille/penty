@@ -2,6 +2,7 @@ from penty.types import FunctionType, FunctionTypeMeta, Cst, Module, astype
 from penty.types import Type, TypeOf, FilteringBool
 from penty.types import ConstFunctionType, ConstFunctionTypeMeta
 import operator
+import re
 
 
 class UnaryOperatorMeta(ConstFunctionTypeMeta):
@@ -33,6 +34,7 @@ class BinaryOperatorMeta(ConstFunctionTypeMeta):
 
     def __getitem__(self, args):
         if args not in BinaryOperatorMeta.cache:
+            assert re.match('^__[a-z]+__$', args)
             class LocalBinaryOperator(BinaryOperator):
                 __args__ = args,
 
@@ -45,7 +47,13 @@ class BinaryOperatorMeta(ConstFunctionTypeMeta):
 
     def __call__(self, left_ty, right_ty):
         from penty.penty import Types
-        return Types[left_ty][self.__args__[0]](left_ty, right_ty)
+        try:
+            return Types[left_ty][self.__args__[0]](left_ty, right_ty)
+        except TypeError:
+            rop = '__r{}__'.format(self.__args__[0][2:-2])
+            if rop not in Types[right_ty]:
+                raise
+            return Types[right_ty][rop](right_ty, left_ty)
 
 
 class BinaryOperator(ConstFunctionType, metaclass=BinaryOperatorMeta):
