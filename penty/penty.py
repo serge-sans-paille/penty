@@ -28,6 +28,8 @@ class TypeRegistry(object):
         return key in self.registry
 
     def __getitem__(self, key):
+        if issubclass(key, FilteringBool):
+            return self.registry[FilteringBool]
         if issubclass(key, Cst):
             return self.registry[type(key.__args__[0])]
         if issubclass(key, Type):
@@ -114,7 +116,8 @@ def is_isnone(op, left, left_ty, right, right_ty):
 def is_constantcall(func, args_ty):
     if not issubclass(func, CFT):
         return False
-    return all(issubclass(ty, Cst) for ty in args_ty)
+    return all(issubclass(ty, Cst) and not issubclass(ty, FilteringBool)
+               for ty in args_ty)
 
 
 def totype(value):
@@ -702,6 +705,14 @@ class Typer(ast.NodeVisitor):
         return self._handle_comp(node, typing.Generator, GenGen())
 
     def _handle_is(self, prev, prev_ty, comparator, comparator_ty):
+
+        def filtering(val, id_, new_type):
+            assert not isinstance(new_type, tuple)
+            return FilteringBool[
+                val,
+                id_,
+                (new_type,)]
+
         cmp_ty = set()
         for pty, cty in itertools.product(prev_ty, comparator_ty):
             rem_pty = tuple(prev_ty - {pty})
@@ -711,9 +722,9 @@ class Typer(ast.NodeVisitor):
                 if issubclass(pty, (Cst, Module, Type)):
                     tmp_ty = set()
                     if rem_pty and isinstance(prev, ast.Name):
-                        tmp_ty.add(FilteringBool[True, prev.id, (pty,)])
+                        tmp_ty.add(filtering(True, prev.id, pty))
                     if rem_cty and isinstance(comparator, ast.Name):
-                        tmp_ty.add(FilteringBool[True, comparator.id, (cty,)])
+                        tmp_ty.add(filtering(True, comparator.id, cty))
                     if tmp_ty:
                         cmp_ty.update(tmp_ty)
                     else:
@@ -729,9 +740,9 @@ class Typer(ast.NodeVisitor):
             else:
                 tmp_ty = set()
                 if rem_pty and isinstance(prev, ast.Name):
-                    tmp_ty.add(FilteringBool[False, prev.id, (pty,)])
+                    tmp_ty.add(filtering(False, prev.id, pty))
                 if rem_cty and isinstance(comparator, ast.Name):
-                    tmp_ty.add(FilteringBool[False, comparator.id, (cty,)])
+                    tmp_ty.add(filtering(False, comparator.id, cty))
                 if tmp_ty:
                     cmp_ty.update(tmp_ty)
                 else:
@@ -748,6 +759,10 @@ class Typer(ast.NodeVisitor):
             if isinstance(op, ast.Is):
                 cmp_ty = self._handle_is(prev, prev_ty,
                                          comparator, comparator_ty)
+            elif isinstance(op, ast.IsNot):
+                not_ty = self._handle_is(prev, prev_ty,
+                                         comparator, comparator_ty)
+                cmp_ty = self._call(Types[Module['operator']]['not_'], not_ty)
             else:
                 cmp_ty = self._call(Ops[type(op)], prev_ty, comparator_ty)
             if normalize_test_ty(cmp_ty) == {Cst[False]}:

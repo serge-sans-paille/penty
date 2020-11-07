@@ -270,6 +270,24 @@ class TestExpr(TestCase):
                           {pentyping.FilteringBool[True, 'x', (pentyping.Cst[None],)],
                            int},
                           env={'x': {int, pentyping.Cst[None]}})
+        self.assertIsType('not (x is None) and abs(x)',
+                          {pentyping.FilteringBool[False, 'x', (pentyping.Cst[None],)],
+                           int},
+                          env={'x': {int, pentyping.Cst[None]}})
+        self.assertIsType('x is not None',
+                          pentyping.Cst[True],
+                          env={'x': int})
+        self.assertIsType('None is not x',
+                          pentyping.Cst[False],
+                          env={'x': pentyping.Cst[None]})
+        self.assertIsType('x is not None and abs(x)',
+                          {pentyping.FilteringBool[False, 'x', (pentyping.Cst[None],)],
+                           int},
+                          env={'x': {int, pentyping.Cst[None]}})
+        self.assertIsType('not (type(x) is int) or 1',
+                          {pentyping.FilteringBool[True, 'x', (pentyping.Cst[None],)],
+                           pentyping.Cst[1]},
+                          env={'x': {int, pentyping.Cst[None]}})
         self.assertIsType('type(x) is int and abs(x)',
                           {pentyping.FilteringBool[False, 'x', (pentyping.Cst[None],)],
                            int},
