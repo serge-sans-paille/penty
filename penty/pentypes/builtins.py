@@ -9,62 +9,6 @@ import operator as _operator
 ##
 #
 
-def bool_abs(value_ty):
-    return int
-
-def bool_bool(self_ty):
-    return self_ty
-
-def bool_int(value_ty):
-    return int
-
-def bool_float(value_ty):
-    return float
-
-def bool_str(value_ty):
-    return str
-
-def bool_init(value_ty):
-    from penty.penty import Types
-    return Types[_astype(value_ty)]['__bool__'](value_ty)
-
-def bool_not(self_ty):
-    if self_ty is bool:
-        return bool
-    else:
-        raise TypeError
-
-_bool_attrs = {
-    '__abs__': _CFT[bool_abs, bool.__abs__],
-    '__bool__': _CFT[bool_bool, bool.__bool__],
-    '__float__': _CFT[bool_float, bool.__float__],
-    '__init__': _CFT[bool_init, bool],
-    '__int__': _CFT[bool_int, bool.__int__],
-    '__not__': _CFT[bool_not, _operator.not_],
-    '__str__': _CFT[bool_str, bool.__str__],
-}
-
-##
-#
-
-def FilteringBool_bool(self_ty):
-    return _Cst[self_ty.__args__[0]]
-
-def FilteringBool_not(self_ty):
-    val, id_, filtered_tys = self_ty.__args__
-    return _FilteringBool[
-        not val,
-        id_,
-        filtered_tys]
-
-_FilteringBool_attrs = {
-    '__bool__': _FT[FilteringBool_bool],
-    '__not__': _FT[FilteringBool_not],
-}
-
-##
-#
-
 def int_init(self_ty):
     from penty.penty import Types
     return Types[self_ty]['__int__'](self_ty)
@@ -72,8 +16,8 @@ def int_init(self_ty):
 def int_make_binop(operator):
     def binop(self_ty, other_ty):
         self_ty, other_ty = _astype(self_ty), _astype(other_ty)
-        if self_ty is int:
-            if other_ty in (bool, int):
+        if issubclass(self_ty, int):
+            if issubclass(other_ty, int):
                 return int
             elif other_ty is float:
                 return float
@@ -86,10 +30,8 @@ def int_make_binop(operator):
 def int_make_bitop(operator):
     def binop(self_ty, other_ty):
         self_ty, other_ty = _astype(self_ty), _astype(other_ty)
-        if self_ty is int:
-            if other_ty in (bool, int):
-                return int
-            elif isinstance(other_ty, int):
+        if issubclass(self_ty, int):
+            if issubclass(other_ty, int):
                 return int
             else:
                 raise TypeError
@@ -99,8 +41,8 @@ def int_make_bitop(operator):
 
 def int_truediv(self_ty, other_ty):
     self_ty, other_ty = _astype(self_ty), _astype(other_ty)
-    if self_ty is int:
-        if other_ty in (bool, int, float):
+    if issubclass(self_ty, int):
+        if issubclass(other_ty, (int, float)):
             return float
         else:
             raise TypeError
@@ -109,38 +51,38 @@ def int_truediv(self_ty, other_ty):
 
 def int_make_unaryop(operator):
     def unaryop(self_ty):
-        if self_ty is int:
+        if issubclass(self_ty, int):
             return int
         else:
             raise TypeError
     return _CFT[unaryop, operator]
 
 def int_bool(self_ty):
-    if self_ty is int:
+    if issubclass(self_ty, int):
         return bool
     else:
         raise TypeError
 
 def int_int(self_ty):
-    if self_ty is int:
+    if issubclass(self_ty, int):
         return int
     else:
         raise TypeError
 
 def int_abs(self_ty):
-    if self_ty is int:
+    if issubclass(self_ty, int):
         return int
     else:
         raise TypeError
 
 def int_float(self_ty):
-    if self_ty is int:
+    if issubclass(self_ty, int):
         return float
     else:
         raise TypeError
 
 def int_str(self_ty):
-    if self_ty is int:
+    if issubclass(self_ty, int):
         return str
     else:
         raise TypeError
@@ -148,8 +90,8 @@ def int_str(self_ty):
 def int_make_boolop(operator):
     def boolop(self_ty, other_ty):
         self_ty, other_ty = _astype(self_ty), _astype(other_ty)
-        if self_ty is int:
-            if other_ty in (bool, int, float):
+        if issubclass(self_ty, int):
+            if issubclass(other_ty, (int, float)):
                 return bool
             else:
                 raise TypeError
@@ -207,6 +149,66 @@ _int_attrs.update({
     '__ipow__': int_make_biniop(_int_attrs['__pow__']),
     '__ixor__': int_make_biniop(_int_attrs['__xor__']),
 })
+
+##
+#
+
+
+def bool_and(self_ty, other_ty):
+    self_ty, other_ty = _astype(self_ty), _astype(other_ty)
+    if self_ty is bool and other_ty is bool:
+        return bool
+    if all(issubclass(ty, (bool, int)) for ty in (self_ty, other_ty)):
+        return int
+    raise TypeError
+
+def bool_init(value_ty):
+    from penty.penty import Types
+    return Types[_astype(value_ty)]['__bool__'](value_ty)
+
+def bool_not(self_ty):
+    if self_ty is bool:
+        return bool
+    else:
+        raise TypeError
+
+def bool_or(self_ty, other_ty):
+    return bool_and(self_ty, other_ty)
+
+def bool_str(value_ty):
+    return str
+
+def bool_xor(self_ty, other_ty):
+    return bool_and(self_ty, other_ty)
+
+_bool_attrs = _int_attrs.copy()
+
+_bool_attrs.update({
+    '__and__': _CFT[bool_and, bool.__and__],
+    '__init__': _CFT[bool_init, bool],
+    '__not__': _CFT[bool_not, _operator.not_],
+    '__or__': _CFT[bool_or, bool.__or__],
+    '__str__': _CFT[bool_str, bool.__str__],
+    '__xor__': _CFT[bool_xor, bool.__xor__],
+})
+
+##
+#
+
+def FilteringBool_bool(self_ty):
+    return _Cst[self_ty.__args__[0]]
+
+def FilteringBool_not(self_ty):
+    val, id_, filtered_tys = self_ty.__args__
+    return _FilteringBool[
+        not val,
+        id_,
+        filtered_tys]
+
+_FilteringBool_attrs = {
+    '__bool__': _FT[FilteringBool_bool],
+    '__not__': _FT[FilteringBool_not],
+}
 
 ##
 #
