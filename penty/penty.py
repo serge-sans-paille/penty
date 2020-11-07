@@ -200,18 +200,25 @@ class Typer(ast.NodeVisitor):
                 if isinstance(rty, set):
                     result_type.update(rty)
                 elif isinstance(rty, tuple):
-                    rty, updated_tys = rty[0], rty[1]
-                    result_type.add(rty)
-                    for pack in zip(args, args_ty, updated_tys):
-                        arg_ty, old_arg_ty, new_arg_ty = pack
-                        # This is a type refinement
-                        try:
-                            if issubclass(new_arg_ty, old_arg_ty):
-                                arg_ty.remove(old_arg_ty)
-                        # happens when old_arg_ty is a parametric type
-                        except TypeError:
-                            pass
-                        arg_ty.add(new_arg_ty)
+                    rty, updated_tys = rty[0], rty[1:]
+                    if isinstance(rty, set):
+                        result_type.update(rty)
+                    else:
+                        result_type.add(rty)
+
+                    for updated_ty in updated_tys:
+                        # note: updated_ty may be longer than args
+                        # in that case zip does the job as we expect
+                        for pack in zip(args, args_ty, updated_ty):
+                            arg_ty, old_arg_ty, new_arg_ty = pack
+                            # This is a type refinement
+                            try:
+                                if issubclass(new_arg_ty, old_arg_ty):
+                                    arg_ty.remove(old_arg_ty)
+                            # happens when old_arg_ty is a parametric type
+                            except TypeError:
+                                pass
+                            arg_ty.add(new_arg_ty)
                 else:
                     result_type.add(rty)
         return result_type
@@ -803,17 +810,20 @@ class Typer(ast.NodeVisitor):
 
         def bounded_attr_adjustment(return_tuple):
             if isinstance(return_tuple, tuple):
-                return_ty, update_ty = return_tuple
-                update_self_ty = update_ty[0]
-                adjusted_update_ty = update_ty[1:]
-                # This is a type refinement
-                try:
-                    if issubclass(update_self_ty, self_ty):
-                        self_set.remove(self_ty)
-                except TypeError:
-                    pass  # happens when self_ty is a parametric_type
-                self_set.add(update_self_ty)
-                return return_ty, adjusted_update_ty
+                return_ty = return_tuple[0]
+                update_tys = return_tuple[1:]
+                adjusted_update_tys = []
+                for update_ty in update_tys:
+                    update_self_ty = update_ty[0]
+                    adjusted_update_tys.append(update_ty[1:])
+                    # This is a type refinement
+                    try:
+                        if issubclass(update_self_ty, self_ty):
+                            self_set.remove(self_ty)
+                    except TypeError:
+                        pass  # happens when self_ty is a parametric_type
+                    self_set.add(update_self_ty)
+                return (return_ty,) + tuple(adjusted_update_tys)
             else:
                 return return_tuple
         return FT[lambda *args: bounded_attr_adjustment(func(self_ty, *args))]
