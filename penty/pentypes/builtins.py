@@ -4,6 +4,7 @@ from penty.types import ConstFunctionType as _CFT, Tuple as _Tuple
 from penty.types import FunctionType as _FT
 from penty.types import FilteringBool as _FilteringBool
 from penty.types import List as _List, Set as _Set, Dict as _Dict
+from penty.types import SetIterator as _SetIterator
 import operator as _operator
 
 ##
@@ -118,7 +119,7 @@ _int_attrs = {
     '__lt__': int_make_boolop(_operator.lt),
     '__mul__': int_make_binop(_operator.mul),
     '__mod__': int_make_binop(_operator.mod),
-    '__ne__': int_make_boolop(_operator.ne),
+    '__ne__': lambda self_ty, other_ty: bool,
     '__neg__': int_make_unaryop(_operator.neg),
     '__or__': int_make_bitop(_operator.or_),
     '__pos__': int_make_unaryop(_operator.pos),
@@ -442,9 +443,13 @@ _list_attrs = {
 ##
 #
 
+set_iterator = type(iter(set()))
+
 def set_and(self_ty, other_ty):
     if not issubclass(other_ty, set):
         raise TypeError
+    if not self_ty.__args__[0]:
+        return _Set[{}]
     return _Set[self_ty.__args__[0] | other_ty.__args__[0]]
 
 def make_set_compare():
@@ -455,6 +460,8 @@ def make_set_compare():
     return set_compare
 
 def set_iand(self_ty, other_ty):
+    if not issubclass(self_ty, set):
+        raise TypeError
     if not issubclass(other_ty, set):
         raise TypeError
     self_ty.__args__[0] |= other_ty.__args__[0]
@@ -472,21 +479,274 @@ def set_init(elts_ty=None):
     next_ty = Types[iter_ty]['__next__'](iter_ty)
     return _Set[next_ty]
 
-def set_instanciate(ty):
-    return {
-        '__bool__': _FT[lambda self_ty: bool],
-        '__and__': _FT[set_and],
-        '__contains__': _FT[lambda self_ty, value_ty: bool],
-        '__eq__': _FT[lambda self_ty, value_ty: bool],
-        '__ge__': make_set_compare(),
-        '__gt__': make_set_compare(),
-        '__iand__': _FT[set_iand],
-        '__len__': _FT[lambda self_ty: int],
-    }
+def set_ior(self_ty, other_ty):
+    if not issubclass(self_ty, set):
+        raise TypeError
+    if not issubclass(other_ty, set):
+        raise TypeError
+    self_ty.__args__[0] |= other_ty.__args__[0]
+    return self_ty
 
-_set_attrs = {
-    '__init__': _FT[set_init],
+def set_isub(self_ty, other_ty):
+    if not issubclass(self_ty, set):
+        raise TypeError
+    if not issubclass(other_ty, set):
+        raise TypeError
+    return self_ty
+
+def set_ixor(self_ty, other_ty):
+    if not issubclass(self_ty, set):
+        raise TypeError
+    if not issubclass(other_ty, set):
+        raise TypeError
+    self_ty.__args__[0] |= other_ty.__args__[0]
+    return self_ty
+
+def set_len(self_ty):
+    if not issubclass(self_ty, set):
+        raise TypeError
+    if not self_ty.__args__[0]:
+        return _Cst[0]
+    return int
+
+def set_iter(self_ty):
+    if not issubclass(self_ty, set):
+        raise TypeError
+    return _SetIterator[self_ty.__args__[0]]
+
+def set_or(self_ty, other_ty):
+    if not issubclass(self_ty, set):
+        raise TypeError
+    if not issubclass(other_ty, set):
+        raise TypeError
+    return _Set[self_ty.__args__[0] | other_ty.__args__[0]]
+
+def set_sub(self_ty, other_ty):
+    if not issubclass(self_ty, set):
+        raise TypeError
+    if not issubclass(other_ty, set):
+        raise TypeError
+    return _Set[self_ty.__args__[0]]
+
+def set_xor(self_ty, other_ty):
+    if not issubclass(self_ty, set):
+        raise TypeError
+    if not issubclass(other_ty, set):
+        raise TypeError
+    return _Set[self_ty.__args__[0] | other_ty.__args__[0]]
+
+def set_add(self_ty, value_ty):
+    if not issubclass(self_ty, set):
+        raise TypeError
+    self_ty.__args__[0].add(_astype(value_ty))
+    return _Cst[None]
+
+def set_bool(self_ty):
+    if not issubclass(self_ty, set):
+        raise TypeError
+    if not self_ty.__args__[0]:
+        return _Cst[False]
+    return bool
+
+def set_clear(self_ty):
+    if not issubclass(self_ty, set):
+        raise TypeError
+    return _Cst[None]
+
+def set_contains(self_ty, value_ty):
+    if not issubclass(self_ty, set):
+        raise TypeError
+    if not self_ty.__args__[0]:
+        return _Cst[False]
+    return bool
+
+def set_copy(self_ty):
+    if not issubclass(self_ty, set):
+        raise TypeError
+    return _Set[self_ty.__args__[0].copy()]
+
+def set_difference(self_ty, *other_tys):
+    from penty.penty import Types
+    if not issubclass(self_ty, set):
+        raise TypeError
+    for other_ty in other_tys:
+        if '__iter__' not in Types[other_ty]:
+            raise TypeError
+    return _Set[self_ty.__args__[0].copy()]
+
+def set_difference_update(self_ty, *other_tys):
+    if not issubclass(self_ty, set):
+        raise TypeError
+    set_difference(self_ty, *other_tys)
+    return _Cst[None]
+
+def set_discard(self_ty, elt_ty):
+    if not issubclass(self_ty, set):
+        raise TypeError
+    if not self_ty.__args__[0]:
+        raise TypeError
+    return _Cst[None]
+
+def set_eq(self_ty, other_ty):
+    if not issubclass(self_ty, set):
+        raise TypeError
+    if not issubclass(other_ty, set):
+        return _Cst[False]
+    if bool(self_ty.__args__[0]) ^ bool(other_ty.__args__[0]):
+        return _Cst[False]
+    return bool
+
+def set_intersection(self_ty, *other_tys):
+    from penty.penty import Types
+    if not issubclass(self_ty, set):
+        raise TypeError
+    intersection_tys = self_ty.__args__[0].copy()
+    for other_ty in other_tys:
+        if '__iter__' not in Types[other_ty]:
+            raise TypeError
+        iter_tys = Types[other_ty]['__iter__'](other_ty)
+        if not isinstance(iter_tys, set):
+            iter_tys = {iter_tys}
+        for iter_ty in iter_tys:
+            if '__next__' not in Types[iter_ty]:
+                raise TypeError
+            value_tys = Types[iter_ty]['__next__'](iter_ty)
+            if not isinstance(value_tys, set):
+                value_tys = {value_tys}
+            # still taking the union and not the intersection, because of cases
+            # like {1} & {1.}
+            intersection_tys.update(value_tys)
+    return _Set[intersection_tys]
+
+def set_intersection_update(self_ty, *other_tys):
+    if not issubclass(self_ty, set):
+        raise TypeError
+    updated = set_intersection(self_ty, *other_tys)
+    self_ty.__args__[0].update(updated.__args__[0])
+    return _Cst[None]
+
+def set_isdisjoint(self_ty, other_ty):
+    from penty.penty import Types
+    if not issubclass(self_ty, set):
+        raise TypeError
+    if not self_ty.__args__[0] or not other_ty.__args__[0]:
+        return _Cst[True]
+    if '__iter__' not in Types[other_ty]:
+        raise TypeError
+    return bool
+
+def set_issubset(self_ty, other_ty):
+    from penty.penty import Types
+    if not issubclass(self_ty, set):
+        raise TypeError
+    if not self_ty.__args__[0]:
+        return _Cst[True]
+    if '__iter__' not in Types[other_ty]:
+        raise TypeError
+    return bool
+
+def set_issuperset(self_ty, other_ty):
+    if not issubclass(self_ty, set):
+        raise TypeError
+    if not self_ty.__args__[0] and not other_ty.__args__[0]:
+        return _Cst[True]
+    return set_issubset(self_ty, other_ty)
+
+def set_ne(self_ty, other_ty):
+    if not issubclass(self_ty, set):
+        raise TypeError
+    if not issubclass(other_ty, set):
+        return _Cst[True]
+    if bool(self_ty.__args__[0]) ^ bool(other_ty.__args__[0]):
+        return _Cst[True]
+    return bool
+
+def set_pop(self_ty):
+    if not issubclass(self_ty, set):
+        raise TypeError
+    if not self_ty.__args__[0]:
+        raise TypeError
+    return self_ty.__args__[0].copy()
+
+def set_remove(self_ty, value_ty):
+    if not issubclass(self_ty, set):
+        raise TypeError
+    if not self_ty.__args__[0]:
+        raise TypeError
+    return _Cst[None]
+
+def set_symmetric_difference(self_ty, other_ty):
+    return set_intersection(self_ty, other_ty)
+
+def set_symmetric_difference_update(self_ty, other_ty):
+    return set_intersection_update(self_ty, other_ty)
+
+def set_union(self_ty, *other_tys):
+    return set_intersection(self_ty, *other_tys)
+
+def set_update(self_ty, *other_tys):
+    return set_intersection_update(self_ty, *other_tys)
+
+def set_instanciate(ty):
+    return _set_methods
+
+_set_methods = {
+    '__bool__': _FT[set_bool],
+    '__and__': _FT[set_and],
+    '__contains__': _FT[set_contains],
+    '__eq__': _FT[set_eq],
+    '__ge__': make_set_compare(),
+    '__gt__': make_set_compare(),
+    '__iand__': _FT[set_iand],
+    '__ior__': _FT[set_ior],
+    '__isub__': _FT[set_isub],
+    '__iter__': _FT[set_iter],
+    '__ixor__': _FT[set_ixor],
+    '__le__': make_set_compare(),
+    '__len__': _FT[set_len],
+    '__lt__': make_set_compare(),
+    '__ne__': _FT[set_ne],
+    '__or__': _FT[set_or],
+    '__rand__': _FT[set_and],
+    '__ror__': _FT[set_or],
+    '__rsub__': _FT[set_sub],
+    '__rxor__': _FT[set_xor],
+    '__sub__': _FT[set_sub],
+    '__xor__': _FT[set_xor],
+    'add': _FT[set_add],
+    'clear': _FT[set_clear],
+    'copy': _FT[set_copy],
+    'difference': _FT[set_difference],
+    'difference_update': _FT[set_difference_update],
+    'discard': _FT[set_discard],
+    'intersection': _FT[set_intersection],
+    'intersection_update': _FT[set_intersection_update],
+    'isdisjoint': _FT[set_isdisjoint],
+    'issubset': _FT[set_issubset],
+    'issuperset': _FT[set_issuperset],
+    'pop': _FT[set_pop],
+    'remove': _FT[set_remove],
+    'symmetric_difference': _FT[set_symmetric_difference],
+    'symmetric_difference_update': _FT[set_symmetric_difference_update],
+    'union': _FT[set_union],
+    'update': _FT[set_update],
 }
+
+_set_attrs = _set_methods.copy()
+_set_attrs.update({
+    '__init__': _FT[set_init],
+})
+
+##
+#
+
+def set_iterator_next(self_ty):
+    return set(self_ty.__args__[0])
+
+def set_iterator_instanciate(ty):
+    return {
+        '__next__': _FT[set_iterator_next],
+    }
 
 ##
 #
@@ -615,6 +875,7 @@ def register(registry):
         registry[str] = _str_attrs
         registry[type(None)] = _none_attrs
         registry[_FilteringBool] = _FilteringBool_attrs
+        registry[_SetIterator] = set_iterator_instanciate
         registry[str_iterator] = _str_iterator_attrs
         registry[_Dict] = dict_instanciate
         registry[_List] = list_instanciate
