@@ -288,6 +288,60 @@ class TestList(TestPenty):
                           {pentyping.List[{int, float}]},
                           env={'x': pentyping.List[float], 'y': int})
 
+
+class TestSet(TestPenty):
+
+    def test_bool(self):
+        self.assertIsType('bool(x)', bool,
+                          env={'x': pentyping.Set[int]})
+
+    def test_and(self):
+        self.assertIsType('x & x', pentyping.Set[int],
+                          env={'x': pentyping.Set[int]})
+        self.assertIsType('x & y', pentyping.Set[{int, float}],
+                          env={'x': pentyping.Set[int],
+                               'y': pentyping.Set[float]
+                              })
+
+    def test_contains(self):
+        self.assertIsType('1 in x', bool,
+                          env={'x': pentyping.Set[int]})
+        self.assertIsType('1. in x', bool,
+                          env={'x': pentyping.Set[int]})
+
+    def test_eq(self):
+        self.assertIsType('1 == x', bool,
+                          env={'x': pentyping.Set[int]})
+        self.assertIsType('x == 1', bool,
+                          env={'x': pentyping.Set[int]})
+        self.assertIsType('x == x', bool,
+                          env={'x': pentyping.Set[int]})
+        self.assertIsType('x == y', bool,
+                          env={'x': pentyping.Set[int],
+                               'y': pentyping.Set[str]})
+
+    def test_ge(self):
+        self.assertIsType('x >= x', bool,
+                          env={'x': pentyping.Set[int]})
+        self.assertIsType('x >= y', bool,
+                          env={'x': pentyping.Set[int],
+                               'y': pentyping.Set[str]})
+
+    def test_gt(self):
+        self.assertIsType('x > x', bool,
+                          env={'x': pentyping.Set[int]})
+        self.assertIsType('x > y', bool,
+                          env={'x': pentyping.Set[int],
+                               'y': pentyping.Set[str]})
+
+    def test_init(self):
+        self.assertIsType('set("ert")', pentyping.Set[str])
+
+    def test_len(self):
+        self.assertIsType('len(x)', int,
+                          env={'x': pentyping.Set[int]})
+
+
 class TestStr(TestPenty):
 
     def test_iter(self):
