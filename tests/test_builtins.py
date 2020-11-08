@@ -122,20 +122,43 @@ class TestFloat(TestPenty):
         self.assertIsType('1. + 3.4', pentyping.Cst[1 + 3.4])
         self.assertIsType('x + 3.4', float, env={'x': float})
         self.assertIsType('x + x', float, env={'x': float})
+        self.assertIsType('2 + x', float, env={'x': float})
 
     def test_bool(self):
         self.assertIsType('bool(1.)', pentyping.Cst[bool(1.)])
         self.assertIsType('bool(x)', bool, env={'x': float})
+
+    def test_divmod(self):
+        dm = divmod(5.3, 2.)
+        self.assertIsType('divmod(5.3, 2.)',
+                          pentyping.Tuple[pentyping.Cst[dm[0]],
+                                          pentyping.Cst[dm[1]]])
+        self.assertIsType('x.__divmod__(4.)',
+                          pentyping.Tuple[float, float],
+                          env={'x': float})
+        self.assertIsType('x.__divmod__(4)',
+                          pentyping.Tuple[float, float],
+                          env={'x': float})
+        self.assertIsType('y.__divmod__(x)',
+                          pentyping.Tuple[float, float],
+                          env={'x': float, 'y': int})
 
     def test_eq(self):
         self.assertIsType('1. == 3.4', pentyping.Cst[1 == 3.4])
         self.assertIsType('x == 3.4', bool, env={'x': float})
         self.assertIsType('x == x', bool, env={'x': float})
 
+    def test_float(self):
+        self.assertIsType('float(3.4)', pentyping.Cst[float(3.4)])
+        self.assertIsType('float(3)', pentyping.Cst[float(3)])
+        self.assertIsType('float(x)', float, env={'x': bool})
+        self.assertIsType('float(x)', float, env={'x': float})
+
     def test_floordiv(self):
         self.assertIsType('1. // 3.4', pentyping.Cst[1 // 3.4])
         self.assertIsType('x // 3.4', float, env={'x': float})
         self.assertIsType('x // x', float, env={'x': float})
+        self.assertIsType('2 // x', float, env={'x': float})
 
     def test_ge(self):
         self.assertIsType('1. >= 3.4', pentyping.Cst[1 >= 3.4])
@@ -158,6 +181,10 @@ class TestFloat(TestPenty):
         self.assertIsType('float(x)', float, env={'x': str})
         self.assertIsType('float("3.14")', pentyping.Cst[float("3.14")])
 
+    def test_int(self):
+        self.assertIsType('int(1.2)', pentyping.Cst[int(1.2)])
+        self.assertIsType('int(x)', int, env={'x': float})
+
     def test_le(self):
         self.assertIsType('1. <= 3.4', pentyping.Cst[1 <= 3.4])
         self.assertIsType('x <= 3.4', bool, env={'x': float})
@@ -172,11 +199,13 @@ class TestFloat(TestPenty):
         self.assertIsType('1. * 3.4', pentyping.Cst[1 * 3.4])
         self.assertIsType('x * 3.4', float, env={'x': float})
         self.assertIsType('x * x', float, env={'x': float})
+        self.assertIsType('2 * x', float, env={'x': float})
 
     def test_mod(self):
         self.assertIsType('1. % 3.4', pentyping.Cst[1 % 3.4])
         self.assertIsType('x % 3.4', float, env={'x': float})
         self.assertIsType('x % x', float, env={'x': float})
+        self.assertIsType('2 % x', float, env={'x': float})
 
     def test_ne(self):
         self.assertIsType('1. != 3.4', pentyping.Cst[1 != 3.4])
@@ -195,11 +224,19 @@ class TestFloat(TestPenty):
         self.assertIsType('1. ** 3.4', pentyping.Cst[1 ** 3.4])
         self.assertIsType('x ** 3.4', float, env={'x': float})
         self.assertIsType('x ** x', float, env={'x': float})
+        self.assertIsType('2 ** x', float, env={'x': float})
 
     def test_sub(self):
         self.assertIsType('1. - 3.4', pentyping.Cst[1 - 3.4])
         self.assertIsType('x - 3.4', float, env={'x': float})
         self.assertIsType('x - x', float, env={'x': float})
+        self.assertIsType('1 - x', float, env={'x': float})
+
+    def test_truediv(self):
+        self.assertIsType('1. / 3.4', pentyping.Cst[1 / 3.4])
+        self.assertIsType('x / 3.4', float, env={'x': float})
+        self.assertIsType('x / x', float, env={'x': float})
+        self.assertIsType('1 / x', float, env={'x': float})
 
 
 class TestDict(TestPenty):

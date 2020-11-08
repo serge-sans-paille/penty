@@ -48,10 +48,13 @@ def ndarray_make_binop(op):
         dtype_ty, shape_ty = self_ty.__args__
         other_ty =_astype(other_ty)
         if other_ty in (bool, int, float):
-            return NDArray[Types[dtype_ty][op](dtype_ty, other_ty), shape_ty]
+            new_dtype_ty = Types[_Module['operator']][op](dtype_ty, other_ty)
+            return NDArray[new_dtype_ty, shape_ty]
         if issubclass(other_ty, NDArray):
             other_dtype_ty, other_shape_ty = other_ty.__args__
-            return NDArray[Types[dtype_ty][op](dtype_ty, other_dtype_ty),
+            new_dtype_ty = Types[_Module['operator']][op](dtype_ty,
+                                                          other_dtype_ty)
+            return NDArray[new_dtype_ty,
                            _broadcast_shape(shape_ty, other_shape_ty)]
         raise TypeError
     return _FT[binop]
@@ -71,12 +74,15 @@ def ndarray_make_bitop(op):
             raise TypeError
         other_ty =_astype(other_ty)
         if other_ty in (bool, int):
-            return NDArray[Types[dtype_ty][op](dtype_ty, other_ty), shape_ty]
+            new_dtype_ty = Types[_Module['operator']][op](dtype_ty, other_ty)
+            return NDArray[new_dtype_ty, shape_ty]
         if issubclass(other_ty, NDArray):
             other_dtype_ty, other_shape_ty = other_ty.__args__
             if other_dtype_ty not in (bool, int):
                 raise TypeError
-            return NDArray[Types[dtype_ty][op](dtype_ty, other_dtype_ty),
+            new_dtype_ty = Types[_Module['operator']][op](dtype_ty,
+                                                          other_dtype_ty)
+            return NDArray[new_dtype_ty,
                            _broadcast_shape(shape_ty, other_shape_ty)]
         raise TypeError
     return _FT[binop]
@@ -96,7 +102,11 @@ def ndarray_matmul(self_ty, other_ty):
         raise TypeError
     if issubclass(other_ty, NDArray):
         other_dtype_ty, other_shape_ty = other_ty.__args__
-        return NDArray[Types[dtype_ty]['__mul__'](dtype_ty, other_dtype_ty),
+        # using mul instead of matmul for type inference as matmul is not
+        # defined for some scalars, including int
+        new_dtype_ty = Types[_Module['operator']]['__mul__'](dtype_ty,
+                                                             other_dtype_ty)
+        return NDArray[new_dtype_ty,
                        _broadcast_shape(shape_ty, other_shape_ty)]
     raise TypeError
 

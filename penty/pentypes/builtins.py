@@ -9,6 +9,12 @@ import operator as _operator
 ##
 #
 
+def int_divmod(self_ty, other_ty):
+    from penty.penty import Types
+    fd = Types[_Module['operator']]['__floordiv__'](self_ty, other_ty)
+    m = Types[_Module['operator']]['__mod__'](self_ty, other_ty)
+    return _Tuple[fd, m]
+
 def int_init(self_ty):
     from penty.penty import Types
     return Types[self_ty]['__int__'](self_ty)
@@ -16,13 +22,8 @@ def int_init(self_ty):
 def int_make_binop(operator):
     def binop(self_ty, other_ty):
         self_ty, other_ty = _astype(self_ty), _astype(other_ty)
-        if issubclass(self_ty, int):
-            if issubclass(other_ty, int):
-                return int
-            elif other_ty is float:
-                return float
-            else:
-                raise TypeError
+        if issubclass(self_ty, int) and issubclass(other_ty, int):
+            return int
         else:
             raise TypeError
     return _CFT[binop, operator]
@@ -30,22 +31,16 @@ def int_make_binop(operator):
 def int_make_bitop(operator):
     def binop(self_ty, other_ty):
         self_ty, other_ty = _astype(self_ty), _astype(other_ty)
-        if issubclass(self_ty, int):
-            if issubclass(other_ty, int):
-                return int
-            else:
-                raise TypeError
+        if issubclass(self_ty, int) and issubclass(other_ty, int):
+            return int
         else:
             raise TypeError
     return _CFT[binop, operator]
 
 def int_truediv(self_ty, other_ty):
     self_ty, other_ty = _astype(self_ty), _astype(other_ty)
-    if issubclass(self_ty, int):
-        if issubclass(other_ty, (int, float)):
-            return float
-        else:
-            raise TypeError
+    if issubclass(self_ty, int) and issubclass(other_ty, int):
+        return float
     else:
         raise TypeError
 
@@ -90,11 +85,8 @@ def int_str(self_ty):
 def int_make_boolop(operator):
     def boolop(self_ty, other_ty):
         self_ty, other_ty = _astype(self_ty), _astype(other_ty)
-        if issubclass(self_ty, int):
-            if issubclass(other_ty, (int, float)):
-                return bool
-            else:
-                raise TypeError
+        if issubclass(self_ty, int) and issubclass(other_ty, int):
+            return bool
         else:
             raise TypeError
     return _CFT[boolop, operator]
@@ -112,6 +104,7 @@ _int_attrs = {
     '__add__': int_make_binop(_operator.add),
     '__and__': int_make_bitop(_operator.and_),
     '__bool__': _CFT[int_bool, int.__bool__],
+    '__divmod__': _CFT[int_divmod, int.__divmod__],
     '__eq__': int_make_boolop(_operator.eq),
     '__float__': _CFT[int_float, int.__float__],
     '__floordiv__': int_make_binop(_operator.floordiv),
@@ -214,52 +207,30 @@ _FilteringBool_attrs = {
 #
 
 def float_abs(self_ty):
-    if issubclass(self_ty, _Cst):
-        return _Cst[abs(self_ty.__args__[0])]
-    elif self_ty is float:
-        return float
-    else:
-        raise TypeError
+    return float
 
 def float_bool(self_ty):
-    if issubclass(self_ty, _Cst):
-        return _Cst[bool(self_ty.__args__[0])]
-    else:
-        return bool
+    return bool
 
-def float_int(self_ty):
-    if issubclass(self_ty, _Cst):
-        return _Cst[int(self_ty.__args__[0])]
-    else:
-        return int
+def float_divmod(self_ty, other_ty):
+    return _Tuple[_float_attrs['__floordiv__'](self_ty, other_ty),
+                  _float_attrs['__mod__'](self_ty, other_ty)]
 
 def float_float(self_ty):
-    if issubclass(self_ty, _Cst):
-        return _Cst[float(self_ty.__args__[0])]
-    else:
-        return float
-
-def float_str(self_ty):
-    if issubclass(self_ty, _Cst):
-        return _Cst[str(self_ty.__args__[0])]
-    else:
-        return str
+    return float
 
 def float_init(self_ty):
-    if issubclass(self_ty, _Cst):
-        return _Cst[float(self_ty.__args__[0])]
-    else:
-        from penty.penty import Types
-        return Types[self_ty]['__float__'](self_ty)
+    from penty.penty import Types
+    return Types[self_ty]['__float__'](self_ty)
+
+def float_int(self_ty):
+    return int
 
 def float_make_binop(operator):
     def binop(self_ty, other_ty):
         self_ty, other_ty = _astype(self_ty), _astype(other_ty)
-        if self_ty is float:
-            if other_ty in (bool, int, float):
-                return float
-            else:
-                raise TypeError
+        if self_ty is float and other_ty in (bool, int, float):
+            return float
         else:
             raise TypeError
     return _CFT[binop, operator]
@@ -268,18 +239,15 @@ def float_make_unaryop(operator):
     def unaryop(self_ty):
         if self_ty is float:
             return float
-            raise TypeError
+        raise TypeError
     return _CFT[unaryop, operator]
 
 
 def float_make_boolop(operator):
     def boolop(self_ty, other_ty):
         self_ty, other_ty = _astype(self_ty), _astype(other_ty)
-        if self_ty is float:
-            if other_ty in (bool, int, float):
-                return bool
-            else:
-                raise TypeError
+        if self_ty is float and other_ty in (bool, int, float):
+            return bool
         else:
             raise TypeError
     return _CFT[boolop, operator]
@@ -291,14 +259,18 @@ def float_make_biniop(operator):
         return result_ty
     return _CFT[biniop, operator]
 
+def float_str(self_ty):
+    return str
+
 
 _float_attrs = {
     '__abs__': _CFT[float_abs, float.__abs__],
     '__add__': float_make_binop(_operator.add),
     '__bool__': _CFT[float_bool, float.__bool__],
+    '__divmod__': _CFT[float_divmod, float.__divmod__],
     '__eq__': float_make_boolop(_operator.eq),
-    '__floordiv__': float_make_binop(_operator.floordiv),
     '__float__': _CFT[float_float, float],
+    '__floordiv__': float_make_binop(_operator.floordiv),
     '__ge__': float_make_boolop(_operator.ge),
     '__gt__': float_make_boolop(_operator.gt),
     '__init__': _CFT[float_init, float],
@@ -315,6 +287,9 @@ _float_attrs = {
     '__sub__': float_make_binop(_operator.sub),
     '__truediv__': float_make_binop(_operator.truediv),
 }
+
+for slot in ('add', 'divmod', 'floordiv', 'mod', 'mul', 'pow', 'sub', 'truediv'):
+    _float_attrs['__r{}__'.format(slot)] = _float_attrs['__{}__'.format(slot)]
 
 ##
 #
@@ -351,9 +326,7 @@ def str_str(self_ty):
 
 
 def str_iter(self_ty):
-    if self_ty is str:
-        return str_iterator
-    elif issubclass(self_ty, _Cst):
+    if _astype(self_ty) is str:
         return str_iterator
     else:
         raise TypeError
@@ -558,6 +531,19 @@ def abs_(self_type):
 ##
 #
 
+def divmod_(self_ty, other_ty):
+    from penty.penty import Types
+    self_ty, other_ty = _astype(self_ty), _astype(other_ty)
+    try:
+        return Types[self_ty]['__divmod__'](self_ty, other_ty)
+    except TypeError:
+        if '__rdivmod__' in Types[other_ty]:
+            return Types[other_ty]['__rdivmod__'](other_ty, self_ty)
+        raise
+
+##
+#
+
 def id_(self_types):
     return int
 
@@ -625,6 +611,7 @@ def register(registry):
             'abs': {_CFT[abs_, abs]},
             'bool': {_Ty[bool]},
             'dict': {_Ty[dict]},
+            'divmod': {_CFT[divmod_, divmod]},
             'id': {_FT[id_]},
             'int': {_Ty[int]},
             'float': {_Ty[float]},
