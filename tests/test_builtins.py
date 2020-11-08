@@ -294,6 +294,9 @@ class TestSet(TestPenty):
     def test_bool(self):
         self.assertIsType('bool(x)', bool,
                           env={'x': pentyping.Set[int]})
+        self.assertIsType('bool(x)',
+                          pentyping.Cst[False],
+                          env={'x': pentyping.Set[set()]})
 
     def test_and(self):
         self.assertIsType('x & x', pentyping.Set[int],
@@ -312,7 +315,7 @@ class TestSet(TestPenty):
     def test_eq(self):
         self.assertIsType('1 == x', bool,
                           env={'x': pentyping.Set[int]})
-        self.assertIsType('x == 1', bool,
+        self.assertIsType('x == 1', pentyping.Cst[False],
                           env={'x': pentyping.Set[int]})
         self.assertIsType('x == x', bool,
                           env={'x': pentyping.Set[int]})
@@ -337,10 +340,188 @@ class TestSet(TestPenty):
     def test_init(self):
         self.assertIsType('set("ert")', pentyping.Set[str])
 
+    def test_iter(self):
+        self.assertIsType('[x for x in {1}]',
+                          pentyping.List[int])
+        self.assertIsType('{x for x in x}',
+                          pentyping.Set[int],
+                          env={'x': pentyping.Set[int]})
+
+    def test_le(self):
+        self.assertIsType('x <= x', bool,
+                          env={'x': pentyping.Set[int]})
+        self.assertIsType('x <= y', bool,
+                          env={'x': pentyping.Set[int],
+                               'y': pentyping.Set[str]})
+
     def test_len(self):
         self.assertIsType('len(x)', int,
                           env={'x': pentyping.Set[int]})
+        self.assertIsType('len(x)', pentyping.Cst[0],
+                          env={'x': pentyping.Set[set()]})
 
+    def test_lt(self):
+        self.assertIsType('x < x', bool,
+                          env={'x': pentyping.Set[int]})
+        self.assertIsType('x < y', bool,
+                          env={'x': pentyping.Set[int],
+                               'y': pentyping.Set[str]})
+
+    def test_ne(self):
+        self.assertIsType('1 != x', bool,
+                          env={'x': pentyping.Set[int]})
+        self.assertIsType('x != 1', pentyping.Cst[True],
+                          env={'x': pentyping.Set[int]})
+        self.assertIsType('x != x', bool,
+                          env={'x': pentyping.Set[int]})
+        self.assertIsType('x != y', bool,
+                          env={'x': pentyping.Set[int],
+                               'y': pentyping.Set[str]})
+
+    def test_or(self):
+        self.assertIsType('x | x', pentyping.Set[int],
+                          env={'x': pentyping.Set[int]})
+        self.assertIsType('x | y', pentyping.Set[{int, float}],
+                          env={'x': pentyping.Set[int],
+                               'y': pentyping.Set[float]
+                              })
+
+    def test_sub(self):
+        self.assertIsType('x - x', pentyping.Set[int],
+                          env={'x': pentyping.Set[int]})
+        self.assertIsType('x - y', pentyping.Set[int],
+                          env={'x': pentyping.Set[int],
+                               'y': pentyping.Set[float]
+                              })
+
+    def test_xor(self):
+        self.assertIsType('x ^ x', pentyping.Set[int],
+                          env={'x': pentyping.Set[int]})
+        self.assertIsType('x ^ y', pentyping.Set[{int, float}],
+                          env={'x': pentyping.Set[int],
+                               'y': pentyping.Set[float]
+                              })
+    def test_add(self):
+        self.assertIsType('x.add(1)', pentyping.Cst[None],
+                          env={'x': pentyping.Set[int]})
+        self.assertIsType('(x.add(1), x)[1]', pentyping.Set[{int, float}],
+                          env={'x': pentyping.Set[float]})
+
+    def test_clear(self):
+        self.assertIsType('x.clear()', pentyping.Cst[None],
+                          env={'x': pentyping.Set[int]})
+
+    def test_copy(self):
+        self.assertIsType('x.copy()', pentyping.Set[int],
+                          env={'x': pentyping.Set[int]})
+        self.assertIsType('(x.copy().add(1.), x)[1]', pentyping.Set[int],
+                          env={'x': pentyping.Set[int]})
+
+    def test_difference(self):
+        self.assertIsType('x.difference()', pentyping.Set[int],
+                          env={'x': pentyping.Set[int]})
+        self.assertIsType('x.difference({1})', pentyping.Set[int],
+                          env={'x': pentyping.Set[int]})
+        self.assertIsType('x.difference({1}, "er")', pentyping.Set[int],
+                          env={'x': pentyping.Set[int]})
+
+    def test_difference_update(self):
+        self.assertIsType('x.difference_update()', pentyping.Cst[None],
+                          env={'x': pentyping.Set[int]})
+        self.assertIsType('x.difference_update("er")', pentyping.Cst[None],
+                          env={'x': pentyping.Set[int]})
+
+    def test_discard(self):
+        self.assertIsType('x.discard(1)', pentyping.Cst[None],
+                          env={'x': pentyping.Set[int]})
+        self.assertIsType('x.discard("1")', pentyping.Cst[None],
+                          env={'x': pentyping.Set[int]})
+
+    def test_intersection(self):
+        self.assertIsType('x.intersection()', pentyping.Set[int],
+                          env={'x': pentyping.Set[int]})
+        self.assertIsType('x.intersection({1})', pentyping.Set[int],
+                          env={'x': pentyping.Set[int]})
+        self.assertIsType('x.intersection({1}, "er")',
+                          pentyping.Set[{int, str}],
+                          env={'x': pentyping.Set[int]})
+
+    def test_intersection_update(self):
+        self.assertIsType('x.intersection_update()', pentyping.Cst[None],
+                          env={'x': pentyping.Set[int]})
+        self.assertIsType('(x.intersection_update({1}, "er"), x)[1]',
+                          pentyping.Set[{int, str}],
+                          env={'x': pentyping.Set[int]})
+
+    def test_isdisjoint(self):
+        self.assertIsType('x.isdisjoint(x)', bool,
+                          env={'x': pentyping.Set[int]})
+        self.assertIsType('x.isdisjoint("er")',
+                          bool,
+                          env={'x': pentyping.Set[int]})
+
+    def test_issubset(self):
+        self.assertIsType('x.issubset(x)', bool,
+                          env={'x': pentyping.Set[int]})
+        self.assertIsType('x.issubset("er")',
+                          bool,
+                          env={'x': pentyping.Set[int]})
+
+    def test_issuperset(self):
+        self.assertIsType('x.issuperset(x)', bool,
+                          env={'x': pentyping.Set[int]})
+        self.assertIsType('x.issuperset("er")',
+                          bool,
+                          env={'x': pentyping.Set[int]})
+
+    def test_pop(self):
+        self.assertIsType('x.pop()', int,
+                          env={'x': pentyping.Set[int]})
+        self.assertIsType('x.pop()',
+                          {bool, int},
+                          env={'x': pentyping.Set[{bool, int}]})
+
+    def test_remove(self):
+        self.assertIsType('x.remove(1)', pentyping.Cst[None],
+                          env={'x': pentyping.Set[int]})
+        self.assertIsType('x.remove("er")',
+                          pentyping.Cst[None],
+                          env={'x': pentyping.Set[{bool, int}]})
+
+    def test_symmetric_difference(self):
+        self.assertIsType('x.symmetric_difference({1})', pentyping.Set[int],
+                          env={'x': pentyping.Set[int]})
+        self.assertIsType('x.symmetric_difference("1")',
+                          pentyping.Set[{int,str}],
+                          env={'x': pentyping.Set[int]})
+
+    def test_symmetric_difference_update(self):
+        self.assertIsType('x.symmetric_difference_update("1")',
+                          pentyping.Cst[None],
+                          env={'x': pentyping.Set[int]})
+        self.assertIsType('(x.symmetric_difference_update("1"), x)[1]',
+                          pentyping.Set[{int, str}],
+                          env={'x': pentyping.Set[int]})
+
+    def test_union(self):
+        self.assertIsType('x.union()', pentyping.Set[int],
+                          env={'x': pentyping.Set[int]})
+        self.assertIsType('x.union({1})', pentyping.Set[int],
+                          env={'x': pentyping.Set[int]})
+        self.assertIsType('set.union(x, {1})', pentyping.Set[int],
+                          env={'x': pentyping.Set[int]})
+        self.assertIsType('x.union({1}, "er")',
+                          pentyping.Set[{int, str}],
+                          env={'x': pentyping.Set[int]})
+
+    def test_update(self):
+        self.assertIsType('x.update()', pentyping.Cst[None],
+                          env={'x': pentyping.Set[int]})
+        self.assertIsType('(x.update({1}), x)[1]', pentyping.Set[int],
+                          env={'x': pentyping.Set[int]})
+        self.assertIsType('(x.update({1.}, "er"), x)[1]',
+                          pentyping.Set[{int, float, str}],
+                          env={'x': pentyping.Set[int]})
 
 class TestStr(TestPenty):
 

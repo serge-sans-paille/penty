@@ -257,6 +257,22 @@ class Set(set, metaclass=SetMeta):
     pass
 
 
+class SetIteratorMeta(type):
+
+    def __getitem__(self, args):
+        class LocalSetIterator(SetIterator):
+            __args__ = args,
+        return LocalSetIterator
+
+    def __repr__(self):
+        sortedkeys = sorted(map(str, self.__args__[0]))
+        return 'SetIterator[{}]'.format(', '.join(sortedkeys))
+
+
+class SetIterator(metaclass=SetIteratorMeta):
+    pass
+
+
 class GeneratorMeta(type):
 
     def __getitem__(self, args):
