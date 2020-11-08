@@ -6,12 +6,17 @@ import typing
 
 class TestPenty(TestCase):
 
+    def assertTypesEqual(self, t0, t1):
+        st0 = {str(ty) for ty in t0}
+        st1 = {str(ty) for ty in t1}
+        self.assertEqual(st0, st1)
+
     def assertIsType(self, expr, ty, env={}):
         if not isinstance(ty, set):
             ty = {ty}
         env = {k: v if isinstance(v, set) else {v}
                for k, v in env.items()}
-        self.assertEqual(penty.type_eval(expr, env), ty)
+        self.assertTypesEqual(penty.type_eval(expr, env), ty)
 
 
 class TestBuiltins(TestPenty):
@@ -265,9 +270,12 @@ class TestDict(TestPenty):
         self.assertIsType('x.setdefault(1)', {int, pentyping.Cst[None]},
                           env={'x': pentyping.Dict[int, int]})
         self.assertIsType('(x.setdefault(1), x)[1]',
-                          {pentyping.Dict[int, int],
-                           pentyping.Dict[int, pentyping.Cst[None]]},
+                          {pentyping.Dict[int, {int, pentyping.Cst[None]}]},
                           env={'x': pentyping.Dict[int, int]})
+        self.assertIsType('(x.setdefault(1, []).append(1.), x)[1]',
+                          pentyping.Dict[int, {pentyping.List[{int, float}],
+                                               pentyping.List[{float}]}],
+                          env={'x': pentyping.Dict[int, pentyping.List[int]]})
 
 
 class TestList(TestPenty):
@@ -275,9 +283,9 @@ class TestList(TestPenty):
     def test_append(self):
         self.assertIsType('x.append(y), x',
                           pentyping.Tuple[pentyping.Cst[None], pentyping.List[int]],
-                          env={'x': list, 'y': int})
+                          env={'x': pentyping.List[set()], 'y': int})
         self.assertIsType('(x.append(y), x)[1]',
-                          {pentyping.List[int], pentyping.List[float]},
+                          {pentyping.List[{int, float}]},
                           env={'x': pentyping.List[float], 'y': int})
 
 class TestStr(TestPenty):

@@ -110,8 +110,8 @@ def ndarray_matmul(self_ty, other_ty):
                        _broadcast_shape(shape_ty, other_shape_ty)]
     raise TypeError
 
-def ndarray_getitem(base_ty, self_ty, key_ty):
-    dtype_ty, shape_ty= base_ty.__args__
+def ndarray_getitem(self_ty, key_ty):
+    dtype_ty, shape_ty= self_ty.__args__
 
     if _astype(key_ty) is int:
         if len(shape_ty.__args__) == 1:
@@ -120,7 +120,7 @@ def ndarray_getitem(base_ty, self_ty, key_ty):
             return NDArray[dtype_ty,
                            _Tuple[shape_ty.__args__[1:]]]
     if _astype(key_ty) is slice:
-        return ndarray_getitem(base_ty, self_ty, _Tuple[key_ty])
+        return ndarray_getitem(self_ty, _Tuple[key_ty])
 
     if issubclass(_astype(key_ty), tuple):
         if len(shape_ty.__args__) < len(key_ty.__args__):
@@ -161,19 +161,19 @@ def ndarray_getitem(base_ty, self_ty, key_ty):
             return dtype_ty
     raise TypeError(key_ty)
 
-def ndarray_len(base_ty, self_ty):
-    _, shape_ty = base_ty.__args__
+def ndarray_len(self_ty):
+    _, shape_ty = self_ty.__args__
     return shape_ty.__args__[0]
 
-def ndarray_str(base_ty, self_ty):
+def ndarray_str(self_ty):
     return str
 
-def ndarray_dtype(base_ty, self_ty):
+def ndarray_dtype(self_ty):
     return self_ty.__args__[0]
 
 
-def ndarray_bool(base_ty, self_ty):
-    _, shape_ty = base_ty.__args__
+def ndarray_bool(self_ty):
+    _, shape_ty = self_ty.__args__
     dims = shape_ty.__args__
     if all((issubclass(d, _Cst) and d.__args__[0]) for d in dims):
         return _Cst[True]
@@ -204,15 +204,15 @@ def ndarray_instanciate(ty):
         '__abs__': _FT[ndarray_make_unaryop('__abs__')],
         '__add__': _FT[ndarray_make_binop('__add__')],
         '__and__': _FT[ndarray_make_bitop('__and__')],
-        '__bool__': _FT[lambda *args: ndarray_bool(ty, *args)],
+        '__bool__': _FT[ndarray_bool],
         '__eq__': _FT[ndarray_make_binop('__eq__')],
         '__floordiv__': _FT[ndarray_make_binop('__floordiv__')],
         '__ge__': _FT[ndarray_make_binop('__ge__')],
         '__gt__': _FT[ndarray_make_binop('__gt__')],
-        '__getitem__': _FT[lambda *args: ndarray_getitem(ty, *args)],
+        '__getitem__': _FT[ndarray_getitem],
         '__invert__': _FT[ndarray_invert],
         '__le__': _FT[ndarray_make_binop('__le__')],
-        '__len__': _FT[lambda *args: ndarray_len(ty, *args)],
+        '__len__': _FT[ndarray_len],
         '__lshift__': _FT[ndarray_make_bitop('__lshift__')],
         '__lt__': _FT[ndarray_make_binop('__lt__')],
         '__matmul__': _FT[ndarray_matmul],
@@ -224,7 +224,7 @@ def ndarray_instanciate(ty):
         '__pos__': _FT[ndarray_make_unaryop('__pos__')],
         '__pow__': _FT[ndarray_make_binop('__pow__')],
         '__rshift__': _FT[ndarray_make_bitop('__rshift__')],
-        '__str__': _FT[lambda *args: ndarray_str(ty, *args)],
+        '__str__': _FT[ndarray_str],
         '__sub__': _FT[ndarray_make_binop('__sub__')],
         '__truediv__': _FT[ndarray_make_binop('__truediv__')],
         '__xor__': _FT[ndarray_make_bitop('__xor__')],

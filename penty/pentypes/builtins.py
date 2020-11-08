@@ -354,33 +354,25 @@ _none_attrs = {
 ##
 #
 
-def dict_clear(base_ty, self_ty):
-    if self_ty is not base_ty:
-        raise TypeError
+def dict_clear(self_ty):
     return _Cst[None]
 
-def dict_get(base_ty, self_ty, key_ty, default_ty=None):
-    if self_ty is not base_ty:
-        raise TypeError
+def dict_get(self_ty, key_ty, default_ty=None):
     if default_ty is None:
         default_ty = _Cst[None]
 
-    if default_ty is self_ty.__args__[1]:
-        return self_ty.__args__[1]
-    else:
-        return {self_ty.__args__[1], default_ty}
+    return self_ty.__args__[1].union([default_ty])
 
-def dict_setdefault(base_ty, self_ty, key_ty, default_ty=None):
+def dict_setdefault(self_ty, key_ty, default_ty=None):
     if default_ty is None:
         default_ty = _Cst[None]
     else:
         default_ty = _astype(default_ty)
-    if default_ty is self_ty.__args__[1]:
-        return dict_get(base_ty, self_ty, key_ty, default_ty)
-    else:
-        return (dict_get(base_ty, self_ty, key_ty, default_ty),
-                (self_ty, key_ty, default_ty),
-                (_Dict[self_ty.__args__[0], default_ty], key_ty, default_ty))
+
+    self_ty.__args__[0].add(_astype(key_ty))
+    self_ty.__args__[1].add(default_ty)
+
+    return dict_get(self_ty, key_ty, default_ty)
 
 
 def dict_fromkeys(iterable_ty, value_ty=None):
@@ -398,66 +390,53 @@ def dict_instanciate(ty):
     return {
         '__bool__': _FT[lambda *args: bool],
         '__len__': _FT[lambda *args: int],
-        'clear': _FT[lambda *args: dict_clear(ty, *args)],
-        'get': _FT[lambda *args: dict_get(ty, *args)],
-        'setdefault': _FT[lambda *args: dict_setdefault(ty, *args)],
+        'clear': _FT[dict_clear],
+        'get': _FT[dict_get],
+        'setdefault': _FT[dict_setdefault],
     }
 
 _dict_attrs = {
-    'clear': _FT[lambda x: dict_clear(x, x)],
+    'clear': _FT[dict_clear],
     'from_keys': _FT[dict_fromkeys],
 }
 
 ##
 #
 
-def list_append(base_ty, self_ty, value_ty):
-    return _Cst[None], (_List[_astype(value_ty)], value_ty)
+def list_append(self_ty, value_ty):
+    self_ty.__args__[0].add(_astype(value_ty))
+    return _Cst[None]
 
-def list_count(base_ty, self_ty, elt_ty):
-    base_key_ty, = base_ty.__args__
-    if self_ty is not base_ty:
-        raise TypeError
-    if elt_ty is base_key_ty:
-        return int
-    elif issubclass(elt_ty, _Cst):
-        elt_v = elt_ty.__args__[0]
-        if type(elt_v) is base_key_ty:
-            return int
-        else:
-            raise TypeError
-    else:
-        raise TypeError
+def list_count(self_ty, elt_ty):
+    return int
 
-def list_getitem(base_ty, self_ty, key_ty):
-    base_value_ty, = base_ty.__args__
+def list_getitem(self_ty, key_ty):
+    base_value_ty, = self_ty.__args__
 
-    if self_ty is not base_ty:
-        raise TypeError
     if key_ty in (bool, int):
         return base_value_ty
     elif key_ty is slice:
-        return base_ty
+        return self_ty
     elif issubclass(key_ty, _Cst):
         key_v = key_ty.__args__[0]
         if isinstance(key_v, (bool, int)):
             return base_value_ty
         elif isinstance(key_v, slice):
-            return base_ty
+            return self_ty
     else:
         raise TypeError
 
 def list_instanciate(ty):
     return {
         '__bool__': _FT[lambda *args: bool],
-        '__getitem__': _FT[lambda *args: list_getitem(ty, *args)],
+        '__getitem__': _FT[list_getitem],
         '__len__': _FT[lambda *args: int],
-        'append': _FT[lambda *args: list_append(ty, *args)],
-        'count': _FT[lambda *args: list_count(ty, *args)],
+        'append': _FT[list_append],
+        'count': _FT[list_count],
     }
 
 _list_attrs = {
-    'append': _FT[lambda self, elt: list_append(self, self, elt)],
+    'append': _FT[lambda self, elt: list_append(self, elt)],
 }
 
 ##
@@ -475,14 +454,12 @@ _set_attrs = {
 ##
 #
 
-def tuple_bool(base_ty, self_ty):
-    return _Cst[bool(base_ty.__args__)]
+def tuple_bool(self_ty):
+    return _Cst[bool(self_ty.__args__)]
 
-def tuple_getitem(base_ty, self_ty, key_ty):
-    base_value_types = base_ty.__args__
+def tuple_getitem(self_ty, key_ty):
+    base_value_types = self_ty.__args__
 
-    if self_ty is not base_ty:
-        raise TypeError
     if key_ty in (bool, int):
         return set(base_value_types)
     elif key_ty is slice:
@@ -501,9 +478,9 @@ def tuple_getitem(base_ty, self_ty, key_ty):
 
 def tuple_instanciate(ty):
     return {
-        '__bool__': _FT[lambda *args: tuple_bool(ty, *args)],
-        '__getitem__': _FT[lambda *args: tuple_getitem(ty, *args)],
-        '__len__': _FT[lambda *args: _Cst[len(ty.__args__)]],
+        '__bool__': _FT[tuple_bool],
+        '__getitem__': _FT[tuple_getitem],
+        '__len__': _FT[lambda self_ty: _Cst[len(self_ty.__args__)]],
     }
 
 ##

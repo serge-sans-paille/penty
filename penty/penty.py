@@ -1,11 +1,10 @@
 import gast as ast
-import typing
 import itertools
 from functools import reduce
 
 import penty.pentypes as pentypes
 from penty.types import Cst, FDef, Module, astype, Lambda, Type, FilteringBool
-from penty.types import FunctionType as FT, Tuple, List, Set, Dict
+from penty.types import FunctionType as FT, Tuple, List, Set, Dict, Generator
 from penty.types import ConstFunctionType as CFT
 
 
@@ -28,6 +27,8 @@ class TypeRegistry(object):
         return key in self.registry
 
     def __getitem__(self, key):
+        if key in self.registry:
+            return self.registry[key]
         if issubclass(key, FilteringBool):
             return self.registry[FilteringBool]
         if issubclass(key, Cst):
@@ -39,9 +40,7 @@ class TypeRegistry(object):
         return self.registry[key]
 
     def instanciate(self, ty):
-        if ty in self.registry:
-            return self.registry[ty]
-        base = ty.__bases__[0]
+        base = ty.__base__
         return self.registry[base](ty)
 
 
@@ -199,26 +198,6 @@ class Typer(ast.NodeVisitor):
                 rty = func(*args_ty)
                 if isinstance(rty, set):
                     result_type.update(rty)
-                elif isinstance(rty, tuple):
-                    rty, updated_tys = rty[0], rty[1:]
-                    if isinstance(rty, set):
-                        result_type.update(rty)
-                    else:
-                        result_type.add(rty)
-
-                    for updated_ty in updated_tys:
-                        # note: updated_ty may be longer than args
-                        # in that case zip does the job as we expect
-                        for pack in zip(args, args_ty, updated_ty):
-                            arg_ty, old_arg_ty, new_arg_ty = pack
-                            # This is a type refinement
-                            try:
-                                if issubclass(new_arg_ty, old_arg_ty):
-                                    arg_ty.remove(old_arg_ty)
-                            # happens when old_arg_ty is a parametric type
-                            except TypeError:
-                                pass
-                            arg_ty.add(new_arg_ty)
                 else:
                     result_type.add(rty)
         return result_type
@@ -630,24 +609,20 @@ class Typer(ast.NodeVisitor):
         return result_types
 
     def visit_Dict(self, node):
-        if node.keys:
-            result_types = set()
-            for k, v in zip(node.keys, node.values):
-                dict_types = {Dict[kty, vty] for kty, vty in
-                              itertools.product(self.visit(k), self.visit(v))}
-                result_types.update(dict_types)
-            return result_types
-        else:
-            return {dict}
+        key_types = set()
+        value_types = set()
+        for k, v in zip(node.keys, node.values):
+            key_types.update(self.visit(k))
+            value_types.update(self.visit(v))
+        return {Dict[key_types, value_types]}
 
     def visit_Set(self, node):
-        result_types = set()
-        for e in node.elts:
-            set_types = {Set[ty] for ty in self.visit(e)}
-            result_types.update(set_types)
-        return result_types
+        element_types = set()
+        for elt in node.elts:
+            element_types.update(map(astype, self.visit(elt)))
+        return {Set[element_types]}
 
-    def _handle_comp(self, node, empty_ty, container_ty):
+    def _handle_comp(self, node, container_ty):
         new_bindings = {}
         no_element = False
         for generator in node.generators:
@@ -667,15 +642,15 @@ class Typer(ast.NodeVisitor):
         elt_types = self.visit(node.elt)
         self.bindings.pop()
         if no_element:
-            return {empty_ty}
+            return {container_ty[set()]}
         else:
-            return {container_ty[astype(elt_ty)] for elt_ty in elt_types}
+            return {container_ty[{astype(elt_ty) for elt_ty in elt_types}]}
 
     def visit_ListComp(self, node):
-        return self._handle_comp(node, list, List)
+        return self._handle_comp(node, List)
 
     def visit_SetComp(self, node):
-        return self._handle_comp(node, set, Set)
+        return self._handle_comp(node, Set)
 
     def visit_DictComp(self, node):
         new_bindings = {}
@@ -698,18 +673,13 @@ class Typer(ast.NodeVisitor):
         value_types = self.visit(node.value)
         self.bindings.pop()
         if no_dict:
-            return {dict}
+            return {Dict[set(), set()]}
         else:
-            return {Dict[astype(k), astype(v)]
-                    for k in key_types
-                    for v in value_types}
+            return {Dict[{astype(k) for k in key_types},
+                         {astype(v) for v in value_types}]}
 
     def visit_GeneratorExp(self, node):
-        class GenGen:
-            def __getitem__(self, elt_ty):
-                return typing.Generator[elt_ty, None, None]
-
-        return self._handle_comp(node, typing.Generator, GenGen())
+        return self._handle_comp(node, Generator)
 
     def _handle_is(self, prev, prev_ty, comparator, comparator_ty):
 
@@ -808,25 +778,7 @@ class Typer(ast.NodeVisitor):
         if not issubclass(func, (FT, Lambda, FDef)):
             return func
 
-        def bounded_attr_adjustment(return_tuple):
-            if isinstance(return_tuple, tuple):
-                return_ty = return_tuple[0]
-                update_tys = return_tuple[1:]
-                adjusted_update_tys = []
-                for update_ty in update_tys:
-                    update_self_ty = update_ty[0]
-                    adjusted_update_tys.append(update_ty[1:])
-                    # This is a type refinement
-                    try:
-                        if issubclass(update_self_ty, self_ty):
-                            self_set.remove(self_ty)
-                    except TypeError:
-                        pass  # happens when self_ty is a parametric_type
-                    self_set.add(update_self_ty)
-                return (return_ty,) + tuple(adjusted_update_tys)
-            else:
-                return return_tuple
-        return FT[lambda *args: bounded_attr_adjustment(func(self_ty, *args))]
+        return FT[lambda *args: func(self_ty, *args)]
 
     def _unbounded_attr(self, value_ty, attr):
         return Types[value_ty][attr]
@@ -851,13 +803,10 @@ class Typer(ast.NodeVisitor):
                           slice_types)
 
     def visit_List(self, node):
-        if not node.elts:
-            return {list}
-        result_types = set()
+        element_types = set()
         for elt in node.elts:
-            elt_types = self.visit(elt)
-            result_types.update(map(astype, elt_types))
-        return {List[ty] for ty in result_types}
+            element_types.update(map(astype, self.visit(elt)))
+        return {List[element_types]}
 
     def visit_Tuple(self, node):
         if not node.elts:

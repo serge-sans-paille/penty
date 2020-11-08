@@ -219,18 +219,18 @@ class Tuple(tuple, metaclass=TupleMeta):
 
 
 class ListMeta(type):
-    cache = {}
 
     def __getitem__(self, args):
-        if args not in ListMeta.cache:
-            class LocalList(List):
-                __args__ = args,
+        if not isinstance(args, set):
+            args = {args}
 
-            ListMeta.cache[args] = LocalList
-        return ListMeta.cache[args]
+        class LocalList(List):
+            __args__ = args,
+        return LocalList
 
     def __repr__(self):
-        return 'List[{}]'.format(', '.join(map(str, self.__args__)))
+        sortedelts = sorted(map(str, self.__args__[0]))
+        return 'List[{{{}}}]'.format(', '.join(sortedelts))
 
 
 class List(list, metaclass=ListMeta):
@@ -238,37 +238,61 @@ class List(list, metaclass=ListMeta):
 
 
 class SetMeta(type):
-    cache = {}
 
     def __getitem__(self, args):
-        if args not in SetMeta.cache:
-            class LocalSet(Set):
-                __args__ = args,
+        if not isinstance(args, set):
+            args = {args}
 
-            SetMeta.cache[args] = LocalSet
-        return SetMeta.cache[args]
+        class LocalSet(Set):
+            __args__ = args,
+
+        return LocalSet
 
     def __repr__(self):
-        return 'Set[{}]'.format(', '.join(map(str, self.__args__)))
+        sortedkeys = sorted(map(str, self.__args__[0]))
+        return 'Set[{{{}}}]'.format(', '.join(sortedkeys))
 
 
 class Set(set, metaclass=SetMeta):
     pass
 
 
-class DictMeta(type):
-    cache = {}
+class GeneratorMeta(type):
 
     def __getitem__(self, args):
-        if args not in DictMeta.cache:
-            class LocalDict(Dict):
-                __args__ = args
+        if not isinstance(args, set):
+            args = {args}
 
-            DictMeta.cache[args] = LocalDict
-        return DictMeta.cache[args]
+        class LocalGenerator(Generator):
+            __args__ = args,
+        return LocalGenerator
 
     def __repr__(self):
-        return 'Dict[{}]'.format(', '.join(map(str, self.__args__)))
+        sortedelts = sorted(map(str, self.__args__[0]))
+        return 'Generator[{{{}}}]'.format(', '.join(sortedelts))
+
+
+class Generator(list, metaclass=GeneratorMeta):
+    pass
+
+
+class DictMeta(type):
+
+    def __getitem__(self, args):
+        def as_set(x):
+            return x if isinstance(x, set) else {x}
+
+        args = as_set(args[0]), as_set(args[1])
+
+        class LocalDict(Dict):
+            __args__ = args
+        return LocalDict
+
+    def __repr__(self):
+        sortedkeys = sorted(map(str, self.__args__[0]))
+        sortedvals = sorted(map(str, self.__args__[1]))
+        return 'Dict[{{{}}}, {{{}}}]'.format(', '.join(sortedkeys),
+                                             ', '.join(sortedvals))
 
 
 class Dict(set, metaclass=DictMeta):
