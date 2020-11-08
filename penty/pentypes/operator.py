@@ -1,4 +1,4 @@
-from penty.types import FunctionType, FunctionTypeMeta, Cst, Module, astype
+from penty.types import Cst, Module, astype
 from penty.types import Type, TypeOf, FilteringBool
 from penty.types import ConstFunctionType, ConstFunctionTypeMeta
 import operator
