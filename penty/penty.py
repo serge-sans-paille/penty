@@ -61,6 +61,7 @@ Ops = {
     ast.Gt: Types[Module['operator']]['__gt__'],
     ast.GtE: Types[Module['operator']]['__ge__'],
     ast.Invert: Types[Module['operator']]['__invert__'],
+    ast.In: pentypes.operator.InOperator,
     ast.Is: pentypes.operator.IsOperator,
     ast.IsNot: pentypes.operator.IsNotOperator,
     ast.Lt: Types[Module['operator']]['__lt__'],

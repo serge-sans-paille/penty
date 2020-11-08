@@ -60,6 +60,24 @@ class BinaryOperator(ConstFunctionType, metaclass=BinaryOperatorMeta):
     pass
 
 
+class ContainsOperatorMeta(BinaryOperatorMeta):
+
+    def __call__(self, left_ty, right_ty):
+        from penty.penty import Types
+        if '__contains__' in Types[left_ty]:
+            return Types[left_ty]['__contains__'](left_ty, right_ty)
+        if '__iter__' in Types[left_ty]:
+            return bool
+        raise TypeError
+
+
+class ContainsOperator(BinaryOperator, metaclass=ContainsOperatorMeta):
+    __args__ = "contains",
+
+
+ContainsOperator = ConstFunctionType[ContainsOperator, operator.contains]
+
+
 class IsOperatorMeta(BinaryOperatorMeta):
 
     def __call__(self, left_ty, right_ty):
@@ -87,6 +105,9 @@ class IsOperatorMeta(BinaryOperatorMeta):
             else:
                 return Cst[False]
 
+
+InOperator = ConstFunctionType[lambda x, y: ContainsOperator(y, x),
+                               lambda x, y: operator.contains(y, x)]
 
 class IsOperator(BinaryOperator, metaclass=IsOperatorMeta):
     __args__ = "is",
@@ -147,6 +168,7 @@ def register(registry):
         registry[Module['operator']] = {
             '__add__': BinaryOperator['__add__'],
             '__and__': BinaryOperator['__and__'],
+            '__contains__': BinaryOperator['__contains__'],
             '__eq__': BinaryOperator['__eq__'],
             '__floordiv__': BinaryOperator['__floordiv__'],
             '__ge__': BinaryOperator['__ge__'],

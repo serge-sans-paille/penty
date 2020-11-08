@@ -105,7 +105,7 @@ _int_attrs = {
     '__and__': int_make_bitop(_operator.and_),
     '__bool__': _CFT[int_bool, int.__bool__],
     '__divmod__': _CFT[int_divmod, int.__divmod__],
-    '__eq__': int_make_boolop(_operator.eq),
+    '__eq__': lambda self_ty, other_ty: bool,
     '__float__': _CFT[int_float, int.__float__],
     '__floordiv__': int_make_binop(_operator.floordiv),
     '__ge__': int_make_boolop(_operator.ge),
@@ -442,13 +442,50 @@ _list_attrs = {
 ##
 #
 
+def set_and(self_ty, other_ty):
+    if not issubclass(other_ty, set):
+        raise TypeError
+    return _Set[self_ty.__args__[0] | other_ty.__args__[0]]
+
+def make_set_compare():
+    def set_compare(self_ty, other_ty):
+        if not issubclass(other_ty, set):
+            raise TypeError
+        return bool
+    return set_compare
+
+def set_iand(self_ty, other_ty):
+    if not issubclass(other_ty, set):
+        raise TypeError
+    self_ty.__args__[0] |= other_ty.__args__[0]
+    return self_ty
+
+def set_init(elts_ty=None):
+    from penty.penty import Types
+    if elts_ty is None:
+        return _Set[set()]
+    if '__iter__' not in Types[elts_ty]:
+        raise TypeError
+    iter_ty = Types[elts_ty]['__iter__'](elts_ty)
+    if '__next__' not in Types[iter_ty]:
+        raise TypeError
+    next_ty = Types[iter_ty]['__next__'](iter_ty)
+    return _Set[next_ty]
+
 def set_instanciate(ty):
     return {
-        '__bool__': _FT[lambda *args: bool],
-        '__len__': _FT[lambda *args: int],
+        '__bool__': _FT[lambda self_ty: bool],
+        '__and__': _FT[set_and],
+        '__contains__': _FT[lambda self_ty, value_ty: bool],
+        '__eq__': _FT[lambda self_ty, value_ty: bool],
+        '__ge__': make_set_compare(),
+        '__gt__': make_set_compare(),
+        '__iand__': _FT[set_iand],
+        '__len__': _FT[lambda self_ty: int],
     }
 
 _set_attrs = {
+    '__init__': _FT[set_init],
 }
 
 ##
@@ -594,6 +631,7 @@ def register(registry):
             'float': {_Ty[float]},
             'len': {_CFT[len_, len]},
             'repr': {_FT[repr_]},
+            'set': {_Ty[set]},
             'slice': {_FT[slice_]},
             'type': {_FT[type_]},
         }
