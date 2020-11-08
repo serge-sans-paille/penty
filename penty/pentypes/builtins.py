@@ -386,6 +386,30 @@ def dict_clear(base_ty, self_ty):
         raise TypeError
     return _Cst[None]
 
+def dict_get(base_ty, self_ty, key_ty, default_ty=None):
+    if self_ty is not base_ty:
+        raise TypeError
+    if default_ty is None:
+        default_ty = _Cst[None]
+
+    if default_ty is self_ty.__args__[1]:
+        return self_ty.__args__[1]
+    else:
+        return {self_ty.__args__[1], default_ty}
+
+def dict_setdefault(base_ty, self_ty, key_ty, default_ty=None):
+    if default_ty is None:
+        default_ty = _Cst[None]
+    else:
+        default_ty = _astype(default_ty)
+    if default_ty is self_ty.__args__[1]:
+        return dict_get(base_ty, self_ty, key_ty, default_ty)
+    else:
+        return (dict_get(base_ty, self_ty, key_ty, default_ty),
+                (self_ty, key_ty, default_ty),
+                (_Dict[self_ty.__args__[0], default_ty], key_ty, default_ty))
+
+
 def dict_fromkeys(iterable_ty, value_ty=None):
     from penty.penty import Types
 
@@ -402,6 +426,8 @@ def dict_instanciate(ty):
         '__bool__': _FT[lambda *args: bool],
         '__len__': _FT[lambda *args: int],
         'clear': _FT[lambda *args: dict_clear(ty, *args)],
+        'get': _FT[lambda *args: dict_get(ty, *args)],
+        'setdefault': _FT[lambda *args: dict_setdefault(ty, *args)],
     }
 
 _dict_attrs = {

@@ -213,6 +213,26 @@ class TestDict(TestPenty):
                           pentyping.Dict[str, pentyping.Cst[None]],
                           env={'x': str})
 
+    def test_get(self):
+        self.assertIsType('x.get(1, y)', int,
+                          env={'x': pentyping.Dict[int, int],
+                               'y': int})
+        self.assertIsType('x.get(1, 0.)', {int, pentyping.Cst[0.]},
+                          env={'x': pentyping.Dict[int, int]})
+        self.assertIsType('x.get(1)', {int, pentyping.Cst[None]},
+                          env={'x': pentyping.Dict[int, int]})
+
+    def test_setdefault(self):
+        self.assertIsType('x.setdefault(1, 0)', int,
+                          env={'x': pentyping.Dict[int, int]})
+        self.assertIsType('x.setdefault(1)', {int, pentyping.Cst[None]},
+                          env={'x': pentyping.Dict[int, int]})
+        self.assertIsType('(x.setdefault(1), x)[1]',
+                          {pentyping.Dict[int, int],
+                           pentyping.Dict[int, pentyping.Cst[None]]},
+                          env={'x': pentyping.Dict[int, int]})
+
+
 class TestList(TestPenty):
 
     def test_append(self):
