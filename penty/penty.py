@@ -123,7 +123,7 @@ def is_constantcall(func, args_ty):
 def totype(value):
     if value is None:
         return Cst[None]
-    if isinstance(value, (bool, str, int, float)):
+    if isinstance(value, (str, int, float, complex)):
         return Cst[value]
     if isinstance(value, tuple):
         elts_ty = tuple(totype(elt) for elt in value)
