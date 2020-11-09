@@ -253,13 +253,6 @@ def float_make_boolop(operator):
             raise TypeError
     return _CFT[boolop, operator]
 
-def float_make_biniop(operator):
-    def biniop(self_ty, other_ty):
-        result_ty = operator(self_ty, other_ty)
-        # floatt are immutable so we don't update self_ty
-        return result_ty
-    return _CFT[biniop, operator]
-
 def float_str(self_ty):
     return str
 
@@ -291,6 +284,123 @@ _float_attrs = {
 
 for slot in ('add', 'divmod', 'floordiv', 'mod', 'mul', 'pow', 'sub', 'truediv'):
     _float_attrs['__r{}__'.format(slot)] = _float_attrs['__{}__'.format(slot)]
+
+##
+#
+
+def complex_abs(self_ty):
+    if not issubclass(self_ty, complex):
+        raise TypeError
+    return complex
+
+def complex_bool(self_ty):
+    if not issubclass(self_ty, complex):
+        raise TypeError
+    return bool
+
+def complex_divmod(self_ty, other_ty):
+    if not issubclass(self_ty, complex):
+        raise TypeError
+    raise TypeError
+
+def complex_init(real_ty, imag_ty=None):
+    from penty.penty import Types
+    real_ty = _astype(real_ty)
+
+    if imag_ty is None:
+        if issubclass(real_ty, complex):
+            return complex
+        Types[real_ty]['__float__'](real_ty)
+        return complex
+
+    # interestingly, if the real part is a complex, everything is fine (!)
+    imag_ty = _astype(imag_ty)
+    if issubclass(real_ty, complex):
+        if issubclass(imag_ty, complex):
+            return complex
+        Types[imag_ty]['__float__'](imag_ty)
+        return complex
+
+    Types[real_ty]['__float__'](real_ty)
+    if issubclass(imag_ty, complex):
+        return complex
+    Types[imag_ty]['__float__'](imag_ty)
+    return complex
+
+def complex_eq(self_ty, other_ty):
+    if not issubclass(self_ty, complex):
+        raise TypeError
+    return bool
+
+def complex_ne(self_ty, other_ty):
+    if not issubclass(self_ty, complex):
+        raise TypeError
+    return bool
+
+def complex_int(self_ty):
+    if not issubclass(self_ty, complex):
+        raise TypeError
+    raise TypeError
+
+def complex_make_binop(operator):
+    def binop(self_ty, other_ty):
+        self_ty, other_ty = _astype(self_ty), _astype(other_ty)
+        if not issubclass(self_ty, complex):
+            raise TypeError
+
+        if not issubclass(other_ty, (int, float, complex)):
+            raise TypeError
+
+        return complex
+
+    return _CFT[binop, operator]
+
+def complex_make_unaryop(operator):
+    def unaryop(self_ty):
+        if not issubclass(self_ty, complex):
+            raise TypeError
+        return complex
+    return _CFT[unaryop, operator]
+
+
+def complex_make_boolop(operator):
+    def boolop(self_ty, other_ty):
+        if not issubclass(self_ty, complex):
+            raise TypeError
+        raise TypeError
+    return _CFT[boolop, operator]
+
+def complex_str(self_ty):
+    if not issubclass(self_ty, complex):
+        raise TypeError
+    return str
+
+_complex_attrs = {
+    '__abs__': _CFT[complex_abs, complex.__abs__],
+    '__add__': complex_make_binop(_operator.add),
+    '__bool__': _CFT[complex_bool, complex.__bool__],
+    '__divmod__': _FT[complex_divmod],
+    '__eq__': _CFT[complex_eq, _operator.eq],
+    '__floordiv__': _FT[complex_divmod],  # same as floordiv: type error
+    '__ge__': complex_make_boolop(_operator.ge),
+    '__gt__': complex_make_boolop(_operator.gt),
+    '__init__': _CFT[complex_init, complex],
+    '__int__': _CFT[complex_int, complex.__int__],
+    '__le__': complex_make_boolop(_operator.le),
+    '__lt__': complex_make_boolop(_operator.lt),
+    '__mul__': complex_make_binop(_operator.mul),
+    '__mod__': _FT[complex_divmod],  # same as floordiv: type error
+    '__ne__': _CFT[complex_ne, _operator.ne],
+    '__neg__': complex_make_unaryop(_operator.neg),
+    '__pos__': complex_make_unaryop(_operator.pos),
+    '__pow__': complex_make_binop(_operator.pow),
+    '__str__': _CFT[complex_str, complex.__str__],
+    '__sub__': complex_make_binop(_operator.sub),
+    '__truediv__': complex_make_binop(_operator.truediv),
+}
+
+for slot in ('add', 'divmod', 'floordiv', 'mod', 'mul', 'pow', 'sub', 'truediv'):
+    _complex_attrs['__r{}__'.format(slot)] = _complex_attrs['__{}__'.format(slot)]
 
 ##
 #
@@ -867,6 +977,7 @@ def type_(self_ty, node=None):
 def register(registry):
     if _Module['builtins'] not in registry:
         registry[bool] = _bool_attrs
+        registry[complex] = _complex_attrs
         registry[dict] = _dict_attrs
         registry[list] = _list_attrs
         registry[float] = _float_attrs
@@ -885,6 +996,7 @@ def register(registry):
         registry[_Module['builtins']] = {
             'abs': {_CFT[abs_, abs]},
             'bool': {_Ty[bool]},
+            'complex': {_Ty[complex]},
             'dict': {_Ty[dict]},
             'divmod': {_CFT[divmod_, divmod]},
             'id': {_FT[id_]},
@@ -893,6 +1005,7 @@ def register(registry):
             'len': {_CFT[len_, len]},
             'repr': {_FT[repr_]},
             'set': {_Ty[set]},
+            'str': {_Ty[str]},
             'slice': {_FT[slice_]},
             'type': {_FT[type_]},
         }

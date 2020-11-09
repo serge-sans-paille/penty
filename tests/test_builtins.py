@@ -35,6 +35,20 @@ class TestBuiltins(TestPenty):
         self.assertIsType('abs(x)', int, env={'x': int})
         self.assertIsType('abs(x)', float, env={'x': float})
 
+    def test_complex(self):
+        self.assertIsType('complex(x)', complex, env={'x': bool})
+        self.assertIsType('complex(x)', complex, env={'x': int})
+        self.assertIsType('complex(x)', complex, env={'x': float})
+        self.assertIsType('complex(x)', complex, env={'x': complex})
+        self.assertIsType('complex(x)', complex, env={'x': str})
+
+    def test_str(self):
+        self.assertIsType('str(x)', str, env={'x': bool})
+        self.assertIsType('str(x)', str, env={'x': int})
+        self.assertIsType('str(x)', str, env={'x': float})
+        self.assertIsType('str(x)', str, env={'x': complex})
+        self.assertIsType('str(x)', str, env={'x': str})
+
     def test_float(self):
         self.assertIsType('float(x)', float, env={'x': bool})
         self.assertIsType('float(x)', float, env={'x': int})
@@ -242,6 +256,112 @@ class TestFloat(TestPenty):
         self.assertIsType('x / 3.4', float, env={'x': float})
         self.assertIsType('x / x', float, env={'x': float})
         self.assertIsType('1 / x', float, env={'x': float})
+
+
+class TestComplex(TestPenty):
+
+    def test_abs(self):
+        self.assertIsType('abs(2.j)', pentyping.Cst[abs(2.j)])
+        self.assertIsType('abs(x)', complex, env={'x': complex})
+
+    def test_add(self):
+        self.assertIsType('2.j + 3j', pentyping.Cst[2.j + 3j])
+        self.assertIsType('x + x', complex, env={'x': complex})
+        self.assertIsType('x + 3', complex, env={'x': complex})
+        self.assertIsType('3 + x', complex, env={'x': complex})
+        self.assertIsType('x + 3.1', complex, env={'x': complex})
+        self.assertIsType('3.1 + x', complex, env={'x': complex})
+
+    def test_bool(self):
+        self.assertIsType('bool(0.j)', pentyping.Cst[bool(0.j)])
+        self.assertIsType('bool(x)', bool, env={'x': complex})
+
+    def test_divmod(self):
+        with self.assertRaises(TypeError):
+            self.assertIsType('divmod(x, 2.j)', None, env={'x': complex})
+
+    def test_eq(self):
+        self.assertIsType('x == x', bool, env={'x': complex})
+        self.assertIsType('x == 1', bool, env={'x': complex})
+        self.assertIsType('x == 1.', bool, env={'x': complex})
+
+    def test_floordiv(self):
+        with self.assertRaises(TypeError):
+            self.assertIsType('x // 2', None, env={'x': complex})
+
+    def test_ge(self):
+        with self.assertRaises(TypeError):
+            self.assertIsType('x >= 2', None, env={'x': complex})
+
+    def test_gt(self):
+        with self.assertRaises(TypeError):
+            self.assertIsType('x >= 2', None, env={'x': complex})
+
+    def test_init(self):
+        self.assertIsType('complex(2, 3)', pentyping.Cst[complex(2, 3)])
+        self.assertIsType('complex(x)', complex, env={'x': complex})
+        self.assertIsType('complex(x)', complex, env={'x': int})
+        self.assertIsType('complex(x, 1.)', complex, env={'x': int})
+        self.assertIsType('complex(x, 1.)', complex, env={'x': complex})
+        self.assertIsType('complex(x, 1j)', complex, env={'x': int})
+        self.assertIsType('complex(x, 1j)', complex, env={'x': complex})
+
+    def test_int(self):
+        with self.assertRaises(TypeError):
+            self.assertIsType('int(x)', None, env={'x': complex})
+
+    def test_le(self):
+        with self.assertRaises(TypeError):
+            self.assertIsType('x <= 2', None, env={'x': complex})
+
+    def test_lt(self):
+        with self.assertRaises(TypeError):
+            self.assertIsType('x < 2', None, env={'x': complex})
+
+    def test_mul(self):
+        self.assertIsType('1j * 2j', pentyping.Cst[1j * 2j])
+        self.assertIsType('x * x', complex, env={'x': complex})
+        self.assertIsType('x * 1', complex, env={'x': complex})
+        self.assertIsType('x * 1.', complex, env={'x': complex})
+
+    def test_mod(self):
+        with self.assertRaises(TypeError):
+            self.assertIsType('x % 2', None, env={'x': complex})
+
+    def test_ne(self):
+        self.assertIsType('x != x', bool, env={'x': complex})
+        self.assertIsType('x != 1', bool, env={'x': complex})
+        self.assertIsType('x != 1.', bool, env={'x': complex})
+
+    def test_neg(self):
+        self.assertIsType('-(1j)', pentyping.Cst[-(1j)])
+        self.assertIsType('-x', complex, env={'x': complex})
+
+    def test_pos(self):
+        self.assertIsType('+(1j)', pentyping.Cst[+(1j)])
+        self.assertIsType('+x', complex, env={'x': complex})
+
+    def test_pow(self):
+        self.assertIsType('(1j) ** 2', pentyping.Cst[(1j) ** 2])
+        self.assertIsType('x ** 2', complex, env={'x': complex})
+        self.assertIsType('x ** 3.1', complex, env={'x': complex})
+        self.assertIsType('x ** 3j', complex, env={'x': complex})
+
+    def test_str(self):
+        self.assertIsType('str(1j)', pentyping.Cst[str(1j)])
+        self.assertIsType('str(x)', str, env={'x': complex})
+
+    def test_sub(self):
+        self.assertIsType('1j - 2j', pentyping.Cst[1j - 2j])
+        self.assertIsType('x - x', complex, env={'x': complex})
+        self.assertIsType('x - 1', complex, env={'x': complex})
+        self.assertIsType('x - 1.', complex, env={'x': complex})
+
+    def test_truediv(self):
+        self.assertIsType('1j / 2j', pentyping.Cst[1j / 2j])
+        self.assertIsType('x / x', complex, env={'x': complex})
+        self.assertIsType('x / 1', complex, env={'x': complex})
+        self.assertIsType('x / 1.', complex, env={'x': complex})
 
 
 class TestDict(TestPenty):
