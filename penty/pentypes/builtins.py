@@ -954,6 +954,29 @@ def len_(self_type):
 ##
 #
 
+def isinstance_(obj_ty, class_or_tuple_ty, node=None):
+    from penty.penty import Types
+    def helper(obj_ty, class_ty, node):
+        from penty.pentypes.operator import IsOperator
+        # FIXME: instead of IsOperator, we should use issubclass
+        type_ty, = Types[_Module['builtins']]['type']
+        obj_ty = type_ty(obj_ty, node)
+        return IsOperator(obj_ty, class_ty)
+
+    if issubclass(class_or_tuple_ty, tuple):
+        result_types = set()
+        for cls_ty in class_or_tuple_ty.__args__:
+            helper_ty = helper(obj_ty, cls_ty, node)
+            if helper_ty.__args__[0]:
+                return helper_ty
+            result_types.add(helper_ty)
+        return result_types
+    else:
+        return helper(obj_ty, class_or_tuple_ty, node)
+
+##
+#
+
 def slice_(lower_ty, upper_ty, step_ty):
     isstatic = all(issubclass(ty, _Cst)
                    for ty in (lower_ty, upper_ty, step_ty))
@@ -1001,6 +1024,7 @@ def register(registry):
             'divmod': {_CFT[divmod_, divmod]},
             'id': {_FT[id_]},
             'int': {_Ty[int]},
+            'isinstance': {_CFT[isinstance_, isinstance]},
             'float': {_Ty[float]},
             'len': {_CFT[len_, len]},
             'repr': {_FT[repr_]},

@@ -103,16 +103,6 @@ def normalize_test_ty(types):
         return types
 
 
-def is_isnone(op, left, left_ty, right, right_ty):
-    if not isinstance(op, ast.Is):
-        return False
-    if isinstance(left, ast.Name) and right_ty == {Cst[None]}:
-        return True
-    if isinstance(right, ast.Name) and left_ty == {Cst[None]}:
-        return True
-    return False
-
-
 def is_constantcall(func, args_ty):
     if not issubclass(func, CFT):
         return False
@@ -757,11 +747,18 @@ class Typer(ast.NodeVisitor):
 
         return_ty = set()
         istype_compat = node.args and isinstance(node.args[0], ast.Name)
-        typety = Types[Module['builtins']]['type']
+        type_ty = Types[Module['builtins']]['type']
+        isinstance_ty = Types[Module['builtins']]['isinstance']
         for fty in func_ty:
-            if func_ty is typety and istype_compat:
+            if fty in type_ty and istype_compat:
                 return_ty.update({fty(arg_ty, node.args[0])
                                   for arg_ty in args_ty[0]})
+            elif fty in isinstance_ty and istype_compat:
+                for arg_tys in itertools.product(*args_ty):
+                    rty = fty(*arg_tys, node.args[0])
+                    if not isinstance(rty, set):
+                        rty = {rty}
+                    return_ty.update(rty)
             else:
                 return_ty.update(self._call(fty, *args_ty))
         return return_ty
