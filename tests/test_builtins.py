@@ -61,6 +61,25 @@ class TestBuiltins(TestPenty):
         self.assertIsType('int(x)', int, env={'x': float})
         self.assertIsType('int(x)', int, env={'x': str})
 
+    def test_isinstance(self):
+        self.assertIsType('isinstance(1., int)', pentyping.Cst[False])
+        self.assertIsType('isinstance(1, int)', pentyping.Cst[True])
+        self.assertIsType('isinstance(x, int)',
+                          pentyping.FilteringBool[True, 'x', (int,)],
+                          env={'x': int})
+        self.assertIsType('isinstance(x, float)',
+                          pentyping.FilteringBool[False, 'x', (int,)],
+                          env={'x': int})
+        self.assertIsType('isinstance(x, (int, float))',
+                          pentyping.FilteringBool[True, 'x', (int,)],
+                          env={'x': int})
+        self.assertIsType('isinstance(x, (int, float))',
+                          pentyping.FilteringBool[True, 'x', (float,)],
+                          env={'x': float})
+        self.assertIsType('isinstance(x, (int, float))',
+                          pentyping.FilteringBool[False, 'x', (str,)],
+                          env={'x': str})
+
     def test_len(self):
         self.assertIsType('len(x)', pentyping.Cst[2],
                           env={'x': pentyping.Tuple[int, int]})
