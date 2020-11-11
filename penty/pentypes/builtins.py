@@ -1,8 +1,8 @@
 from penty.types import Cst as _Cst, Module as _Module, Type as _Ty
-from penty.types import astype as _astype, TypeOf as _TypeOf
+from penty.types import astype as _astype, TypeOf as _TypeOf, asset as _asset
 from penty.types import ConstFunctionType as _CFT, Tuple as _Tuple
-from penty.types import FunctionType as _FT
-from penty.types import FilteringBool as _FilteringBool
+from penty.types import FunctionType as _FT, Generator as _Generator
+from penty.types import FilteringBool as _FilteringBool, get_typer as _get_typer
 from penty.types import List as _List, Set as _Set, Dict as _Dict
 from penty.types import SetIterator as _SetIterator
 from penty.types import resolve_base_attrs
@@ -1032,6 +1032,18 @@ def issubclass_(cls_ty, class_or_tuple_ty):
 ##
 #
 
+def map_(func_ty, *args_ty):
+    from penty.penty import Types
+    typer_instance = _get_typer()
+    iters_ty = [Types[arg_ty]['__iter__'](arg_ty) for arg_ty in args_ty]
+    elts_ty = [_asset(Types[iter_ty]['__next__'](iter_ty))
+               for iter_ty in iters_ty]
+    result_ty = typer_instance._call(func_ty, *elts_ty)
+    return _Generator[result_ty]
+
+##
+#
+
 def slice_(lower_ty, upper_ty, step_ty):
     isstatic = all(issubclass(ty, _Cst)
                    for ty in (lower_ty, upper_ty, step_ty))
@@ -1086,6 +1098,7 @@ def register(registry):
             'issubclass': {_CFT[issubclass_, issubclass]},
             'float': {_Ty[float]},
             'len': {_CFT[len_, len]},
+            'map': {_CFT[map_, map]},
             'object': {_Ty[object]},
             'repr': {_FT[repr_]},
             'set': {_Ty[set]},

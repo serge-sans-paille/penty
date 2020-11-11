@@ -21,15 +21,6 @@ class TestPenty(TestCase):
 
 class TestBuiltins(TestPenty):
 
-    def test_type(self):
-        self.assertIsType('type(x) is int',
-                          pentyping.FilteringBool[True, 'x', (int,)],
-                          env={'x':int})
-        self.assertIsType('abs(x) if type(x) is int else x',
-                          {int, pentyping.Cst[None]},
-                          env={'x': {int, pentyping.Cst[None]}})
-        self.assertIsType('type(x)(x)', int, env={'x': int})
-
     def test_abs(self):
         self.assertIsType('abs(x)', int, env={'x': bool})
         self.assertIsType('abs(x)', int, env={'x': int})
@@ -48,6 +39,28 @@ class TestBuiltins(TestPenty):
         self.assertIsType('str(x)', str, env={'x': float})
         self.assertIsType('str(x)', str, env={'x': complex})
         self.assertIsType('str(x)', str, env={'x': str})
+
+    def test_bool(self):
+        self.assertIsType('bool(True)', pentyping.Cst[True])
+        self.assertIsType('bool(False)', pentyping.Cst[False])
+        self.assertIsType('bool(x)', bool, env={'x': bool})
+        self.assertIsType('bool(x)', bool,
+                          env={'x': int})
+        self.assertIsType('bool(x)', bool,
+                          env={'x': float})
+        self.assertIsType('bool(x)', pentyping.Cst[True],
+                          env={'x': pentyping.Tuple[int, int]})
+        self.assertIsType('bool(2)', pentyping.Cst[True])
+        self.assertIsType('bool(x)', bool,
+                          env={'x': pentyping.List[int]})
+        self.assertIsType('bool(x)', bool,
+                          env={'x': pentyping.Set[int]})
+        self.assertIsType('bool(x)', bool,
+                          env={'x': pentyping.Dict[int, str]})
+        self.assertIsType('bool(x)', bool,
+                          env={'x': str})
+        self.assertIsType('bool("")', pentyping.Cst[False])
+        self.assertIsType('bool("hello")', pentyping.Cst[True])
 
     def test_float(self):
         self.assertIsType('float(x)', float, env={'x': bool})
@@ -127,27 +140,27 @@ class TestBuiltins(TestPenty):
                           env={'x': str})
         self.assertIsType('len("hello")', pentyping.Cst[5])
 
-    def test_bool(self):
-        self.assertIsType('bool(True)', pentyping.Cst[True])
-        self.assertIsType('bool(False)', pentyping.Cst[False])
-        self.assertIsType('bool(x)', bool, env={'x': bool})
-        self.assertIsType('bool(x)', bool,
-                          env={'x': int})
-        self.assertIsType('bool(x)', bool,
-                          env={'x': float})
-        self.assertIsType('bool(x)', pentyping.Cst[True],
-                          env={'x': pentyping.Tuple[int, int]})
-        self.assertIsType('bool(2)', pentyping.Cst[True])
-        self.assertIsType('bool(x)', bool,
-                          env={'x': pentyping.List[int]})
-        self.assertIsType('bool(x)', bool,
-                          env={'x': pentyping.Set[int]})
-        self.assertIsType('bool(x)', bool,
-                          env={'x': pentyping.Dict[int, str]})
-        self.assertIsType('bool(x)', bool,
+    def test_map(self):
+        self.assertIsType('map(len, "1")', pentyping.Generator[int])
+        self.assertIsType('map(len, x)', pentyping.Generator[int],
                           env={'x': str})
-        self.assertIsType('bool("")', pentyping.Cst[False])
-        self.assertIsType('bool("hello")', pentyping.Cst[True])
+        self.assertIsType('map(lambda y: 1., x)',
+                          pentyping.Generator[pentyping.Cst[1.]],
+                          env={'x': str})
+        self.assertIsType('map(float, x)', pentyping.Generator[float],
+                          env={'x': str})
+        self.assertIsType('map(lambda a, b: a or b, x, y)',
+                          pentyping.Generator[str],
+                          env={'x': str, 'y': str})
+
+    def test_type(self):
+        self.assertIsType('type(x) is int',
+                          pentyping.FilteringBool[True, 'x', (int,)],
+                          env={'x':int})
+        self.assertIsType('abs(x) if type(x) is int else x',
+                          {int, pentyping.Cst[None]},
+                          env={'x': {int, pentyping.Cst[None]}})
+        self.assertIsType('type(x)(x)', int, env={'x': int})
 
 
 class TestBool(TestPenty):
