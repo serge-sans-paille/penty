@@ -1,3 +1,21 @@
+def get_typer():
+    import inspect
+    for frameinfo in inspect.stack():
+        if frameinfo.function != '_call':
+            continue
+        frame = frameinfo.frame
+        typer = frame.f_locals['self']
+        return typer
+    raise ValueError
+
+
+def asset(ty):
+    if isinstance(ty, set):
+        return ty
+    else:
+        return {ty}
+
+
 def astype(ty):
     if issubclass(ty, Cst):
         cst = ty.__args__[0]
