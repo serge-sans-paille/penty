@@ -81,18 +81,13 @@ ContainsOperator = ConstFunctionType[ContainsOperator, operator.contains]
 class IsOperatorMeta(BinaryOperatorMeta):
 
     def __call__(self, left_ty, right_ty):
-        if issubclass(left_ty, TypeOf):
+        if issubclass(left_ty, (Cst, Type, TypeOf)):
             if issubclass(right_ty, (Cst, Type)):
-                return FilteringBool[(left_ty.__args__[0] is right_ty.__args__[0]),
-                                     left_ty.__args__[1], (left_ty.__args__[0],)]
-            elif astype(left_ty) == right_ty:
-                return bool
-            else:
-                return Cst[False]
-
-        if issubclass(left_ty, (Cst, Type)):
-            if issubclass(right_ty, (Cst, Type)):
-                return Cst[left_ty.__args__[0] is right_ty.__args__[0]]
+                left_args, right_args = left_ty.__args__, right_ty.__args__
+                return FilteringBool[
+                    (left_args[0] is right_args[0]),
+                    None if len(left_args) == 1 else left_args[1],
+                    (left_args[0],)]
             elif astype(left_ty) == right_ty:
                 return bool
             else:

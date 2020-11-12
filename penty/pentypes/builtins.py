@@ -5,6 +5,7 @@ from penty.types import FunctionType as _FT
 from penty.types import FilteringBool as _FilteringBool
 from penty.types import List as _List, Set as _Set, Dict as _Dict
 from penty.types import SetIterator as _SetIterator
+from penty.types import resolve_base_attrs
 import operator as _operator
 
 ##
@@ -104,6 +105,7 @@ _int_attrs = {
     '__abs__': _CFT[int_abs, int.__abs__],
     '__add__': int_make_binop(_operator.add),
     '__and__': int_make_bitop(_operator.and_),
+    '__bases__': _Tuple[_Ty[object]],
     '__bool__': _CFT[int_bool, int.__bool__],
     '__divmod__': _CFT[int_divmod, int.__divmod__],
     '__eq__': lambda self_ty, other_ty: bool,
@@ -119,6 +121,7 @@ _int_attrs = {
     '__lt__': int_make_boolop(_operator.lt),
     '__mul__': int_make_binop(_operator.mul),
     '__mod__': int_make_binop(_operator.mod),
+    '__name__': _Cst['int'],
     '__ne__': lambda self_ty, other_ty: bool,
     '__neg__': int_make_unaryop(_operator.neg),
     '__or__': int_make_bitop(_operator.or_),
@@ -175,16 +178,18 @@ def bool_str(value_ty):
 def bool_xor(self_ty, other_ty):
     return bool_and(self_ty, other_ty)
 
-_bool_attrs = _int_attrs.copy()
 
-_bool_attrs.update({
+_bool_attrs = {
     '__and__': _CFT[bool_and, bool.__and__],
+    '__bases__': _Tuple[_Ty[int]],
     '__init__': _CFT[bool_init, bool],
+    '__name__': _Cst['bool'],
     '__not__': _CFT[bool_not, _operator.not_],
     '__or__': _CFT[bool_or, bool.__or__],
     '__str__': _CFT[bool_str, bool.__str__],
     '__xor__': _CFT[bool_xor, bool.__xor__],
-})
+}
+
 
 ##
 #
@@ -260,6 +265,7 @@ def float_str(self_ty):
 _float_attrs = {
     '__abs__': _CFT[float_abs, float.__abs__],
     '__add__': float_make_binop(_operator.add),
+    '__bases__': _Tuple[_Ty[object]],
     '__bool__': _CFT[float_bool, float.__bool__],
     '__divmod__': _CFT[float_divmod, float.__divmod__],
     '__eq__': float_make_boolop(_operator.eq),
@@ -273,6 +279,7 @@ _float_attrs = {
     '__lt__': float_make_boolop(_operator.lt),
     '__mul__': float_make_binop(_operator.mul),
     '__mod__': float_make_binop(_operator.mod),
+    '__name__': _Cst['float'],
     '__ne__': float_make_boolop(_operator.ne),
     '__neg__': float_make_unaryop(_operator.neg),
     '__pos__': float_make_unaryop(_operator.pos),
@@ -378,6 +385,7 @@ def complex_str(self_ty):
 _complex_attrs = {
     '__abs__': _CFT[complex_abs, complex.__abs__],
     '__add__': complex_make_binop(_operator.add),
+    '__bases__': _Tuple[_Ty[object]],
     '__bool__': _CFT[complex_bool, complex.__bool__],
     '__divmod__': _FT[complex_divmod],
     '__eq__': _CFT[complex_eq, _operator.eq],
@@ -390,6 +398,7 @@ _complex_attrs = {
     '__lt__': complex_make_boolop(_operator.lt),
     '__mul__': complex_make_binop(_operator.mul),
     '__mod__': _FT[complex_divmod],  # same as floordiv: type error
+    '__name__': _Cst['complex'],
     '__ne__': _CFT[complex_ne, _operator.ne],
     '__neg__': complex_make_unaryop(_operator.neg),
     '__pos__': complex_make_unaryop(_operator.pos),
@@ -443,12 +452,14 @@ def str_iter(self_ty):
         raise TypeError
 
 _str_attrs = {
+    '__bases__': _Tuple[_Ty[object]],
     '__bool__': _CFT[str_bool, bool],
     '__float__': _CFT[str_float, float],
     '__init__': _CFT[str_init, str],
     '__int__': _CFT[str_int, int],
     '__iter__': _FT[str_iter],
     '__len__': _CFT[lambda *args: int, str.__len__],
+    '__name__': _Cst['str'],
     '__str__': _CFT[str_str, str.__str__],
 }
 
@@ -460,6 +471,8 @@ def none_eq(self_ty, other_ty):
 
 _none_attrs = {
     '__eq__': _CFT[none_eq, _operator.eq],
+    '__name__': _Cst['NoneType'],
+    '__bases__': _Tuple[_Ty[object]],
 }
 
 ##
@@ -507,6 +520,8 @@ def dict_instanciate(ty):
     }
 
 _dict_attrs = {
+    '__bases__': _Tuple[_Ty[object]],
+    '__name__': _Cst['dict'],
     'clear': _FT[dict_clear],
     'from_keys': _FT[dict_fromkeys],
 }
@@ -547,7 +562,15 @@ def list_instanciate(ty):
     }
 
 _list_attrs = {
+    '__bases__': _Tuple[_Ty[object]],
+    '__name__': _Cst['list'],
     'append': _FT[lambda self, elt: list_append(self, elt)],
+}
+
+##
+#
+
+_object_attrs = {
 }
 
 ##
@@ -844,7 +867,9 @@ _set_methods = {
 
 _set_attrs = _set_methods.copy()
 _set_attrs.update({
+    '__bases__': _Tuple[_Ty[object]],
     '__init__': _FT[set_init],
+    '__name__': _Cst['set'],
 })
 
 ##
@@ -889,6 +914,11 @@ def tuple_instanciate(ty):
         '__getitem__': _FT[tuple_getitem],
         '__len__': _FT[lambda self_ty: _Cst[len(self_ty.__args__)]],
     }
+
+_tuple_attrs = {
+    '__bases__': _Tuple[_Ty[object]],
+    '__name__': _Cst['tuple'],
+}
 
 ##
 #
@@ -956,23 +986,48 @@ def len_(self_type):
 
 def isinstance_(obj_ty, class_or_tuple_ty, node=None):
     from penty.penty import Types
-    def helper(obj_ty, class_ty, node):
+    type_ty, = Types[_Module['builtins']]['type']
+    obj_ty = type_ty(obj_ty, node)
+    return issubclass_(obj_ty, class_or_tuple_ty)
+
+##
+#
+
+def issubclass_(cls_ty, class_or_tuple_ty):
+    orig_cls_ty = cls_ty
+
+    def helper(cls_ty, class_ty, node):
+        from penty.penty import Types
         from penty.pentypes.operator import IsOperator
-        # FIXME: instead of IsOperator, we should use issubclass
-        type_ty, = Types[_Module['builtins']]['type']
-        obj_ty = type_ty(obj_ty, node)
-        return IsOperator(obj_ty, class_ty)
+        issame = IsOperator(cls_ty, class_ty)
+        if issame.__args__[0]:
+            return _FilteringBool[True, node, (class_ty.__args__[0],)]
+
+        if cls_ty is _Ty[object]:
+            return _FilteringBool[False, node, (orig_cls_ty.__args__[0],)]
+
+        for base_ty in Types[cls_ty]['__bases__'].__args__:
+            isbasesame = helper(base_ty, class_ty, node)
+            if isbasesame.__args__[0]:
+                return _FilteringBool[True, node, (class_ty.__args__[0],)]
+
+        return _FilteringBool[False, node, (orig_cls_ty.__args__[0],)]
+
+    node = cls_ty.__args__[1] if issubclass(cls_ty, _TypeOf) else None
 
     if issubclass(class_or_tuple_ty, tuple):
-        result_types = set()
-        for cls_ty in class_or_tuple_ty.__args__:
-            helper_ty = helper(obj_ty, cls_ty, node)
-            if helper_ty.__args__[0]:
-                return helper_ty
-            result_types.add(helper_ty)
-        return result_types
+        if not class_or_tuple_ty.__args__[0]:
+            raise TypeError
+
+        result_tys = {helper(cls_ty, class_ty, node)
+                      for class_ty in class_or_tuple_ty.__args__}
+
+        for result_ty in result_tys:
+            if result_ty.__args__[0]:
+                return result_ty
+        return result_tys
     else:
-        return helper(obj_ty, class_or_tuple_ty, node)
+        return helper(cls_ty, class_or_tuple_ty, node)
 
 ##
 #
@@ -999,15 +1054,18 @@ def type_(self_ty, node=None):
 
 def register(registry):
     if _Module['builtins'] not in registry:
-        registry[bool] = _bool_attrs
-        registry[complex] = _complex_attrs
-        registry[dict] = _dict_attrs
-        registry[list] = _list_attrs
-        registry[float] = _float_attrs
-        registry[int] = _int_attrs
-        registry[set] = _set_attrs
-        registry[str] = _str_attrs
-        registry[type(None)] = _none_attrs
+        # the registration order must respect the type hierarchy, top-down
+        registry[object] = _object_attrs
+        registry[complex] = resolve_base_attrs(_complex_attrs, registry)
+        registry[int] = resolve_base_attrs(_int_attrs, registry)
+        registry[bool] = resolve_base_attrs(_bool_attrs, registry)
+        registry[dict] = resolve_base_attrs(_dict_attrs, registry)
+        registry[list] = resolve_base_attrs(_list_attrs, registry)
+        registry[float] = resolve_base_attrs(_float_attrs, registry)
+        registry[set] = resolve_base_attrs(_set_attrs, registry)
+        registry[str] = resolve_base_attrs(_str_attrs, registry)
+        registry[tuple] = resolve_base_attrs(_tuple_attrs, registry)
+        registry[type(None)] = resolve_base_attrs(_none_attrs, registry)
         registry[_FilteringBool] = _FilteringBool_attrs
         registry[_SetIterator] = set_iterator_instanciate
         registry[str_iterator] = _str_iterator_attrs
@@ -1025,8 +1083,10 @@ def register(registry):
             'id': {_FT[id_]},
             'int': {_Ty[int]},
             'isinstance': {_CFT[isinstance_, isinstance]},
+            'issubclass': {_CFT[issubclass_, issubclass]},
             'float': {_Ty[float]},
             'len': {_CFT[len_, len]},
+            'object': {_Ty[object]},
             'repr': {_FT[repr_]},
             'set': {_Ty[set]},
             'str': {_Ty[str]},

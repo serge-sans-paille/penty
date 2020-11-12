@@ -64,6 +64,7 @@ class TestBuiltins(TestPenty):
     def test_isinstance(self):
         self.assertIsType('isinstance(1., int)', pentyping.Cst[False])
         self.assertIsType('isinstance(1, int)', pentyping.Cst[True])
+        self.assertIsType('isinstance(True, int)', pentyping.Cst[True])
         self.assertIsType('isinstance(x, int)',
                           pentyping.FilteringBool[True, 'x', (int,)],
                           env={'x': int})
@@ -79,6 +80,39 @@ class TestBuiltins(TestPenty):
         self.assertIsType('isinstance(x, (int, float))',
                           pentyping.FilteringBool[False, 'x', (str,)],
                           env={'x': str})
+        self.assertIsType('isinstance(x, (int, float))',
+                          pentyping.FilteringBool[False, 'x', (pentyping.Cst[None],)],
+                          env={'x': pentyping.Cst[None]})
+        self.assertIsType('isinstance(x, (int, type(None)))',
+                          pentyping.FilteringBool[True, 'x', (pentyping.Cst[None],)],
+                          env={'x': pentyping.Cst[None]})
+
+    def test_issubclass(self):
+        self.assertIsType('issubclass(int, float)', pentyping.Cst[False])
+        self.assertIsType('issubclass(int, (float, bool))', pentyping.Cst[False])
+        self.assertIsType('issubclass(bool, int)', pentyping.Cst[True])
+        self.assertIsType('issubclass(bool, object)', pentyping.Cst[True])
+        self.assertIsType('issubclass(bool, (float, object))', pentyping.Cst[True])
+        self.assertIsType('issubclass(x, float)', pentyping.Cst[True],
+                          env={"x": pentyping.Type[float]})
+        self.assertIsType('issubclass(x, float)', {pentyping.Cst[True],
+                                                   pentyping.Cst[False]},
+                          env={"x": {pentyping.Type[float], pentyping.Type[int]}})
+        self.assertIsType('issubclass(type(x), float)',
+                          pentyping.FilteringBool[True, 'x', (float,)],
+                          env={"x": float})
+        self.assertIsType('issubclass(type(x), float)',
+                          pentyping.FilteringBool[False, 'x', (int,)],
+                          env={"x": int})
+        self.assertIsType('issubclass(type(x), int)',
+                          pentyping.FilteringBool[True, 'x', (int,)],
+                          env={"x": bool})
+        self.assertIsType('issubclass(type(x), (float, int))',
+                          pentyping.FilteringBool[True, 'x', (int,)],
+                          env={"x": bool})
+        self.assertIsType('issubclass(type(x), (float, int))',
+                          pentyping.FilteringBool[False, 'x', (str,)],
+                          env={"x": str})
 
     def test_len(self):
         self.assertIsType('len(x)', pentyping.Cst[2],

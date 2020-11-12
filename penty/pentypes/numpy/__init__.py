@@ -3,6 +3,7 @@ from penty.pentypes.numpy import random
 from penty.types import Module as _Module, Cst as _Cst, Type as _Type
 from penty.types import astype as _astype, FunctionType as _FT, Tuple as _Tuple
 import itertools
+import numpy
 
 def _broadcast_dim(self, other):
     if self is other:
@@ -38,9 +39,9 @@ class NDArrayMeta(type):
         return 'NDArray[{}]'.format(', '.join(map(str, self.__args__)))
 
 
-
-class NDArray(metaclass=NDArrayMeta):
+class NDArray(numpy.ndarray, metaclass=NDArrayMeta):
     pass
+
 
 def ndarray_make_binop(op):
     def binop(self_ty, other_ty):
@@ -168,10 +169,6 @@ def ndarray_len(self_ty):
 def ndarray_str(self_ty):
     return str
 
-def ndarray_dtype(self_ty):
-    return self_ty.__args__[0]
-
-
 def ndarray_bool(self_ty):
     _, shape_ty = self_ty.__args__
     dims = shape_ty.__args__
@@ -233,11 +230,17 @@ def ndarray_instanciate(ty):
         'shape': ty.__args__[1],
     }
 
+_ndarray_attrs = {
+    '__name__' : _Cst['ndarray'],
+    '__bases__': _Tuple[_Type[object]],
+}
+
 #
 ##
 
 def register(registry):
     if _Module['numpy'] not in registry:
+        registry[numpy.ndarray] = ndarray_instanciate
         registry[NDArray] = ndarray_instanciate
         registry[_Module['numpy']] = {
             'ones': _FT[ones_],
