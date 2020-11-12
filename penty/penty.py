@@ -676,10 +676,7 @@ class Typer(ast.NodeVisitor):
 
         def filtering(val, id_, new_type):
             assert not isinstance(new_type, tuple)
-            return FilteringBool[
-                val,
-                id_,
-                (new_type,)]
+            return FilteringBool[val, id_, (new_type,)]
 
         cmp_ty = set()
         for pty, cty in itertools.product(prev_ty, comparator_ty):

@@ -8,6 +8,13 @@ def astype(ty):
     else:
         return ty
 
+def resolve_base_attrs(attrs, registry):
+    for base in attrs['__bases__'].__args__:
+        for attr, value in registry[base.__args__[0]].items():
+            if attr not in attrs:
+                attrs[attr] = value
+    return attrs
+
 
 class CstMeta(type):
     cache = {}
@@ -37,6 +44,9 @@ class FilteringBoolMeta(CstMeta):
     cache = {}
 
     def __getitem__(self, args):
+        if args[1] is None:
+            return Cst[args[0]]
+
         if args not in FilteringBoolMeta.cache:
             class LocalFilteringBool(FilteringBool):
                 __args__ = args
