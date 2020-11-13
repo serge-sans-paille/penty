@@ -339,7 +339,55 @@ class DictMeta(type):
                                              ', '.join(sortedvals))
 
 
-class Dict(set, metaclass=DictMeta):
+class Dict(dict, metaclass=DictMeta):
+    pass
+
+
+class DictKeyIteratorMeta(type):
+
+    def __getitem__(self, args):
+        class LocalDictKeyIterator(DictKeyIterator):
+            __args__ = args,
+        return LocalDictKeyIterator
+
+    def __repr__(self):
+        sortedkeys = sorted(map(str, self.__args__[0]))
+        return 'DictKeyIterator[{}]'.format(', '.join(sortedkeys))
+
+
+class DictKeyIterator(metaclass=DictKeyIteratorMeta):
+    pass
+
+
+class DictValueIteratorMeta(type):
+
+    def __getitem__(self, args):
+        class LocalDictValueIterator(DictValueIterator):
+            __args__ = args,
+        return LocalDictValueIterator
+
+    def __repr__(self):
+        sortedkeys = sorted(map(str, self.__args__[0]))
+        return 'DictValueIterator[{}]'.format(', '.join(sortedkeys))
+
+
+class DictValueIterator(metaclass=DictValueIteratorMeta):
+    pass
+
+
+class DictItemIteratorMeta(type):
+
+    def __getitem__(self, args):
+        class LocalDictItemIterator(DictItemIterator):
+            __args__ = args,
+        return LocalDictItemIterator
+
+    def __repr__(self):
+        sortedkeys = sorted(map(str, self.__args__[0]))
+        return 'DictItemIterator[{}]'.format(', '.join(sortedkeys))
+
+
+class DictItemIterator(metaclass=DictItemIteratorMeta):
     pass
 
 

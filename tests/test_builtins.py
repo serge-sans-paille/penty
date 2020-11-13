@@ -469,9 +469,99 @@ class TestComplex(TestPenty):
 
 
 class TestDict(TestPenty):
+    def test_bool(self):
+        self.assertIsType('bool(x)', pentyping.Cst[False],
+                          env={'x': pentyping.Dict[set(), set()]})
+        self.assertIsType('bool(x)', bool,
+                          env={'x': pentyping.Dict[int, int]})
 
     def test_clear(self):
+        self.assertIsType('dict.clear(x)', pentyping.Cst[None],
+                          env={'x': pentyping.Dict[int, int]})
         self.assertIsType('x.clear()', pentyping.Cst[None],
+                          env={'x': pentyping.Dict[int, int]})
+
+    def test_contains(self):
+        self.assertIsType('1 in x', pentyping.Cst[False],
+                          env={'x': pentyping.Dict[set(), set()]})
+        self.assertIsType('1 in x', bool,
+                          env={'x': pentyping.Dict[int, int]})
+
+    def test_copy(self):
+        self.assertIsType('x.copy()', pentyping.Dict[set(), set()],
+                          env={'x': pentyping.Dict[set(), set()]})
+        self.assertIsType('x.copy()', pentyping.Dict[int, int],
+                          env={'x': pentyping.Dict[int, int]})
+        self.assertIsType('(x.copy(), x.__setitem__(1, 3.))[0]', pentyping.Dict[int, int],
+                          env={'x': pentyping.Dict[int, int]})
+
+    def test_delitem(self):
+        self.assertIsType('x.__delitem__(1)', pentyping.Cst[None],
+                          env={'x': pentyping.Dict[int, int]})
+
+    def test_eq(self):
+        self.assertIsType('x == y', pentyping.Cst[False],
+                          env={'x': pentyping.Dict[int, int],
+                               'y': int})
+        self.assertIsType('x == x', bool,
+                          env={'x': pentyping.Dict[int, int]})
+        self.assertIsType('x == y', pentyping.Cst[False],
+                          env={'x': pentyping.Dict[int, int],
+                               'y': pentyping.Dict[set(), set()]})
+
+    def test_init(self):
+        self.assertIsType('dict()', pentyping.Dict[set(), set()])
+        self.assertIsType('dict(x)', pentyping.Dict[str, int],
+                          env={'x': pentyping.Dict[str, int]})
+        self.assertIsType('dict(x)', pentyping.Dict[str, int],
+                          env={'x': pentyping.Set[pentyping.Tuple[str, int]]})
+
+    def test_ne(self):
+        self.assertIsType('x != y', pentyping.Cst[True],
+                          env={'x': pentyping.Dict[int, int],
+                               'y': int})
+        self.assertIsType('x != x', bool,
+                          env={'x': pentyping.Dict[int, int]})
+        self.assertIsType('x != y', pentyping.Cst[True],
+                          env={'x': pentyping.Dict[int, int],
+                               'y': pentyping.Dict[set(), set()]})
+
+    def test_gt(self):
+        self.assertIsType('x > x', bool,
+                          env={'x': pentyping.Dict[int, int]})
+        self.assertIsType('x > y', bool,
+                          env={'x': pentyping.Dict[int, int],
+                               'y': pentyping.Dict[set(), set()]})
+
+    def test_lt(self):
+        self.assertIsType('x < x', bool,
+                          env={'x': pentyping.Dict[int, int]})
+        self.assertIsType('x < y', bool,
+                          env={'x': pentyping.Dict[int, int],
+                               'y': pentyping.Dict[set(), set()]})
+
+    def test_ge(self):
+        self.assertIsType('x >= x', bool,
+                          env={'x': pentyping.Dict[int, int]})
+        self.assertIsType('x >= y', bool,
+                          env={'x': pentyping.Dict[int, int],
+                               'y': pentyping.Dict[set(), set()]})
+
+    def test_le(self):
+        self.assertIsType('x <= x', bool,
+                          env={'x': pentyping.Dict[int, int]})
+        self.assertIsType('x <= y', bool,
+                          env={'x': pentyping.Dict[int, int],
+                               'y': pentyping.Dict[set(), set()]})
+
+    def test_iter(self):
+        self.assertIsType('set(x)', pentyping.Set[int],
+                          env={'x': pentyping.Dict[int, float]})
+
+    def test_len(self):
+        self.assertIsType('len(x)', pentyping.Cst[0],
+                          env={'x': pentyping.Dict[set(), set()]})
+        self.assertIsType('len(x)', int,
                           env={'x': pentyping.Dict[int, int]})
 
     def test_from_keys(self):
@@ -488,6 +578,40 @@ class TestDict(TestPenty):
         self.assertIsType('x.get(1)', {int, pentyping.Cst[None]},
                           env={'x': pentyping.Dict[int, int]})
 
+    def test_getitem(self):
+        self.assertIsType('x[1]', int,
+                          env={'x': pentyping.Dict[int, int]})
+        self.assertIsType('x[y]', str,
+                          env={'x': pentyping.Dict[int, str],
+                               'y': int})
+
+    def test_items(self):
+        self.assertIsType('set(x.items())',
+                          pentyping.Set[pentyping.Tuple[bool, int]],
+                          env={'x': pentyping.Dict[bool, int]})
+        self.assertIsType('set(x.items())',
+                          pentyping.Set[{pentyping.Tuple[int, int],
+                                         pentyping.Tuple[int, bool]}],
+                          env={'x': pentyping.Dict[int, {int, bool}]})
+
+    def test_pop(self):
+        self.assertIsType('x.pop(1, y)', int,
+                          env={'x': pentyping.Dict[int, int],
+                               'y': int})
+        self.assertIsType('x.pop(1, 0.)', {int, pentyping.Cst[0.]},
+                          env={'x': pentyping.Dict[int, int]})
+        self.assertIsType('x.pop(1)', {int, pentyping.Cst[None]},
+                          env={'x': pentyping.Dict[int, int]})
+
+    def test_popitem(self):
+        self.assertIsType('x.popitem()', pentyping.Tuple[int, int],
+                          env={'x': pentyping.Dict[int, int]}),
+        self.assertIsType('x.popitem()', pentyping.Tuple[int, float],
+                          env={'x': pentyping.Dict[int, float]})
+        self.assertIsType('x.popitem()', {pentyping.Tuple[int, float],
+                                          pentyping.Tuple[int, str]},
+                          env={'x': pentyping.Dict[int, {float, str}]})
+
     def test_setdefault(self):
         self.assertIsType('x.setdefault(1, 0)', int,
                           env={'x': pentyping.Dict[int, int]})
@@ -500,6 +624,30 @@ class TestDict(TestPenty):
                           pentyping.Dict[int, {pentyping.List[{int, float}],
                                                pentyping.List[{float}]}],
                           env={'x': pentyping.Dict[int, pentyping.List[int]]})
+
+    def test_update(self):
+        self.assertIsType('x.update(x)', pentyping.Cst[None],
+                          env={'x': pentyping.Dict[int, int]})
+        self.assertIsType('(x.update(x), x)[1]', pentyping.Dict[int, int],
+                          env={'x': pentyping.Dict[int, int]})
+        self.assertIsType('(x.update({(1, 0.)}), x)[1]',
+                          pentyping.Dict[int, {int, float}],
+                          env={'x': pentyping.Dict[int, int]})
+        self.assertIsType('(x.update({(1, 0.)}, {(1., 0)}), x)[1]',
+                          pentyping.Dict[{int, float}, {int, float}],
+                          env={'x': pentyping.Dict[int, int]})
+
+    def test_values(self):
+        self.assertIsType('set(x.values())', pentyping.Set[int],
+                          env={'x': pentyping.Dict[bool, int]})
+        self.assertIsType('set(x.values())', pentyping.Set[{int, bool}],
+                          env={'x': pentyping.Dict[int, {int, bool}]})
+
+    def test_keys(self):
+        self.assertIsType('set(x.keys())', pentyping.Set[bool],
+                          env={'x': pentyping.Dict[bool, int]})
+        self.assertIsType('set(x.keys())', pentyping.Set[int],
+                          env={'x': pentyping.Dict[int, {int, bool}]})
 
 
 class TestList(TestPenty):
