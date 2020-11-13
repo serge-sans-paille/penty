@@ -5,7 +5,11 @@ from penty.types import FunctionType as _FT, Generator as _Generator
 from penty.types import FilteringBool as _FilteringBool, get_typer as _get_typer
 from penty.types import List as _List, Set as _Set, Dict as _Dict
 from penty.types import SetIterator as _SetIterator
+from penty.types import DictKeyIterator as _DictKeyIterator
+from penty.types import DictValueIterator as _DictValueIterator
+from penty.types import DictItemIterator as _DictItemIterator
 from penty.types import resolve_base_attrs
+import itertools as _itertools
 import operator as _operator
 
 ##
@@ -510,16 +514,84 @@ _none_attrs = {
 ##
 #
 
+def dict_bool(self_ty):
+    if not issubclass(self_ty, dict):
+        raise TypeError
+    if not self_ty.__args__[0]:
+        return _Cst[False]
+    return bool
+
+def dict_contains(self_ty, value_ty):
+    if not issubclass(self_ty, dict):
+        raise TypeError
+    if not self_ty.__args__[0]:
+        return _Cst[False]
+    return bool
+
 def dict_clear(self_ty):
+    if not issubclass(self_ty, dict):
+        raise TypeError
+    return _Cst[None]
+
+def dict_copy(self_ty):
+    if not issubclass(self_ty, dict):
+        raise TypeError
+    return _Dict[self_ty.__args__[0].copy(),
+                 self_ty.__args__[1].copy()]
+
+def dict_delitem(self_ty, value_ty):
+    if not issubclass(self_ty, dict):
+        raise TypeError
+    if not self_ty.__args__[0]:
+        raise TypeError
     return _Cst[None]
 
 def dict_get(self_ty, key_ty, default_ty=None):
+    if not issubclass(self_ty, dict):
+        raise TypeError
     if default_ty is None:
         default_ty = _Cst[None]
 
     return self_ty.__args__[1].union([default_ty])
 
+def dict_getitem(self_ty, key_ty):
+    if not issubclass(self_ty, dict):
+        raise TypeError
+
+    return self_ty.__args__[1].copy()
+
+def dict_pop(self_ty, key_ty, default_ty=None):
+    return dict_get(self_ty, key_ty, default_ty)
+
+def dict_popitem(self_ty):
+    if not issubclass(self_ty, dict):
+        raise TypeError
+
+    return {_Tuple[key_ty, value_ty]
+            for key_ty, value_ty in _itertools.product(*self_ty.__args__)}
+
+def dict_items(self_ty):
+    if not issubclass(self_ty, dict):
+        raise TypeError
+    return _DictItemIterator[{_Tuple[kty, vty]
+                              for kty, vty in
+                              _itertools.product(*self_ty.__args__)}]
+
+def dict_keys(self_ty):
+    if not issubclass(self_ty, dict):
+        raise TypeError
+    return _DictKeyIterator[self_ty.__args__[0]]
+
+def dict_len(self_ty):
+    if not issubclass(self_ty, dict):
+        raise TypeError
+    if not self_ty.__args__[0]:
+        return _Cst[0]
+    return int
+
 def dict_setdefault(self_ty, key_ty, default_ty=None):
+    if not issubclass(self_ty, dict):
+        raise TypeError
     if default_ty is None:
         default_ty = _Cst[None]
     else:
@@ -530,6 +602,65 @@ def dict_setdefault(self_ty, key_ty, default_ty=None):
 
     return dict_get(self_ty, key_ty, default_ty)
 
+def dict_setitem(self_ty, index_ty, value_ty):
+    if not issubclass(self_ty, dict):
+        raise TypeError
+    self_ty.__args__[0].add(index_ty)
+    self_ty.__args__[1].add(value_ty)
+    return _Cst[None]
+
+def dict_update(self_ty, *other_tys):
+    from penty.penty import Types
+    if not issubclass(self_ty, dict):
+        raise TypeError
+
+    for other_ty in other_tys:
+        other_ty = _astype(other_ty)
+        if issubclass(other_ty, _Dict):
+            self_ty.__args__[0].update(other_ty.__args__[0])
+            self_ty.__args__[1].update(other_ty.__args__[1])
+            continue
+
+        if '__iter__' not in Types[other_ty]:
+            raise TypeError
+        iter_tys = Types[other_ty]['__iter__'](other_ty)
+        if not isinstance(iter_tys, set):
+            iter_tys = {iter_tys}
+        for iter_ty in iter_tys:
+            if '__next__' not in Types[iter_ty]:
+                raise TypeError
+            value_tys = Types[iter_ty]['__next__'](iter_ty)
+            if not isinstance(value_tys, set):
+                value_tys = {value_tys}
+            for value_ty in value_tys:
+                if not issubclass(value_ty, _Tuple):
+                    raise TypeError
+                if len(value_ty.__args__) != 2:
+                    raise TypeError
+                self_ty.__args__[0].add(_astype(value_ty.__args__[0]))
+                self_ty.__args__[1].add(_astype(value_ty.__args__[1]))
+    return _Cst[None]
+
+def dict_eq(self_ty, other_ty):
+    if not issubclass(self_ty, dict):
+        raise TypeError
+    if not issubclass(other_ty, dict):
+        return _Cst[False]
+    if bool(self_ty.__args__[0]) ^ bool(other_ty.__args__[0]):
+        return _Cst[False]
+    return bool
+
+def dict_init(items_ty=None):
+    from penty.penty import Types
+    result_ty = _Dict[set(), set()]
+    if items_ty is not None:
+        dict_update(result_ty, items_ty)
+    return result_ty
+
+def dict_iter(self_ty):
+    if not issubclass(self_ty, dict):
+        raise TypeError
+    return _DictKeyIterator[self_ty.__args__[0]]
 
 def dict_fromkeys(iterable_ty, value_ty=None):
     from penty.penty import Types
@@ -542,21 +673,110 @@ def dict_fromkeys(iterable_ty, value_ty=None):
     else:
         return _Dict[key_ty, value_ty]
 
+def make_dict_compare():
+    def dict_compare(self_ty, other_ty):
+        if not issubclass(other_ty, dict):
+            raise TypeError
+        return bool
+    return dict_compare
+
+def dict_ne(self_ty, other_ty):
+    if not issubclass(self_ty, dict):
+        raise TypeError
+    if not issubclass(other_ty, dict):
+        return _Cst[True]
+    if bool(self_ty.__args__[0]) ^ bool(other_ty.__args__[0]):
+        return _Cst[True]
+    return bool
+
+def dict_values(self_ty):
+    if not issubclass(self_ty, dict):
+        raise TypeError
+    return _DictValueIterator[self_ty.__args__[1]]
+
 def dict_instanciate(ty):
-    return {
-        '__bool__': _FT[lambda *args: bool],
-        '__len__': _FT[lambda *args: int],
-        'clear': _FT[dict_clear],
-        'get': _FT[dict_get],
-        'setdefault': _FT[dict_setdefault],
-    }
+    return _dict_methods
+
+_dict_methods = {
+    '__bool__': _FT[dict_bool],
+    '__contains__': _FT[dict_contains],
+    '__delitem__': _FT[dict_delitem],
+    '__getitem__': _FT[dict_getitem],
+    '__iter__': _FT[dict_iter],
+    '__len__': _FT[dict_len],
+    '__gt__': make_dict_compare(),
+    '__ge__': make_dict_compare(),
+    '__lt__': make_dict_compare(),
+    '__le__': make_dict_compare(),
+    '__eq__': _FT[dict_eq],
+    '__ne__': _FT[dict_ne],
+    '__setitem__': _FT[dict_setitem],
+    'clear': _FT[dict_clear],
+    'copy': _FT[dict_copy],
+    'get': _FT[dict_get],
+    'items': _FT[dict_items],
+    'keys': _FT[dict_keys],
+    'pop': _FT[dict_pop],
+    'popitem': _FT[dict_popitem],
+    'setdefault': _FT[dict_setdefault],
+    'update': _FT[dict_update],
+    'values': _FT[dict_values],
+}
 
 _dict_attrs = {
     '__bases__': _Tuple[_Ty[object]],
     '__name__': _Cst['dict'],
-    'clear': _FT[dict_clear],
+    '__init__': _FT[dict_init],
     'from_keys': _FT[dict_fromkeys],
 }
+_dict_attrs.update(_dict_methods)
+
+##
+#
+
+def dict_item_iterator_iter(self_ty):
+    # not exactly correct, python use a temporary type here
+    return self_ty
+
+def dict_item_iterator_next(self_ty):
+    return set(self_ty.__args__[0])
+
+def dict_item_iterator_instanciate(ty):
+    return {
+        '__iter__': _FT[dict_item_iterator_iter],
+        '__next__': _FT[dict_item_iterator_next],
+    }
+
+##
+#
+
+def dict_key_iterator_iter(self_ty):
+    # not exactly correct, python use a temporary type here
+    return self_ty
+
+def dict_key_iterator_next(self_ty):
+    return set(self_ty.__args__[0])
+
+def dict_key_iterator_instanciate(ty):
+    return {
+        '__iter__': _FT[dict_key_iterator_iter],
+        '__next__': _FT[dict_key_iterator_next],
+    }
+##
+#
+
+def dict_value_iterator_iter(self_ty):
+    # not exactly correct, python use a temporary type here
+    return self_ty
+
+def dict_value_iterator_next(self_ty):
+    return set(self_ty.__args__[0])
+
+def dict_value_iterator_instanciate(ty):
+    return {
+        '__iter__': _FT[dict_value_iterator_iter],
+        '__next__': _FT[dict_value_iterator_next],
+    }
 
 ##
 #
@@ -607,8 +827,6 @@ _object_attrs = {
 
 ##
 #
-
-set_iterator = type(iter(set()))
 
 def set_and(self_ty, other_ty):
     if not issubclass(other_ty, set):
@@ -1114,6 +1332,9 @@ def register(registry):
         registry[_SetIterator] = set_iterator_instanciate
         registry[str_iterator] = _str_iterator_attrs
         registry[_Dict] = dict_instanciate
+        registry[_DictItemIterator] = dict_item_iterator_instanciate
+        registry[_DictKeyIterator] = dict_key_iterator_instanciate
+        registry[_DictValueIterator] = dict_value_iterator_instanciate
         registry[_List] = list_instanciate
         registry[_Set] = set_instanciate
         registry[_Tuple] = tuple_instanciate
