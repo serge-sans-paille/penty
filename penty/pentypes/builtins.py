@@ -17,7 +17,14 @@ def int_divmod(self_ty, other_ty):
     m = Types[_Module['operator']]['__mod__'](self_ty, other_ty)
     return _Tuple[fd, m]
 
-def int_init(self_ty):
+def int_init(self_ty=None, base_ty=None):
+    if self_ty is None:
+        return _Cst[0]
+
+    if base_ty is not None:
+        if not issubclass(_astype(base_ty), int):
+            raise TypeError
+
     from penty.penty import Types
     return Types[self_ty]['__int__'](self_ty)
 
@@ -54,9 +61,27 @@ def int_make_unaryop(operator):
             raise TypeError
     return _CFT[unaryop, operator]
 
+def int_bit_length(self_ty):
+    if issubclass(self_ty, int):
+        return int
+    else:
+        raise TypeError
+
+def int_conjugate(self_ty):
+    if issubclass(self_ty, int):
+        return int
+    else:
+        raise TypeError
+
 def int_bool(self_ty):
     if issubclass(self_ty, int):
         return bool
+    else:
+        raise TypeError
+
+def int_ceil(self_ty):
+    if issubclass(self_ty, int):
+        return int
     else:
         raise TypeError
 
@@ -107,6 +132,7 @@ _int_attrs = {
     '__and__': int_make_bitop(_operator.and_),
     '__bases__': _Tuple[_Ty[object]],
     '__bool__': _CFT[int_bool, int.__bool__],
+    '__ceil__': _CFT[int_ceil, int.__ceil__],
     '__divmod__': _CFT[int_divmod, int.__divmod__],
     '__eq__': lambda self_ty, other_ty: bool,
     '__float__': _CFT[int_float, int.__float__],
@@ -132,6 +158,12 @@ _int_attrs = {
     '__sub__': int_make_binop(_operator.sub),
     '__truediv__': _CFT[int_truediv, _operator.truediv],
     '__xor__': int_make_bitop(_operator.xor),
+    'bit_length': _CFT[int_bit_length, int.bit_length],
+    'conjugate': _CFT[int_conjugate, int.conjugate],
+    'denominator': _Cst[1],
+    'imag': _Cst[0],
+    'numerator': int,
+    'real': int,
 }
 
 _int_attrs.update({

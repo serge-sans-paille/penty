@@ -2,6 +2,7 @@ from unittest import TestCase
 import gast as ast
 import penty
 import penty.types as pentyping
+import math
 import typing
 
 class TestPenty(TestCase):
@@ -182,6 +183,43 @@ class TestBool(TestPenty):
         self.assertIsType('False ^ 5', pentyping.Cst[False ^ 5])
         self.assertIsType('x ^ x', bool, env={'x': bool})
         self.assertIsType('x ^ 1', int, env={'x': bool})
+
+class TestInt(TestPenty):
+
+    def test_abs(self):
+        self.assertIsType('abs(1)', pentyping.Cst[abs(1)])
+        self.assertIsType('abs(x)', int, env={'x': int})
+
+    def test_ceil(self):
+        self.assertIsType('int.__ceil__(1)', pentyping.Cst[math.ceil(1)])
+        self.assertIsType('int.__ceil__(x)', int, env={'x': int})
+
+    def test_bit_length(self):
+        self.assertIsType('int.bit_length(1)', pentyping.Cst[int.bit_length(1)])
+        self.assertIsType('x.bit_length()', int, env={'x': int})
+
+    def test_conjugate(self):
+        self.assertIsType('int.conjugate(1)', pentyping.Cst[int.conjugate(1)])
+        self.assertIsType('x.conjugate()', int, env={'x': int})
+
+    def test_denominator(self):
+        self.assertIsType('x.denominator', pentyping.Cst[1], env={'x': int})
+
+    def test_init(self):
+        self.assertIsType('int()', pentyping.Cst[0])
+        self.assertIsType('int(x)', int, env={'x': int})
+        self.assertIsType('int(x)', int, env={'x': float})
+        self.assertIsType('int(x)', int, env={'x': str})
+        self.assertIsType('int(x, 4)', int, env={'x': str})
+
+    def test_imag(self):
+        self.assertIsType('x.imag', pentyping.Cst[0], env={'x': int})
+
+    def test_numerator(self):
+        self.assertIsType('x.numerator', int, env={'x': int})
+
+    def test_real(self):
+        self.assertIsType('x.real', int, env={'x': int})
 
 
 class TestFloat(TestPenty):
