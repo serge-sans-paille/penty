@@ -1,11 +1,12 @@
 import gast as ast
 import itertools
+import numpy as np
 from functools import reduce
 
 import penty.pentypes as pentypes
 from penty.types import Cst, FDef, Module, astype, Lambda, Type, FilteringBool
 from penty.types import FunctionType as FT, Tuple, List, Set, Dict, Generator
-from penty.types import ConstFunctionType as CFT
+from penty.types import ConstFunctionType as CFT, PropertyType as PT
 
 
 class UnboundIdentifier(RuntimeError):
@@ -113,7 +114,7 @@ def is_constantcall(func, args_ty):
 def totype(value):
     if value is None:
         return Cst[None]
-    if isinstance(value, (str, int, float, complex)):
+    if isinstance(value, (str, int, float, complex, np.number)):
         return Cst[value]
     if isinstance(value, tuple):
         elts_ty = tuple(totype(elt) for elt in value)
@@ -170,8 +171,8 @@ class Typer(ast.NodeVisitor):
             result_type = self.visit(lnode.body)
             self.bindings.pop()
         elif issubclass(func, Type):
-            result_type = self._call(Types[func.__args__[0]]['__init__'],
-                                     *args)
+            func = Types[func.__args__[0]]['__init__']
+            return self._call(func, *args)
         else:
             result_type = set()
             all_args = itertools.product(*args) if args else [[]]
@@ -770,10 +771,19 @@ class Typer(ast.NodeVisitor):
 
     def _bounded_attr(self, self_set, self_ty, attr):
         func = self._unbounded_attr(self_ty, attr)
+
+        if issubclass(func, PT):
+            return func.__args__[0](self_ty)
+
         if not issubclass(func, (FT, Lambda, FDef)):
             return func
 
-        return FT[lambda *args: func(self_ty, *args)]
+        # propagate constexpr-ness
+        if issubclass(func, CFT) and issubclass(self_ty, Cst):
+            return CFT[lambda *p: func(self_ty, *p),
+                       lambda *p: func.__args__[1](self_ty.__args__[0], *p)]
+        else:
+            return FT[lambda *p: func(self_ty, *p)]
 
     def _unbounded_attr(self, value_ty, attr):
         return Types[value_ty][attr]

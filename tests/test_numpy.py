@@ -4,8 +4,14 @@ import penty
 import penty.types as pentyping
 from penty.pentypes.numpy import NDArray
 import typing
+import numpy as np
 
-class TestNumpy(TestCase):
+class TestPenty(TestCase):
+
+    def assertTypesEqual(self, t0, t1):
+        st0 = {str(ty) for ty in t0}
+        st1 = {str(ty) for ty in t1}
+        self.assertEqual(st0, st1)
 
     def assertIsType(self, expr, ty, env={}):
         if not isinstance(ty, set):
@@ -13,7 +19,90 @@ class TestNumpy(TestCase):
         env = {k: v if isinstance(v, set) else {v}
                for k, v in env.items()}
         env = penty.type_exec("import numpy as np", env)
-        self.assertEqual(penty.type_eval(expr, env), ty)
+        self.assertTypesEqual(penty.type_eval(expr, env), ty)
+
+class TestDtype(TestPenty):
+
+    def test_int8(self):
+        self.assertIsType('abs(x)', np.int8, env={'x': np.int8})
+        self.assertIsType('x + x', np.int8, env={'x': np.int8})
+        self.assertIsType('x + 1', np.int_, env={'x': np.int8})
+        self.assertIsType('x & x', np.int8, env={'x': np.int8})
+        self.assertIsType('x & 1', np.int_, env={'x': np.int8})
+        self.assertIsType('bool(x)', bool, env={'x': np.int8})
+        self.assertIsType('divmod(x, y)', pentyping.Tuple[np.int8, np.int8],
+                          env={'x': np.int8, 'y': np.int8})
+        self.assertIsType('divmod(x, 1)', pentyping.Tuple[np.int_, np.int_],
+                          env={'x': np.int8, 'y': np.int8})
+        self.assertIsType('x == x', bool, env={'x': np.int8})
+        self.assertIsType('x == 1', bool, env={'x': np.int8})
+        self.assertIsType('x // x', np.int8, env={'x': np.int8})
+        self.assertIsType('x // 1', np.int_, env={'x': np.int8})
+        self.assertIsType('x >= x', np.bool_, env={'x': np.int8})
+        self.assertIsType('x >= 1', np.bool_, env={'x': np.int8})
+        self.assertIsType('x > x', np.bool_, env={'x': np.int8})
+        self.assertIsType('x > 1', np.bool_, env={'x': np.int8})
+        self.assertIsType('int(x)', int, env={'x': np.int8})
+        self.assertIsType('~x', np.int8, env={'x': np.int8})
+        self.assertIsType('x <= x', np.bool_, env={'x': np.int8})
+        self.assertIsType('x <= 1', np.bool_, env={'x': np.int8})
+        self.assertIsType('x < x', np.bool_, env={'x': np.int8})
+        self.assertIsType('x < 1', np.bool_, env={'x': np.int8})
+        self.assertIsType('x << x', np.int8, env={'x': np.int8})
+        self.assertIsType('x << 1', np.int_, env={'x': np.int8})
+        self.assertIsType('x % x', np.int8, env={'x': np.int8})
+        self.assertIsType('x % 1', np.int_, env={'x': np.int8})
+        self.assertIsType('x * x', np.int8, env={'x': np.int8})
+        self.assertIsType('x * 1', np.int_, env={'x': np.int8})
+        self.assertIsType('x != x', bool, env={'x': np.int8})
+        self.assertIsType('x != 1', bool, env={'x': np.int8})
+        self.assertIsType('-x', np.int8, env={'x': np.int8})
+        self.assertIsType('x | x', np.int8, env={'x': np.int8})
+        self.assertIsType('x | 1', np.int_, env={'x': np.int8})
+        self.assertIsType('+x', np.int8, env={'x': np.int8})
+        self.assertIsType('x ** x', np.int8, env={'x': np.int8})
+        self.assertIsType('x ** 1', np.int_, env={'x': np.int8})
+        self.assertIsType('str(x)', str, env={'x': np.int8})
+        self.assertIsType('np.int8()', pentyping.Cst[np.int8()])
+        self.assertIsType('np.int8(3)', pentyping.Cst[np.int8(3)])
+        self.assertIsType('np.int8(x)', np.int8, env={'x': int})
+        self.assertIsType('np.int8(x)', np.int8, env={'x': float})
+        self.assertIsType('np.int8(x)', np.int8, env={'x': str})
+        self.assertIsType('x - x', np.int8, env={'x': np.int8})
+        self.assertIsType('x - 1', np.int_, env={'x': np.int8})
+        self.assertIsType('x / x', np.float32, env={'x': np.int8})
+        self.assertIsType('x / 1', np.float64, env={'x': np.int8})
+        self.assertIsType('x ^ x', np.int8, env={'x': np.int8})
+        self.assertIsType('x ^ 1', np.int_, env={'x': np.int8})
+        self.assertIsType('x.__round__()', int, env={'x': np.int8})
+        self.assertIsType('np.int8(3).__round__()',
+                          pentyping.Cst[np.int8(3).__round__()])
+        self.assertIsType('x.denominator', pentyping.Cst[1], env={'x': np.int8})
+        self.assertIsType('x.numerator', np.int8, env={'x': np.int8})
+        self.assertIsType('x.imag', pentyping.Cst[np.int8(0)], env={'x': np.int8})
+        self.assertIsType('x.itemsize', pentyping.Cst[np.int8(0).itemsize], env={'x': np.int8})
+        self.assertIsType('x.nbytes', pentyping.Cst[np.int8(0).nbytes], env={'x': np.int8})
+        self.assertIsType('x.ndim', pentyping.Cst[0], env={'x': np.int8})
+        self.assertIsType('x.real', np.int8, env={'x': np.int8})
+        self.assertIsType('x.shape', pentyping.Tuple[()], env={'x': np.int8})
+        self.assertIsType('x.size', pentyping.Cst[1], env={'x': np.int8})
+        self.assertIsType('x.strides', pentyping.Tuple[()], env={'x': np.int8})
+        self.assertIsType('1 + x', np.int_, env={'x': np.int8})
+        self.assertIsType('1 & x', np.int_, env={'x': np.int8})
+        self.assertIsType('divmod(1, x)', pentyping.Tuple[np.int_, np.int_],
+                          env={'x': np.int8})
+        self.assertIsType('1 // x', np.int_, env={'x': np.int8})
+        self.assertIsType('1 << x', np.int_, env={'x': np.int8})
+        self.assertIsType('1 % x', np.int_, env={'x': np.int8})
+        self.assertIsType('1 * x', np.int_, env={'x': np.int8})
+        self.assertIsType('1 | x', np.int_, env={'x': np.int8})
+        self.assertIsType('1 ** x', np.int_, env={'x': np.int8})
+        self.assertIsType('1 >> x', np.int_, env={'x': np.int8})
+        self.assertIsType('1 - x', np.int_, env={'x': np.int8})
+        self.assertIsType('1 / x', np.float64, env={'x': np.int8})
+        self.assertIsType('1 ^ x', np.int_, env={'x': np.int8})
+
+class TestNumpy(TestPenty):
 
     def test_ones(self):
         self.assertIsType('np.ones(x)',
