@@ -341,3 +341,25 @@ class DictMeta(type):
 
 class Dict(set, metaclass=DictMeta):
     pass
+
+
+class PropertyTypeMeta(CstMeta):
+    cache = {}
+
+    def __getitem__(self, args):
+        if args not in PropertyTypeMeta.cache:
+            class LocalPropertyType(PropertyType):
+                __args__ = args
+
+            PropertyTypeMeta.cache[args] = LocalPropertyType
+        return PropertyTypeMeta.cache[args]
+
+    def __repr__(self):
+        return 'PropertyType[{}]'.format(self.__args__[0])
+
+    def __call__(self, *args):
+        return self.__args__[0](*args)
+
+
+class PropertyType(Cst, metaclass=PropertyTypeMeta):
+    pass
