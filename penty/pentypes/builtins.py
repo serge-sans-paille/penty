@@ -487,6 +487,12 @@ def str_iter(self_ty):
     else:
         raise TypeError
 
+def str_lt(self_ty, other_ty):
+    if _astype(self_ty) is str and _astype(other_ty) is str:
+        return bool
+    else:
+        raise TypeError
+
 _str_attrs = {
     '__bases__': _Tuple[_Ty[object]],
     '__bool__': _CFT[str_bool, bool],
@@ -495,6 +501,7 @@ _str_attrs = {
     '__int__': _CFT[str_int, int],
     '__iter__': _FT[str_iter],
     '__len__': _CFT[lambda *args: int, str.__len__],
+    '__lt__': _CFT[str_lt, str.__lt__],
     '__name__': _Cst['str'],
     '__str__': _CFT[str_str, str.__str__],
 }
@@ -1305,6 +1312,34 @@ def slice_(lower_ty, upper_ty, step_ty):
 ##
 #
 
+def sorted_(iterable_ty, *, key=_Cst[None], reverse=_Cst[False]):
+    from penty.penty import Types
+
+    iter_ty = Types[iterable_ty]['__iter__'](iterable_ty)
+    elts_ty = _asset(Types[iter_ty]['__next__'](iter_ty))
+
+    # check key argument
+    typer_instance = _get_typer()
+    if key is not _Cst[None]:
+        keys_ty = set()
+        for elt_ty in elts_ty:
+            keys_ty.update(_asset(typer_instance._call(key, elt_ty)))
+    else:
+        keys_ty = elts_ty
+
+    # check that elements are comparable
+    for self_ty, other_ty in _itertools.product(keys_ty, keys_ty):
+        Types[_Module['operator']]['lt'](self_ty, other_ty)
+
+    # check reverse keyword argument
+    if '__bool__' not in Types[_astype(reverse)]:
+        raise TypeError
+
+    return _List[elts_ty]
+
+##
+#
+
 def type_(self_ty, node=None):
     if node is None:
         return _Ty[_astype(self_ty)]
@@ -1355,6 +1390,7 @@ def register(registry):
             'object': {_Ty[object]},
             'repr': {_FT[repr_]},
             'set': {_Ty[set]},
+            'sorted': {_FT[sorted_]},
             'str': {_Ty[str]},
             'slice': {_FT[slice_]},
             'type': {_FT[type_]},

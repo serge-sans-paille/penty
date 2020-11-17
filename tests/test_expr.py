@@ -56,6 +56,9 @@ class TestExpr(TestCase):
         self.assertIsType('(lambda x: x)(x)', int, env={'x': int})
         self.assertIsType('(lambda x, y: x and y)(x, y)', {int, float},
                           env={'x': int, 'y': float})
+        self.assertIsType('(lambda y: y)(y=x)', int, env={'x': int})
+        self.assertIsType('(lambda x, y: x + y)(1., y=x)', float, env={'x': int})
+        self.assertIsType('(lambda x, *, y: x + y)(1., y=x)', float, env={'x': int})
 
     def test_ifexpr_ty(self):
         self.assertIsType('x if x else y',

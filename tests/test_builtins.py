@@ -154,6 +154,17 @@ class TestBuiltins(TestPenty):
                           pentyping.Generator[str],
                           env={'x': str, 'y': str})
 
+    def test_sorted(self):
+        self.assertIsType('sorted(x)',
+                          pentyping.List[str],
+                          env={'x': str})
+        self.assertIsType('sorted(x, key=int, reverse=True)',
+                          pentyping.List[str],
+                          env={'x': str})
+        self.assertIsType('sorted(x, reverse=True, key=int)',
+                          pentyping.List[str],
+                          env={'x': str})
+
     def test_type(self):
         self.assertIsType('type(x) is int',
                           pentyping.FilteringBool[True, 'x', (int,)],
