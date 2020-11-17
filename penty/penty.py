@@ -1,5 +1,6 @@
 import gast as ast
 import itertools
+import inspect
 import numpy as np
 from functools import reduce
 
@@ -124,6 +125,54 @@ def totype(value):
     return None
 
 
+def expand_args(fty, args_ty, kwargs_ty):
+    '''
+    Given a function and call site information, compute the positional and
+    keyword-only arguments
+    '''
+    if not kwargs_ty:
+        return args_ty, kwargs_ty
+
+    new_args_ty = []
+    new_kwargs_ty = kwargs_ty.copy()
+
+    if issubclass(fty, (Lambda, FDef)):
+        node = fty.__args__[0]
+        args = [arg.id for arg in node.args.args]
+        kwonlyargs = [arg.id for arg in node.args.kwonlyargs]
+        kwarg = node.args.kwarg
+
+    if issubclass(fty, FT):
+        func = fty.__args__[0]
+        fullargspec = inspect.getfullargspec(func)
+        args = fullargspec.args
+        kwonlyargs = fullargspec.kwonlyargs
+        kwarg = fullargspec.varkw
+
+    # FIXME: handle posonlyargs, defaults
+    if len(args_ty) > len(args):
+        raise TypeError
+    new_args_ty = args_ty[:len(args_ty)]
+    remaining_args = args[len(args_ty):]
+    for arg in remaining_args:
+        if arg not in kwargs_ty:
+            raise TypeError
+        new_args_ty.append(new_kwargs_ty.pop(arg))
+    assert len(new_args_ty) == len(args)
+
+    if kwarg is None:
+        if len(new_kwargs_ty) != len(kwonlyargs):
+            raise TypeError
+        for arg in kwonlyargs:
+            if arg not in new_kwargs_ty:
+                raise TypeError
+
+    return new_args_ty, new_kwargs_ty
+
+
+
+
+
 class Typer(ast.NodeVisitor):
 
     def __init__(self, env=None):
@@ -137,7 +186,7 @@ class Typer(ast.NodeVisitor):
         assert len(self.bindings) == 1, "symmetric binding pop/append"
         assert not self.callstack, "symmetric callstack pop/append"
 
-    def _call(self, func, *args):
+    def _call(self, func, *args, **kwonly):
         # Just to make it easier to call operators
         if isinstance(func, set):
             func, = func
@@ -149,6 +198,7 @@ class Typer(ast.NodeVisitor):
 
             new_bindings = {arg.id: arg_ty for arg, arg_ty in
                             zip(fnode.args.args, args)}
+            new_bindings.update(kwonly)
             new_bindings['@'] = set()
             self.bindings.append(new_bindings)
             self.callstack.append(call_key)
@@ -167,12 +217,13 @@ class Typer(ast.NodeVisitor):
             lnode, = func.__args__
             new_bindings = {arg.id: arg_ty for arg, arg_ty in
                             zip(lnode.args.args, args)}
+            new_bindings.update(kwonly)
             self.bindings.append(new_bindings)
             result_type = self.visit(lnode.body)
             self.bindings.pop()
         elif issubclass(func, Type):
             func = Types[func.__args__[0]]['__init__']
-            return self._call(func, *args)
+            return self._call(func, *args, **kwonly)
         else:
             result_type = set()
             all_args = itertools.product(*args) if args else [[]]
@@ -741,6 +792,8 @@ class Typer(ast.NodeVisitor):
 
     def visit_Call(self, node):
         args_ty = [self.visit(arg) for arg in node.args]
+        kwargs_ty = {kw.arg: self.visit(kw.value) for kw in node.keywords}
+
         func_ty = self.visit(node.func)
 
         return_ty = set()
@@ -748,17 +801,24 @@ class Typer(ast.NodeVisitor):
         type_ty = Types[Module['builtins']]['type']
         isinstance_ty = Types[Module['builtins']]['isinstance']
         for fty in func_ty:
+            full_args_ty, kwonly_ty = expand_args(fty, args_ty, kwargs_ty)
+
+            # Special handling for type manipulation function
             if fty in type_ty and istype_compat:
+                assert not kwonly_ty
                 return_ty.update({fty(arg_ty, node.args[0])
-                                  for arg_ty in args_ty[0]})
+                                  for arg_ty in full_args_ty[0]})
             elif fty in isinstance_ty and istype_compat:
-                for arg_tys in itertools.product(*args_ty):
+                assert not kwonly_ty
+                for arg_tys in itertools.product(*full_args_ty):
                     rty = fty(*arg_tys, node.args[0])
                     if not isinstance(rty, set):
                         rty = {rty}
                     return_ty.update(rty)
+            # Generic case
             else:
-                return_ty.update(self._call(fty, *args_ty))
+                return_ty.update(self._call(fty, *full_args_ty, **kwonly_ty))
+
         return return_ty
 
     def visit_Repr(self, node):

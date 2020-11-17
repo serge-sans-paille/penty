@@ -24,9 +24,26 @@ class TestStmt(TestCase):
                           'func(x)', int,
                           env={'x':int})
 
+    def test_fdef_kwarg_ty(self):
+        self.assertIsType('def func(y): return y',
+                          'func(y=x)', int,
+                          env={'x':int})
+
     def test_fdef_forward_multiarg_ty(self):
         self.assertIsType('def func(x, y): return x, y',
                           'func(x, x)', pentyping.Tuple[int, int],
+                          env={'x':int})
+
+    def test_fdef_kw_multiarg_ty(self):
+        self.assertIsType('def func(x, y): return x, y',
+                          'func(x, y=1.)',
+                          pentyping.Tuple[int, pentyping.Cst[1.]],
+                          env={'x':int})
+
+    def test_fdef_kwonly_multiarg_ty(self):
+        self.assertIsType('def func(*, x, y): return x, y',
+                          'func(y=1., x=x)',
+                          pentyping.Tuple[int, pentyping.Cst[1.]],
                           env={'x':int})
 
     def test_recursive_function_ty(self):
