@@ -81,7 +81,7 @@ _unsignedinteger_attrs = {
 
 #
 ##
-def make_dtype(dtype):
+def make_integer_dtype(dtype):
 
     def dtype_abs(self_ty):
         if issubclass(self_ty, dtype):
@@ -249,14 +249,335 @@ def make_dtype(dtype):
 
     return _dtype_attrs
 
-_int8_attrs = make_dtype(_np.int8)
-_uint8_attrs = make_dtype(_np.uint8)
-_int16_attrs = make_dtype(_np.int16)
-_uint16_attrs = make_dtype(_np.uint16)
-_int32_attrs = make_dtype(_np.int32)
-_uint32_attrs = make_dtype(_np.uint32)
-_int64_attrs = make_dtype(_np.int64)
-_uint64_attrs = make_dtype(_np.uint64)
+_int8_attrs = make_integer_dtype(_np.int8)
+_uint8_attrs = make_integer_dtype(_np.uint8)
+_int16_attrs = make_integer_dtype(_np.int16)
+_uint16_attrs = make_integer_dtype(_np.uint16)
+_int32_attrs = make_integer_dtype(_np.int32)
+_uint32_attrs = make_integer_dtype(_np.uint32)
+_int64_attrs = make_integer_dtype(_np.int64)
+_uint64_attrs = make_integer_dtype(_np.uint64)
+
+#
+##
+
+_inexact_attrs = {
+    '__bases__' : _Tuple[_Ty[_np.number]],
+}
+
+#
+##
+
+def _floating_round(self_ty):
+    if not issubclass(self_ty, _np.floating):
+        raise TypeError
+    return type(self_ty(1).__round__())
+
+_floating_attrs = {
+    '__bases__' : _Tuple[_Ty[_np.inexact]],
+    '__round__' : _CFT[_floating_round, _np.floating.__round__],
+}
+
+#
+##
+
+def make_float_dtype(dtype):
+
+    def dtype_abs(self_ty):
+        if issubclass(self_ty, dtype):
+            return dtype
+        else:
+            raise TypeError
+
+    def dtype_make_binop(operator):
+        def binop(self_ty, other_ty):
+            self_ty, other_ty = _astype(self_ty), _astype(other_ty)
+            if not issubclass(self_ty, dtype):
+                raise TypeError
+            if issubclass(other_ty, (_np.generic, int, float, complex)):
+                return type(operator(self_ty(1), other_ty(1)))
+            else:
+                raise TypeError
+        return _CFT[binop, operator]
+
+    def dtype_make_rbinop(operator):
+        def rbinop(self_ty, other_ty):
+            self_ty, other_ty = _astype(self_ty), _astype(other_ty)
+            if not issubclass(self_ty, dtype):
+                raise TypeError
+            if issubclass(other_ty, (_np.generic, int, float, complex)):
+                return type(operator(other_ty(1), self_ty(1)))
+            else:
+                raise TypeError
+        return _CFT[rbinop, lambda x, y: operator(y, x)]
+
+    def dtype_make_unaryop(operator):
+        def unaryop(self_ty):
+            if not issubclass(self_ty, dtype):
+                raise TypeError
+            return type(operator(self_ty(1)))
+        return _CFT[unaryop, operator]
+
+    def dtype_bool(self_ty):
+        if issubclass(self_ty, dtype):
+            return bool
+        else:
+            raise TypeError
+
+    def dtype_divmod(self_ty, other_ty):
+        self_ty, other_ty = _astype(self_ty), _astype(other_ty)
+        if not issubclass(self_ty, dtype):
+            raise TypeError
+        if issubclass(other_ty, (_np.generic, int, float, complex)):
+            tmp = divmod(self_ty(), other_ty(1))
+            return _Tuple[type(tmp[0]), type(tmp[1])]
+        else:
+            raise TypeError
+
+    def dtype_eq(self_ty, other_ty):
+        self_ty = _astype(self_ty)
+        if not issubclass(self_ty, dtype):
+            raise TypeError
+        return bool
+
+    def dtype_float(self_ty):
+        if issubclass(self_ty, dtype):
+            return float
+        else:
+            raise TypeError
+
+    def dtype_init(value_ty=None):
+        from penty.penty import Types
+        if value_ty is None:
+            return _Cst[dtype()]
+        if '__int__' not in Types[_astype(value_ty)]:
+            raise TypeError
+        return dtype
+
+    def dtype_int(self_ty):
+        if issubclass(self_ty, dtype):
+            return int
+        else:
+            raise TypeError
+
+    def dtype_ne(self_ty, other_ty):
+        self_ty = _astype(self_ty)
+        if not issubclass(self_ty, dtype):
+            raise TypeError
+        return bool
+
+    def dtype_rdivmod(self_ty, other_ty):
+        self_ty, other_ty = _astype(self_ty), _astype(other_ty)
+        if not issubclass(self_ty, dtype):
+            raise TypeError
+        if issubclass(other_ty, (_np.generic, int, float, complex)):
+            tmp = divmod(other_ty(1), self_ty(1))
+            return _Tuple[type(tmp[0]), type(tmp[1])]
+        else:
+            raise TypeError
+
+    def dtype_str(self_ty):
+        if not issubclass(self_ty, dtype):
+            raise TypeError
+        return str
+
+    def dtype_as_integer_ratio(self_ty):
+        if not issubclass(self_ty, dtype):
+            raise TypeError
+        air = dtype(0).as_integer_ratio()
+        return _Tuple[type(air[0]), type(air[1])]
+
+    _dtype_attrs = {
+        '__abs__': _CFT[dtype_abs, dtype.__abs__],
+        '__add__': dtype_make_binop(operator.add),
+        '__bases__': _Tuple[_Ty[dtype.__bases__[0]]],
+        '__bool__': _CFT[dtype_bool, dtype.__bool__],
+        '__divmod__': _CFT[dtype_divmod, dtype.__divmod__],
+        '__eq__': _CFT[dtype_eq, dtype.__eq__],
+        '__float__': _CFT[dtype_float, dtype.__float__],
+        '__floordiv__': dtype_make_binop(operator.floordiv),
+        '__ge__': dtype_make_binop(operator.ge),
+        '__gt__': dtype_make_binop(operator.gt),
+        '__init__': _CFT[dtype_init, dtype],
+        '__int__': _CFT[dtype_int, dtype.__int__],
+        '__le__': dtype_make_binop(operator.le),
+        '__lt__': dtype_make_binop(operator.lt),
+        '__mod__': dtype_make_binop(operator.mod),
+        '__mul__': dtype_make_binop(operator.mul),
+        '__ne__': _CFT[dtype_ne, dtype.__ne__],
+        '__neg__': dtype_make_unaryop(operator.neg),
+        '__pos__': dtype_make_unaryop(operator.pos),
+        '__pow__': dtype_make_binop(operator.pow),
+        '__radd__': dtype_make_rbinop(operator.add),
+        '__rdivmod__': dtype_divmod,
+        '__rfloordiv__': dtype_make_rbinop(operator.floordiv),
+        '__rmod__': dtype_make_rbinop(operator.mod),
+        '__rmul__': dtype_make_rbinop(operator.mul),
+        '__rpow__': dtype_make_rbinop(operator.pow),
+        '__rsub__': dtype_make_rbinop(operator.sub),
+        '__rtruediv__': dtype_make_rbinop(operator.truediv),
+        '__str__': _CFT[dtype_str, dtype.__str__],
+        '__sub__': dtype_make_binop(operator.sub),
+        '__truediv__': dtype_make_binop(operator.truediv),
+        'as_integer_ratio': _CFT[dtype_as_integer_ratio, dtype.as_integer_ratio],
+    }
+
+    return _dtype_attrs
+
+_float32_attrs = make_float_dtype(_np.float32)
+_float64_attrs = make_float_dtype(_np.float64)
+
+#
+##
+
+_complexfloating_attrs = {
+    '__bases__' : _Tuple[_Ty[_np.inexact]],
+}
+
+#
+##
+
+def make_complex_dtype(dtype):
+
+    def dtype_abs(self_ty):
+        if issubclass(self_ty, dtype):
+            return dtype
+        else:
+            raise TypeError
+
+    def dtype_make_binop(operator):
+        def binop(self_ty, other_ty):
+            self_ty, other_ty = _astype(self_ty), _astype(other_ty)
+            if not issubclass(self_ty, dtype):
+                raise TypeError
+            if issubclass(other_ty, (_np.generic, int, float, complex)):
+                return type(operator(self_ty(1), other_ty(1)))
+            else:
+                raise TypeError
+        return _CFT[binop, operator]
+
+    def dtype_make_rbinop(operator):
+        def rbinop(self_ty, other_ty):
+            self_ty, other_ty = _astype(self_ty), _astype(other_ty)
+            if not issubclass(self_ty, dtype):
+                raise TypeError
+            if issubclass(other_ty, (_np.generic, int, float, complex)):
+                return type(operator(other_ty(1), self_ty(1)))
+            else:
+                raise TypeError
+        return _CFT[rbinop, lambda x, y: operator(y, x)]
+
+    def dtype_make_unaryop(operator):
+        def unaryop(self_ty):
+            if not issubclass(self_ty, dtype):
+                raise TypeError
+            return type(operator(self_ty(1)))
+        return _CFT[unaryop, operator]
+
+    def dtype_bool(self_ty):
+        if issubclass(self_ty, dtype):
+            return bool
+        else:
+            raise TypeError
+
+    def dtype_divmod(self_ty, other_ty):
+        self_ty, other_ty = _astype(self_ty), _astype(other_ty)
+        if not issubclass(self_ty, dtype):
+            raise TypeError
+        if issubclass(other_ty, (_np.generic, int, float, complex)):
+            tmp = divmod(self_ty(), other_ty(1))
+            return _Tuple[type(tmp[0]), type(tmp[1])]
+        else:
+            raise TypeError
+
+    def dtype_eq(self_ty, other_ty):
+        self_ty = _astype(self_ty)
+        if not issubclass(self_ty, dtype):
+            raise TypeError
+        return bool
+
+    def dtype_float(self_ty):
+        if issubclass(self_ty, dtype):
+            return float
+        else:
+            raise TypeError
+
+    def dtype_init(value_ty=None):
+        from penty.penty import Types
+        if value_ty is None:
+            return _Cst[dtype()]
+        if '__int__' not in Types[_astype(value_ty)]:
+            raise TypeError
+        return dtype
+
+    def dtype_int(self_ty):
+        if issubclass(self_ty, dtype):
+            return int
+        else:
+            raise TypeError
+
+    def dtype_ne(self_ty, other_ty):
+        self_ty = _astype(self_ty)
+        if not issubclass(self_ty, dtype):
+            raise TypeError
+        return bool
+
+    def dtype_rdivmod(self_ty, other_ty):
+        self_ty, other_ty = _astype(self_ty), _astype(other_ty)
+        if not issubclass(self_ty, dtype):
+            raise TypeError
+        if issubclass(other_ty, (_np.generic, int, float, complex)):
+            tmp = divmod(other_ty(1), self_ty(1))
+            return _Tuple[type(tmp[0]), type(tmp[1])]
+        else:
+            raise TypeError
+
+    def dtype_str(self_ty):
+        if not issubclass(self_ty, dtype):
+            raise TypeError
+        return str
+
+    def dtype_as_integer_ratio(self_ty):
+        if not issubclass(self_ty, dtype):
+            raise TypeError
+        air = dtype(0).as_integer_ratio()
+        return _Tuple[type(air[0]), type(air[1])]
+
+    _dtype_attrs = {
+        '__abs__': _CFT[dtype_abs, dtype.__abs__],
+        '__add__': dtype_make_binop(operator.add),
+        '__bases__': _Tuple[_Ty[dtype.__bases__[0]]],
+        '__bool__': _CFT[dtype_bool, dtype.__bool__],
+        '__eq__': _CFT[dtype_eq, dtype.__eq__],
+        '__float__': _CFT[dtype_float, dtype.__float__],
+        '__floordiv__': dtype_make_binop(operator.floordiv),
+        '__ge__': dtype_make_binop(operator.ge),
+        '__gt__': dtype_make_binop(operator.gt),
+        '__init__': _CFT[dtype_init, dtype],
+        '__int__': _CFT[dtype_int, dtype.__int__],
+        '__le__': dtype_make_binop(operator.le),
+        '__lt__': dtype_make_binop(operator.lt),
+        '__mul__': dtype_make_binop(operator.mul),
+        '__ne__': _CFT[dtype_ne, dtype.__ne__],
+        '__neg__': dtype_make_unaryop(operator.neg),
+        '__pos__': dtype_make_unaryop(operator.pos),
+        '__pow__': dtype_make_binop(operator.pow),
+        '__radd__': dtype_make_rbinop(operator.add),
+        '__rfloordiv__': dtype_make_rbinop(operator.floordiv),
+        '__rmul__': dtype_make_rbinop(operator.mul),
+        '__rpow__': dtype_make_rbinop(operator.pow),
+        '__rsub__': dtype_make_rbinop(operator.sub),
+        '__rtruediv__': dtype_make_rbinop(operator.truediv),
+        '__str__': _CFT[dtype_str, dtype.__str__],
+        '__sub__': dtype_make_binop(operator.sub),
+        '__truediv__': dtype_make_binop(operator.truediv),
+    }
+
+    return _dtype_attrs
+
+_complex64_attrs = make_complex_dtype(_np.complex64)
+_complex128_attrs = make_complex_dtype(_np.complex128)
+
 
 #
 ##
@@ -474,34 +795,54 @@ _ndarray_attrs = {
 ##
 
 def register(registry):
-    if _Module['numpy'] not in registry:
-        registry[_np.ndarray] = ndarray_instanciate
-        registry[NDArray] = ndarray_instanciate
-        registry[_np.generic] = resolve_base_attrs(_generic_attrs, registry)
-        registry[_np.number] = resolve_base_attrs(_number_attrs, registry)
-        registry[_np.integer] = resolve_base_attrs(_integer_attrs, registry)
-        registry[_np.signedinteger] = resolve_base_attrs(_signedinteger_attrs,
-                                                         registry)
-        registry[_np.unsignedinteger] = resolve_base_attrs(_unsignedinteger_attrs,
-                                                         registry)
-        registry[_np.int8] = resolve_base_attrs(_int8_attrs, registry)
-        registry[_np.uint8] = resolve_base_attrs(_uint8_attrs, registry)
-        registry[_np.int16] = resolve_base_attrs(_int16_attrs, registry)
-        registry[_np.uint16] = resolve_base_attrs(_uint16_attrs, registry)
-        registry[_np.int32] = resolve_base_attrs(_int32_attrs, registry)
-        registry[_np.uint32] = resolve_base_attrs(_uint32_attrs, registry)
-        registry[_np.int64] = resolve_base_attrs(_int64_attrs, registry)
-        registry[_np.uint64] = resolve_base_attrs(_uint64_attrs, registry)
+    if _Module['numpy'] in registry:
+        return
 
-        registry[_Module['numpy']] = {
-            'int8': _Ty[_np.int8],
-            'uint8': _Ty[_np.uint8],
-            'int16': _Ty[_np.int16],
-            'uint16': _Ty[_np.uint16],
-            'int32': _Ty[_np.int32],
-            'uint32': _Ty[_np.uint32],
-            'int64': _Ty[_np.int64],
-            'uint64': _Ty[_np.uint64],
-            'ones': _FT[ones_],
-            'random': _Module['numpy.random'],
-        }
+    registry[_np.ndarray] = ndarray_instanciate
+    registry[NDArray] = ndarray_instanciate
+
+    registry[_np.generic] = resolve_base_attrs(_generic_attrs, registry)
+    registry[_np.number] = resolve_base_attrs(_number_attrs, registry)
+    registry[_np.integer] = resolve_base_attrs(_integer_attrs, registry)
+    registry[_np.signedinteger] = resolve_base_attrs(_signedinteger_attrs,
+                                                     registry)
+    registry[_np.unsignedinteger] = resolve_base_attrs(_unsignedinteger_attrs,
+                                                       registry)
+
+    registry[_np.inexact] = resolve_base_attrs(_inexact_attrs, registry)
+    registry[_np.floating] = resolve_base_attrs(_floating_attrs, registry)
+
+    registry[_np.complexfloating] = resolve_base_attrs(_complexfloating_attrs,
+                                                       registry)
+
+    registry[_np.int8] = resolve_base_attrs(_int8_attrs, registry)
+    registry[_np.uint8] = resolve_base_attrs(_uint8_attrs, registry)
+    registry[_np.int16] = resolve_base_attrs(_int16_attrs, registry)
+    registry[_np.uint16] = resolve_base_attrs(_uint16_attrs, registry)
+    registry[_np.int32] = resolve_base_attrs(_int32_attrs, registry)
+    registry[_np.uint32] = resolve_base_attrs(_uint32_attrs, registry)
+    registry[_np.int64] = resolve_base_attrs(_int64_attrs, registry)
+    registry[_np.uint64] = resolve_base_attrs(_uint64_attrs, registry)
+
+    registry[_np.float32] = resolve_base_attrs(_float32_attrs, registry)
+    registry[_np.float64] = resolve_base_attrs(_float64_attrs, registry)
+
+    registry[_np.complex64] = resolve_base_attrs(_complex64_attrs, registry)
+    registry[_np.complex128] = resolve_base_attrs(_complex128_attrs, registry)
+
+    registry[_Module['numpy']] = {
+        'int8': _Ty[_np.int8],
+        'uint8': _Ty[_np.uint8],
+        'int16': _Ty[_np.int16],
+        'uint16': _Ty[_np.uint16],
+        'int32': _Ty[_np.int32],
+        'uint32': _Ty[_np.uint32],
+        'int64': _Ty[_np.int64],
+        'uint64': _Ty[_np.uint64],
+        'float32': _Ty[_np.float32],
+        'float64': _Ty[_np.float64],
+        'float64': _Ty[_np.complex64],
+        'float128': _Ty[_np.complex128],
+        'ones': _FT[ones_],
+        'random': _Module['numpy.random'],
+    }

@@ -24,7 +24,7 @@ class TestPenty(TestCase):
 class TestDtype(TestPenty):
     pass
 
-def make_dtype_test(dtype):
+def make_integer_dtype_test(dtype):
     def test_dtype(self):
         self.assertIsType('abs(x)', dtype, env={'x': dtype})
         self.assertIsType('x + x', dtype, env={'x': dtype})
@@ -112,7 +112,160 @@ for dtype in (np.int8, np.uint8, np.int16, np.uint16, np.int32, np.uint32,
               np.int64, np.uint64):
     setattr(TestDtype,
             'test_{}'.format(dtype.__name__),
-            make_dtype_test(dtype))
+            make_integer_dtype_test(dtype))
+
+def make_floating_dtype_test(dtype):
+    def test_dtype(self):
+        self.assertIsType('abs(x)', dtype, env={'x': dtype})
+        self.assertIsType('x + x', dtype, env={'x': dtype})
+        self.assertIsType('x + 1', type(dtype() + 1), env={'x': dtype})
+        self.assertIsType('bool(x)', bool, env={'x': dtype})
+        self.assertIsType('divmod(x, y)', pentyping.Tuple[dtype, dtype],
+                          env={'x': dtype, 'y': dtype})
+        dmty = divmod(dtype(1), 1)
+        self.assertIsType('divmod(x, 1)',
+                          pentyping.Tuple[type(dmty[0]), type(dmty[1])],
+                          env={'x': dtype, 'y': dtype})
+        self.assertIsType('x == x', bool, env={'x': dtype})
+        self.assertIsType('x == 1', bool, env={'x': dtype})
+        self.assertIsType('x // x', dtype, env={'x': dtype})
+        self.assertIsType('x // np.int8(1)', type(dtype(1) // np.int8(1)), env={'x': dtype})
+        self.assertIsType('x >= x', np.bool_, env={'x': dtype})
+        self.assertIsType('x >= 1', np.bool_, env={'x': dtype})
+        self.assertIsType('x > x', np.bool_, env={'x': dtype})
+        self.assertIsType('x > 1', np.bool_, env={'x': dtype})
+        self.assertIsType('int(x)', int, env={'x': dtype})
+        self.assertIsType('float(x)', float, env={'x': dtype})
+        self.assertIsType('x <= x', np.bool_, env={'x': dtype})
+        self.assertIsType('x <= 1', np.bool_, env={'x': dtype})
+        self.assertIsType('x < x', np.bool_, env={'x': dtype})
+        self.assertIsType('x < 1', np.bool_, env={'x': dtype})
+        self.assertIsType('x % x', dtype, env={'x': dtype})
+        self.assertIsType('x % np.uint8(1)', type(dtype(1) % np.uint8(1)), env={'x': dtype})
+        self.assertIsType('x * x', dtype, env={'x': dtype})
+        self.assertIsType('x * np.uint8(1)', type(dtype(1) * np.uint8(1)), env={'x': dtype})
+        self.assertIsType('x != x', bool, env={'x': dtype})
+        self.assertIsType('x != 1', bool, env={'x': dtype})
+        self.assertIsType('-x', dtype, env={'x': dtype})
+        self.assertIsType('+x', dtype, env={'x': dtype})
+        self.assertIsType('x ** x', dtype, env={'x': dtype})
+        self.assertIsType('x ** np.uint8(1)', type(dtype(1) * np.uint8(1)), env={'x': dtype})
+        self.assertIsType('str(x)', str, env={'x': dtype})
+        self.assertIsType('dtype()', pentyping.Cst[dtype()],
+                          env={'dtype': pentyping.Type[dtype]})
+        self.assertIsType('dtype(3)', pentyping.Cst[dtype(3)],
+                          env={'dtype': pentyping.Type[dtype]})
+        self.assertIsType('dtype(x)', dtype,
+                          env={'x': int, 'dtype': pentyping.Type[dtype]})
+        self.assertIsType('dtype(x)', dtype,
+                          env={'x': float, 'dtype': pentyping.Type[dtype]})
+        self.assertIsType('dtype(x)', dtype,
+                          env={'x': str, 'dtype': pentyping.Type[dtype]})
+        self.assertIsType('x - x', dtype, env={'x': dtype})
+        self.assertIsType('x - np.uint8(1)', type(dtype(1) - np.uint8(1)), env={'x': dtype})
+        self.assertIsType('x / x', type(dtype(1)/dtype(1)), env={'x': dtype})
+        self.assertIsType('x / np.uint8(1)', type(dtype(1) / np.uint8(1)), env={'x': dtype})
+        self.assertIsType('x.__round__()', int, env={'x': dtype})
+        self.assertIsType('dtype(3).__round__()',
+                          pentyping.Cst[dtype(3).__round__()],
+                          env={'dtype': pentyping.Type[dtype]})
+        self.assertIsType('x.imag', pentyping.Cst[dtype(0)], env={'x': dtype})
+        self.assertIsType('x.itemsize', pentyping.Cst[dtype(0).itemsize], env={'x': dtype})
+        self.assertIsType('x.nbytes', pentyping.Cst[dtype(0).nbytes], env={'x': dtype})
+        self.assertIsType('x.ndim', pentyping.Cst[0], env={'x': dtype})
+        self.assertIsType('x.real', dtype, env={'x': dtype})
+        self.assertIsType('x.shape', pentyping.Tuple[()], env={'x': dtype})
+        self.assertIsType('x.size', pentyping.Cst[1], env={'x': dtype})
+        self.assertIsType('x.strides', pentyping.Tuple[()], env={'x': dtype})
+        self.assertIsType('1 + x', type(1 + dtype(1)), env={'x': dtype})
+        self.assertIsType('1 // x', type(1 // dtype(1)), env={'x': dtype})
+        self.assertIsType('1 % x', type(1 % dtype(1)), env={'x': dtype})
+        self.assertIsType('1 * x', type(1 * dtype(1)), env={'x': dtype})
+        self.assertIsType('1 ** x', type(1 ** dtype(1)), env={'x': dtype})
+        self.assertIsType('1 - x', type(1 - dtype(1)), env={'x': dtype})
+        self.assertIsType('1 / x', type(1 / dtype(1)), env={'x': dtype})
+        air = dtype(1).as_integer_ratio()
+        self.assertIsType('x.as_integer_ratio()',
+                          pentyping.Tuple[type(air[0]), type(air[1])],
+                          env={'x': dtype})
+        self.assertIsType('dtype(1).as_integer_ratio()',
+                          pentyping.Tuple[pentyping.Cst[1], pentyping.Cst[1]],
+                          env={'dtype': pentyping.Type[dtype]})
+
+    return test_dtype
+
+
+for dtype in (np.float32, np.float64):
+    setattr(TestDtype,
+            'test_{}'.format(dtype.__name__),
+            make_floating_dtype_test(dtype))
+
+def make_complex_dtype_test(dtype):
+    def test_dtype(self):
+        self.assertIsType('abs(x)', dtype, env={'x': dtype})
+        self.assertIsType('x + x', dtype, env={'x': dtype})
+        self.assertIsType('x + 1', type(dtype() + 1), env={'x': dtype})
+        self.assertIsType('bool(x)', bool, env={'x': dtype})
+        self.assertIsType('x == x', bool, env={'x': dtype})
+        self.assertIsType('x == 1', bool, env={'x': dtype})
+        self.assertIsType('x // x', dtype, env={'x': dtype})
+        self.assertIsType('x // np.int8(1)', type(dtype(1) // np.int8(1)), env={'x': dtype})
+        self.assertIsType('x >= x', np.bool_, env={'x': dtype})
+        self.assertIsType('x >= 1', np.bool_, env={'x': dtype})
+        self.assertIsType('x > x', np.bool_, env={'x': dtype})
+        self.assertIsType('x > 1', np.bool_, env={'x': dtype})
+        self.assertIsType('int(x)', int, env={'x': dtype})
+        self.assertIsType('float(x)', float, env={'x': dtype})
+        self.assertIsType('complex(x)', complex, env={'x': dtype})
+        self.assertIsType('x <= x', np.bool_, env={'x': dtype})
+        self.assertIsType('x <= 1', np.bool_, env={'x': dtype})
+        self.assertIsType('x < x', np.bool_, env={'x': dtype})
+        self.assertIsType('x < 1', np.bool_, env={'x': dtype})
+        self.assertIsType('x * x', dtype, env={'x': dtype})
+        self.assertIsType('x * np.uint8(1)', type(dtype(1) * np.uint8(1)), env={'x': dtype})
+        self.assertIsType('x != x', bool, env={'x': dtype})
+        self.assertIsType('x != 1', bool, env={'x': dtype})
+        self.assertIsType('-x', dtype, env={'x': dtype})
+        self.assertIsType('+x', dtype, env={'x': dtype})
+        self.assertIsType('x ** x', dtype, env={'x': dtype})
+        self.assertIsType('x ** np.uint8(1)', type(dtype(1) * np.uint8(1)), env={'x': dtype})
+        self.assertIsType('str(x)', str, env={'x': dtype})
+        self.assertIsType('dtype()', pentyping.Cst[dtype()],
+                          env={'dtype': pentyping.Type[dtype]})
+        self.assertIsType('dtype(3)', pentyping.Cst[dtype(3)],
+                          env={'dtype': pentyping.Type[dtype]})
+        self.assertIsType('dtype(x)', dtype,
+                          env={'x': int, 'dtype': pentyping.Type[dtype]})
+        self.assertIsType('dtype(x)', dtype,
+                          env={'x': float, 'dtype': pentyping.Type[dtype]})
+        self.assertIsType('dtype(x)', dtype,
+                          env={'x': str, 'dtype': pentyping.Type[dtype]})
+        self.assertIsType('x - x', dtype, env={'x': dtype})
+        self.assertIsType('x - np.uint8(1)', type(dtype(1) - np.uint8(1)), env={'x': dtype})
+        self.assertIsType('x / x', type(dtype(1)/dtype(1)), env={'x': dtype})
+        self.assertIsType('x / np.uint8(1)', type(dtype(1) / np.uint8(1)), env={'x': dtype})
+        self.assertIsType('x.imag', pentyping.Cst[dtype(0)], env={'x': dtype})
+        self.assertIsType('x.itemsize', pentyping.Cst[dtype(0).itemsize], env={'x': dtype})
+        self.assertIsType('x.nbytes', pentyping.Cst[dtype(0).nbytes], env={'x': dtype})
+        self.assertIsType('x.ndim', pentyping.Cst[0], env={'x': dtype})
+        self.assertIsType('x.real', dtype, env={'x': dtype})
+        self.assertIsType('x.shape', pentyping.Tuple[()], env={'x': dtype})
+        self.assertIsType('x.size', pentyping.Cst[1], env={'x': dtype})
+        self.assertIsType('x.strides', pentyping.Tuple[()], env={'x': dtype})
+        self.assertIsType('1 + x', type(1 + dtype(1)), env={'x': dtype})
+        self.assertIsType('1 // x', type(1 // dtype(1)), env={'x': dtype})
+        self.assertIsType('1 * x', type(1 * dtype(1)), env={'x': dtype})
+        self.assertIsType('1 ** x', type(1 ** dtype(1)), env={'x': dtype})
+        self.assertIsType('1 - x', type(1 - dtype(1)), env={'x': dtype})
+        self.assertIsType('1 / x', type(1 / dtype(1)), env={'x': dtype})
+
+    return test_dtype
+
+
+for dtype in (np.complex64, np.complex128):
+    setattr(TestDtype,
+            'test_{}'.format(dtype.__name__),
+            make_complex_dtype_test(dtype))
 
 class TestNumpy(TestPenty):
 
