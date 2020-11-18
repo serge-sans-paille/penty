@@ -1,23 +1,17 @@
 from unittest import TestCase
+
+import builtins
 import gast as ast
-import penty
 import penty.types as pentyping
 import math
 import typing
 
-class TestPenty(TestCase):
+from pentest import TestPenty, inject_spec_test
 
-    def assertTypesEqual(self, t0, t1):
-        st0 = {str(ty) for ty in t0}
-        st1 = {str(ty) for ty in t1}
-        self.assertEqual(st0, st1)
+class TestSpecs(TestCase):
+    pass
 
-    def assertIsType(self, expr, ty, env={}):
-        if not isinstance(ty, set):
-            ty = {ty}
-        env = {k: v if isinstance(v, set) else {v}
-               for k, v in env.items()}
-        self.assertTypesEqual(penty.type_eval(expr, env), ty)
+inject_spec_test(TestSpecs, pentyping.Module['builtins'], builtins, 'builtins')
 
 
 class TestBuiltins(TestPenty):
@@ -575,8 +569,8 @@ class TestDict(TestPenty):
         self.assertIsType('len(x)', int,
                           env={'x': pentyping.Dict[int, int]})
 
-    def test_from_keys(self):
-        self.assertIsType('dict.from_keys(x)',
+    def test_fromkeys(self):
+        self.assertIsType('dict.fromkeys(x)',
                           pentyping.Dict[str, pentyping.Cst[None]],
                           env={'x': str})
 

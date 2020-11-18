@@ -33,14 +33,25 @@ def _broadcast_shape(self, other):
 
 _generic_attrs = {
     '__bases__' : _Tuple[_Ty[object]],
-    'imag' : _PT[lambda self_ty: _Cst[self_ty(0)], None],
-    'real' : _PT[lambda self_ty: self_ty, None],
-    'itemsize': _PT[lambda self_ty: _Cst[self_ty(0).itemsize], None],
-    'nbytes': _PT[lambda self_ty: _Cst[self_ty(0).nbytes], None],
+    'imag' : _PT[lambda self: _Cst[self(0)], None],
+    'real' : _PT[lambda self: self, None],
+    'itemsize': _PT[lambda self: _Cst[self(0).itemsize], None],
+    'nbytes': _PT[lambda self: _Cst[self(0).nbytes], None],
     'ndim': _Cst[0],
     'shape': _Tuple[()],
     'size': _Cst[1],
     'strides': _Tuple[()],
+}
+
+#
+##
+
+def _bool_bool(self):
+    return bool
+
+_bool_attrs = {
+    '__bases__' : _Tuple[_Ty[_np.generic]],
+    '__bool__': _CFT[_bool_bool, _np.bool_.__bool__],
 }
 
 #
@@ -53,16 +64,16 @@ _number_attrs = {
 #
 ##
 
-def _integer_round(self_ty):
-    if not issubclass(self_ty, _np.integer):
+def _integer_round(self):
+    if not issubclass(self, _np.integer):
         raise TypeError
-    return type(self_ty(1).__round__())
+    return type(self(1).__round__())
 
 _integer_attrs = {
     '__bases__' : _Tuple[_Ty[_np.number]],
     '__round__' : _CFT[_integer_round, _np.integer.__round__],
     'denominator' : _Cst[1],
-    'numerator' : _PT[lambda self_ty: self_ty, None],
+    'numerator' : _PT[lambda self: self, None],
 }
 
 #
@@ -83,42 +94,42 @@ _unsignedinteger_attrs = {
 ##
 def make_integer_dtype(dtype):
 
-    def dtype_abs(self_ty):
-        if issubclass(self_ty, dtype):
+    def dtype_abs(self):
+        if issubclass(self, dtype):
             return dtype
         else:
             raise TypeError
 
     def dtype_make_binop(operator):
-        def binop(self_ty, other_ty):
-            self_ty, other_ty = _astype(self_ty), _astype(other_ty)
-            if not issubclass(self_ty, dtype):
+        def binop(self, value):
+            self, value = _astype(self), _astype(value)
+            if not issubclass(self, dtype):
                 raise TypeError
-            if issubclass(other_ty, (_np.generic, int, float, complex)):
-                return type(operator(self_ty(1), other_ty(1)))
+            if issubclass(value, (_np.generic, int, float, complex)):
+                return type(operator(self(1), value(1)))
             else:
                 raise TypeError
         return _CFT[binop, operator]
 
     def dtype_make_rbinop(operator):
-        def rbinop(self_ty, other_ty):
-            self_ty, other_ty = _astype(self_ty), _astype(other_ty)
-            if not issubclass(self_ty, dtype):
+        def rbinop(self, value):
+            self, value = _astype(self), _astype(value)
+            if not issubclass(self, dtype):
                 raise TypeError
-            if issubclass(other_ty, (_np.generic, int, float, complex)):
-                return type(operator(other_ty(1), self_ty(1)))
+            if issubclass(value, (_np.generic, int, float, complex)):
+                return type(operator(value(1), self(1)))
             else:
                 raise TypeError
         return _CFT[rbinop, lambda x, y: operator(y, x)]
 
     def dtype_make_bitop(operator):
-        def binop(self_ty, other_ty):
-            self_ty, other_ty = _astype(self_ty), _astype(other_ty)
-            if not issubclass(self_ty, dtype):
+        def binop(self, value):
+            self, value = _astype(self), _astype(value)
+            if not issubclass(self, dtype):
                 raise TypeError
-            if issubclass(other_ty, (_np.generic, int)):
+            if issubclass(value, (_np.generic, int)):
                 try:
-                    return type(operator(self_ty(1), other_ty(1)))
+                    return type(operator(self(1), value(1)))
                 except TypeError:
                     raise TypeError  # FIXME: for a better message
             else:
@@ -126,42 +137,42 @@ def make_integer_dtype(dtype):
         return _CFT[binop, operator]
 
     def dtype_make_unaryop(operator):
-        def unaryop(self_ty):
-            if not issubclass(self_ty, dtype):
+        def unaryop(self):
+            if not issubclass(self, dtype):
                 raise TypeError
-            return type(operator(self_ty(1)))
+            return type(operator(self(1)))
         return _CFT[unaryop, operator]
 
-    def dtype_bool(self_ty):
-        if issubclass(self_ty, dtype):
+    def dtype_bool(self):
+        if issubclass(self, dtype):
             return bool
         else:
             raise TypeError
 
-    def dtype_divmod(self_ty, other_ty):
-        self_ty, other_ty = _astype(self_ty), _astype(other_ty)
-        if not issubclass(self_ty, dtype):
+    def dtype_divmod(self, value):
+        self, value = _astype(self), _astype(value)
+        if not issubclass(self, dtype):
             raise TypeError
-        if issubclass(other_ty, (_np.generic, int, float, complex)):
-            tmp = divmod(self_ty(), other_ty(1))
+        if issubclass(value, (_np.generic, int, float, complex)):
+            tmp = divmod(self(), value(1))
             return _Tuple[type(tmp[0]), type(tmp[1])]
         else:
             raise TypeError
 
-    def dtype_eq(self_ty, other_ty):
-        self_ty = _astype(self_ty)
-        if not issubclass(self_ty, dtype):
+    def dtype_eq(self, value):
+        self = _astype(self)
+        if not issubclass(self, dtype):
             raise TypeError
         return bool
 
-    def dtype_float(self_ty):
-        if issubclass(self_ty, dtype):
+    def dtype_float(self):
+        if issubclass(self, dtype):
             return float
         else:
             raise TypeError
 
-    def dtype_index(self_ty):
-        if issubclass(self_ty, dtype):
+    def dtype_index(self):
+        if issubclass(self, dtype):
             return int
         else:
             raise TypeError
@@ -170,34 +181,55 @@ def make_integer_dtype(dtype):
         from penty.penty import Types
         if value_ty is None:
             return _Cst[dtype()]
-        if '__int__' not in Types[_astype(value_ty)]:
-            raise TypeError
-        return dtype
+        if issubclass(value_ty, (int, str, float, _np.generic)):
+            return dtype
+        raise TypeError
 
-    def dtype_int(self_ty):
-        if issubclass(self_ty, dtype):
+    def dtype_int(self):
+        if issubclass(self, dtype):
             return int
         else:
             raise TypeError
 
-    def dtype_ne(self_ty, other_ty):
-        self_ty = _astype(self_ty)
-        if not issubclass(self_ty, dtype):
+    def dtype_ne(self, value):
+        self = _astype(self)
+        if not issubclass(self, dtype):
             raise TypeError
         return bool
 
-    def dtype_rdivmod(self_ty, other_ty):
-        self_ty, other_ty = _astype(self_ty), _astype(other_ty)
-        if not issubclass(self_ty, dtype):
+    def dtype_pow(self, value, mod=_Cst[None]):
+        self, value = _astype(self), _astype(value)
+        if mod is not _Cst[None] and not issubclass(mod, dtype):
             raise TypeError
-        if issubclass(other_ty, (_np.generic, int, float, complex)):
-            tmp = divmod(other_ty(1), self_ty(1))
+        if issubclass(self, dtype) and issubclass(value, dtype):
+            return dtype
+        else:
+            raise TypeError
+
+    def dtype_rdivmod(self, value):
+        self, value = _astype(self), _astype(value)
+        if not issubclass(self, dtype):
+            raise TypeError
+        if issubclass(value, (_np.generic, int, float, complex)):
+            tmp = divmod(value(1), self(1))
             return _Tuple[type(tmp[0]), type(tmp[1])]
         else:
             raise TypeError
 
-    def dtype_str(self_ty):
-        if not issubclass(self_ty, dtype):
+    def dtype_rpow(self, value, mod=_Cst[None]):
+        self, value = _astype(self), _astype(value)
+        if mod is not _Cst[None] and not issubclass(mod, dtype):
+            raise TypeError
+        if not issubclass(self, dtype):
+            raise TypeError
+        if issubclass(value, (_np.generic, int, float, complex)):
+            return type(pow(value(1), self(1)))
+        else:
+            raise TypeError
+
+
+    def dtype_str(self):
+        if not issubclass(self, dtype):
             raise TypeError
         return str
 
@@ -226,16 +258,16 @@ def make_integer_dtype(dtype):
         '__neg__': dtype_make_unaryop(operator.neg),
         '__or__': dtype_make_bitop(operator.or_),
         '__pos__': dtype_make_unaryop(operator.pos),
-        '__pow__': dtype_make_binop(operator.pow),
+        '__pow__': _CFT[dtype_pow, dtype.__pow__],
         '__radd__': dtype_make_rbinop(operator.add),
         '__rand__': dtype_make_rbinop(operator.and_),
-        '__rdivmod__': dtype_divmod,
+        '__rdivmod__': _CFT[dtype_rdivmod, dtype.__rdivmod__],
         '__rfloordiv__': dtype_make_rbinop(operator.floordiv),
         '__rlshift__': dtype_make_rbinop(operator.lshift),
         '__rmod__': dtype_make_rbinop(operator.mod),
         '__rmul__': dtype_make_rbinop(operator.mul),
         '__ror__': dtype_make_rbinop(operator.or_),
-        '__rpow__': dtype_make_rbinop(operator.pow),
+        '__rpow__': _CFT[dtype_rpow, dtype.__rpow__],
         '__rrshift__': dtype_make_rbinop(operator.rshift),
         '__rshift__': dtype_make_bitop(operator.rshift),
         '__rsub__': dtype_make_rbinop(operator.sub),
@@ -268,10 +300,10 @@ _inexact_attrs = {
 #
 ##
 
-def _floating_round(self_ty):
-    if not issubclass(self_ty, _np.floating):
+def _floating_round(self):
+    if not issubclass(self, _np.floating):
         raise TypeError
-    return type(self_ty(1).__round__())
+    return type(self(1).__round__())
 
 _floating_attrs = {
     '__bases__' : _Tuple[_Ty[_np.inexact]],
@@ -283,65 +315,65 @@ _floating_attrs = {
 
 def make_float_dtype(dtype):
 
-    def dtype_abs(self_ty):
-        if issubclass(self_ty, dtype):
+    def dtype_abs(self):
+        if issubclass(self, dtype):
             return dtype
         else:
             raise TypeError
 
     def dtype_make_binop(operator):
-        def binop(self_ty, other_ty):
-            self_ty, other_ty = _astype(self_ty), _astype(other_ty)
-            if not issubclass(self_ty, dtype):
+        def binop(self, value):
+            self, value = _astype(self), _astype(value)
+            if not issubclass(self, dtype):
                 raise TypeError
-            if issubclass(other_ty, (_np.generic, int, float, complex)):
-                return type(operator(self_ty(1), other_ty(1)))
+            if issubclass(value, (_np.generic, int, float, complex)):
+                return type(operator(self(1), value(1)))
             else:
                 raise TypeError
         return _CFT[binop, operator]
 
     def dtype_make_rbinop(operator):
-        def rbinop(self_ty, other_ty):
-            self_ty, other_ty = _astype(self_ty), _astype(other_ty)
-            if not issubclass(self_ty, dtype):
+        def rbinop(self, value):
+            self, value = _astype(self), _astype(value)
+            if not issubclass(self, dtype):
                 raise TypeError
-            if issubclass(other_ty, (_np.generic, int, float, complex)):
-                return type(operator(other_ty(1), self_ty(1)))
+            if issubclass(value, (_np.generic, int, float, complex)):
+                return type(operator(value(1), self(1)))
             else:
                 raise TypeError
         return _CFT[rbinop, lambda x, y: operator(y, x)]
 
     def dtype_make_unaryop(operator):
-        def unaryop(self_ty):
-            if not issubclass(self_ty, dtype):
+        def unaryop(self):
+            if not issubclass(self, dtype):
                 raise TypeError
-            return type(operator(self_ty(1)))
+            return type(operator(self(1)))
         return _CFT[unaryop, operator]
 
-    def dtype_bool(self_ty):
-        if issubclass(self_ty, dtype):
+    def dtype_bool(self):
+        if issubclass(self, dtype):
             return bool
         else:
             raise TypeError
 
-    def dtype_divmod(self_ty, other_ty):
-        self_ty, other_ty = _astype(self_ty), _astype(other_ty)
-        if not issubclass(self_ty, dtype):
+    def dtype_divmod(self, value):
+        self, value = _astype(self), _astype(value)
+        if not issubclass(self, dtype):
             raise TypeError
-        if issubclass(other_ty, (_np.generic, int, float, complex)):
-            tmp = divmod(self_ty(), other_ty(1))
+        if issubclass(value, (_np.generic, int, float, complex)):
+            tmp = divmod(self(), value(1))
             return _Tuple[type(tmp[0]), type(tmp[1])]
         else:
             raise TypeError
 
-    def dtype_eq(self_ty, other_ty):
-        self_ty = _astype(self_ty)
-        if not issubclass(self_ty, dtype):
+    def dtype_eq(self, value):
+        self = _astype(self)
+        if not issubclass(self, dtype):
             raise TypeError
         return bool
 
-    def dtype_float(self_ty):
-        if issubclass(self_ty, dtype):
+    def dtype_float(self):
+        if issubclass(self, dtype):
             return float
         else:
             raise TypeError
@@ -350,39 +382,59 @@ def make_float_dtype(dtype):
         from penty.penty import Types
         if value_ty is None:
             return _Cst[dtype()]
-        if '__int__' not in Types[_astype(value_ty)]:
-            raise TypeError
-        return dtype
+        if issubclass(value_ty, (int, str, float, _np.generic)):
+            return dtype
+        raise TypeError
 
-    def dtype_int(self_ty):
-        if issubclass(self_ty, dtype):
+    def dtype_int(self):
+        if issubclass(self, dtype):
             return int
         else:
             raise TypeError
 
-    def dtype_ne(self_ty, other_ty):
-        self_ty = _astype(self_ty)
-        if not issubclass(self_ty, dtype):
+    def dtype_ne(self, value):
+        self = _astype(self)
+        if not issubclass(self, dtype):
             raise TypeError
         return bool
 
-    def dtype_rdivmod(self_ty, other_ty):
-        self_ty, other_ty = _astype(self_ty), _astype(other_ty)
-        if not issubclass(self_ty, dtype):
+    def dtype_pow(self, value, mod=_Cst[None]):
+        self, value = _astype(self), _astype(value)
+        if mod is not _Cst[None] and not issubclass(mod, dtype):
             raise TypeError
-        if issubclass(other_ty, (_np.generic, int, float, complex)):
-            tmp = divmod(other_ty(1), self_ty(1))
+        if issubclass(self, dtype) and issubclass(value, dtype):
+            return dtype
+        else:
+            raise TypeError
+
+    def dtype_rdivmod(self, value):
+        self, value = _astype(self), _astype(value)
+        if not issubclass(self, dtype):
+            raise TypeError
+        if issubclass(value, (_np.generic, int, float, complex)):
+            tmp = divmod(value(1), self(1))
             return _Tuple[type(tmp[0]), type(tmp[1])]
         else:
             raise TypeError
 
-    def dtype_str(self_ty):
-        if not issubclass(self_ty, dtype):
+    def dtype_rpow(self, value, mod=_Cst[None]):
+        self, value = _astype(self), _astype(value)
+        if mod is not _Cst[None] and not issubclass(mod, dtype):
+            raise TypeError
+        if not issubclass(self, dtype):
+            raise TypeError
+        if issubclass(value, (_np.generic, int, float, complex)):
+            return type(pow(value(1), self(1)))
+        else:
+            raise TypeError
+
+    def dtype_str(self):
+        if not issubclass(self, dtype):
             raise TypeError
         return str
 
-    def dtype_as_integer_ratio(self_ty):
-        if not issubclass(self_ty, dtype):
+    def dtype_as_integer_ratio(self):
+        if not issubclass(self, dtype):
             raise TypeError
         air = dtype(0).as_integer_ratio()
         return _Tuple[type(air[0]), type(air[1])]
@@ -407,13 +459,13 @@ def make_float_dtype(dtype):
         '__ne__': _CFT[dtype_ne, dtype.__ne__],
         '__neg__': dtype_make_unaryop(operator.neg),
         '__pos__': dtype_make_unaryop(operator.pos),
-        '__pow__': dtype_make_binop(operator.pow),
+        '__pow__': _CFT[dtype_pow, dtype.__pow__],
         '__radd__': dtype_make_rbinop(operator.add),
-        '__rdivmod__': dtype_divmod,
+        '__rdivmod__': _CFT[dtype_rdivmod, dtype.__rdivmod__],
         '__rfloordiv__': dtype_make_rbinop(operator.floordiv),
         '__rmod__': dtype_make_rbinop(operator.mod),
         '__rmul__': dtype_make_rbinop(operator.mul),
-        '__rpow__': dtype_make_rbinop(operator.pow),
+        '__rpow__': _CFT[dtype_rpow, dtype.__rpow__],
         '__rsub__': dtype_make_rbinop(operator.sub),
         '__rtruediv__': dtype_make_rbinop(operator.truediv),
         '__str__': _CFT[dtype_str, dtype.__str__],
@@ -439,65 +491,65 @@ _complexfloating_attrs = {
 
 def make_complex_dtype(dtype):
 
-    def dtype_abs(self_ty):
-        if issubclass(self_ty, dtype):
+    def dtype_abs(self):
+        if issubclass(self, dtype):
             return dtype
         else:
             raise TypeError
 
     def dtype_make_binop(operator):
-        def binop(self_ty, other_ty):
-            self_ty, other_ty = _astype(self_ty), _astype(other_ty)
-            if not issubclass(self_ty, dtype):
+        def binop(self, value):
+            self, value = _astype(self), _astype(value)
+            if not issubclass(self, dtype):
                 raise TypeError
-            if issubclass(other_ty, (_np.generic, int, float, complex)):
-                return type(operator(self_ty(1), other_ty(1)))
+            if issubclass(value, (_np.generic, int, float, complex)):
+                return type(operator(self(1), value(1)))
             else:
                 raise TypeError
         return _CFT[binop, operator]
 
     def dtype_make_rbinop(operator):
-        def rbinop(self_ty, other_ty):
-            self_ty, other_ty = _astype(self_ty), _astype(other_ty)
-            if not issubclass(self_ty, dtype):
+        def rbinop(self, value):
+            self, value = _astype(self), _astype(value)
+            if not issubclass(self, dtype):
                 raise TypeError
-            if issubclass(other_ty, (_np.generic, int, float, complex)):
-                return type(operator(other_ty(1), self_ty(1)))
+            if issubclass(value, (_np.generic, int, float, complex)):
+                return type(operator(value(1), self(1)))
             else:
                 raise TypeError
         return _CFT[rbinop, lambda x, y: operator(y, x)]
 
     def dtype_make_unaryop(operator):
-        def unaryop(self_ty):
-            if not issubclass(self_ty, dtype):
+        def unaryop(self):
+            if not issubclass(self, dtype):
                 raise TypeError
-            return type(operator(self_ty(1)))
+            return type(operator(self(1)))
         return _CFT[unaryop, operator]
 
-    def dtype_bool(self_ty):
-        if issubclass(self_ty, dtype):
+    def dtype_bool(self):
+        if issubclass(self, dtype):
             return bool
         else:
             raise TypeError
 
-    def dtype_divmod(self_ty, other_ty):
-        self_ty, other_ty = _astype(self_ty), _astype(other_ty)
-        if not issubclass(self_ty, dtype):
+    def dtype_divmod(self, value):
+        self, value = _astype(self), _astype(value)
+        if not issubclass(self, dtype):
             raise TypeError
-        if issubclass(other_ty, (_np.generic, int, float, complex)):
-            tmp = divmod(self_ty(), other_ty(1))
+        if issubclass(value, (_np.generic, int, float, complex)):
+            tmp = divmod(self(), value(1))
             return _Tuple[type(tmp[0]), type(tmp[1])]
         else:
             raise TypeError
 
-    def dtype_eq(self_ty, other_ty):
-        self_ty = _astype(self_ty)
-        if not issubclass(self_ty, dtype):
+    def dtype_eq(self, value):
+        self = _astype(self)
+        if not issubclass(self, dtype):
             raise TypeError
         return bool
 
-    def dtype_float(self_ty):
-        if issubclass(self_ty, dtype):
+    def dtype_float(self):
+        if issubclass(self, dtype):
             return float
         else:
             raise TypeError
@@ -506,39 +558,59 @@ def make_complex_dtype(dtype):
         from penty.penty import Types
         if value_ty is None:
             return _Cst[dtype()]
-        if '__int__' not in Types[_astype(value_ty)]:
-            raise TypeError
-        return dtype
+        if issubclass(value_ty, (int, str, float, complex, _np.generic)):
+            return dtype
+        raise TypeError
 
-    def dtype_int(self_ty):
-        if issubclass(self_ty, dtype):
+    def dtype_int(self):
+        if issubclass(self, dtype):
             return int
         else:
             raise TypeError
 
-    def dtype_ne(self_ty, other_ty):
-        self_ty = _astype(self_ty)
-        if not issubclass(self_ty, dtype):
+    def dtype_ne(self, value):
+        self = _astype(self)
+        if not issubclass(self, dtype):
             raise TypeError
         return bool
 
-    def dtype_rdivmod(self_ty, other_ty):
-        self_ty, other_ty = _astype(self_ty), _astype(other_ty)
-        if not issubclass(self_ty, dtype):
+    def dtype_pow(self, value, mod=_Cst[None]):
+        self, value = _astype(self), _astype(value)
+        if mod is not _Cst[None] and not issubclass(mod, dtype):
             raise TypeError
-        if issubclass(other_ty, (_np.generic, int, float, complex)):
-            tmp = divmod(other_ty(1), self_ty(1))
+        if issubclass(self, dtype) and issubclass(value, dtype):
+            return dtype
+        else:
+            raise TypeError
+
+    def dtype_rdivmod(self, value):
+        self, value = _astype(self), _astype(value)
+        if not issubclass(self, dtype):
+            raise TypeError
+        if issubclass(value, (_np.generic, int, float, complex)):
+            tmp = divmod(value(1), self(1))
             return _Tuple[type(tmp[0]), type(tmp[1])]
         else:
             raise TypeError
 
-    def dtype_str(self_ty):
-        if not issubclass(self_ty, dtype):
+    def dtype_rpow(self, value, mod=_Cst[None]):
+        self, value = _astype(self), _astype(value)
+        if mod is not _Cst[None] and not issubclass(mod, dtype):
+            raise TypeError
+        if not issubclass(self, dtype):
+            raise TypeError
+        if issubclass(value, (_np.generic, int, float, complex)):
+            return type(pow(value(1), self(1)))
+        else:
+            raise TypeError
+
+    def dtype_str(self):
+        if not issubclass(self, dtype):
             raise TypeError
         return str
 
-    def dtype_as_integer_ratio(self_ty):
-        if not issubclass(self_ty, dtype):
+    def dtype_as_integer_ratio(self):
+        if not issubclass(self, dtype):
             raise TypeError
         air = dtype(0).as_integer_ratio()
         return _Tuple[type(air[0]), type(air[1])]
@@ -561,11 +633,11 @@ def make_complex_dtype(dtype):
         '__ne__': _CFT[dtype_ne, dtype.__ne__],
         '__neg__': dtype_make_unaryop(operator.neg),
         '__pos__': dtype_make_unaryop(operator.pos),
-        '__pow__': dtype_make_binop(operator.pow),
+        '__pow__': _CFT[dtype_pow, dtype.__pow__],
         '__radd__': dtype_make_rbinop(operator.add),
         '__rfloordiv__': dtype_make_rbinop(operator.floordiv),
         '__rmul__': dtype_make_rbinop(operator.mul),
-        '__rpow__': dtype_make_rbinop(operator.pow),
+        '__rpow__': _CFT[dtype_rpow, dtype.__rpow__],
         '__rsub__': dtype_make_rbinop(operator.sub),
         '__rtruediv__': dtype_make_rbinop(operator.truediv),
         '__str__': _CFT[dtype_str, dtype.__str__],
@@ -600,15 +672,15 @@ class NDArray(_np.ndarray, metaclass=NDArrayMeta):
 
 
 def ndarray_make_binop(op):
-    def binop(self_ty, other_ty):
+    def binop(self, value):
         from penty.penty import Types
-        dtype_ty, shape_ty = self_ty.__args__
-        other_ty =_astype(other_ty)
-        if other_ty in (bool, int, float):
-            new_dtype_ty = Types[_Module['operator']][op](dtype_ty, other_ty)
+        dtype_ty, shape_ty = self.__args__
+        value =_astype(value)
+        if value in (bool, int, float):
+            new_dtype_ty = Types[_Module['operator']][op](dtype_ty, value)
             return NDArray[new_dtype_ty, shape_ty]
-        if issubclass(other_ty, NDArray):
-            other_dtype_ty, other_shape_ty = other_ty.__args__
+        if issubclass(value, NDArray):
+            other_dtype_ty, other_shape_ty = value.__args__
             new_dtype_ty = Types[_Module['operator']][op](dtype_ty,
                                                           other_dtype_ty)
             return NDArray[new_dtype_ty,
@@ -617,24 +689,24 @@ def ndarray_make_binop(op):
     return _FT[binop]
 
 def ndarray_make_unaryop(op):
-    def unaryop(self_ty):
+    def unaryop(self):
         from penty.penty import Types
-        dtype_ty, shape_ty = self_ty.__args__
+        dtype_ty, shape_ty = self.__args__
         return NDArray[Types[dtype_ty][op](dtype_ty), shape_ty]
     return _FT[unaryop]
 
 def ndarray_make_bitop(op):
-    def binop(self_ty, other_ty):
+    def binop(self, value):
         from penty.penty import Types
-        dtype_ty, shape_ty = self_ty.__args__
+        dtype_ty, shape_ty = self.__args__
         if dtype_ty not in (bool, int):
             raise TypeError
-        other_ty =_astype(other_ty)
-        if other_ty in (bool, int):
-            new_dtype_ty = Types[_Module['operator']][op](dtype_ty, other_ty)
+        value =_astype(value)
+        if value in (bool, int):
+            new_dtype_ty = Types[_Module['operator']][op](dtype_ty, value)
             return NDArray[new_dtype_ty, shape_ty]
-        if issubclass(other_ty, NDArray):
-            other_dtype_ty, other_shape_ty = other_ty.__args__
+        if issubclass(value, NDArray):
+            other_dtype_ty, other_shape_ty = value.__args__
             if other_dtype_ty not in (bool, int):
                 raise TypeError
             new_dtype_ty = Types[_Module['operator']][op](dtype_ty,
@@ -644,21 +716,21 @@ def ndarray_make_bitop(op):
         raise TypeError
     return _FT[binop]
 
-def ndarray_invert(self_ty):
+def ndarray_invert(self):
     from penty.penty import Types
-    dtype_ty, shape_ty = self_ty.__args__
+    dtype_ty, shape_ty = self.__args__
     if dtype_ty not in (bool, int):
         raise TypeError
     return NDArray[Types[dtype_ty]['__invert__'](dtype_ty), shape_ty]
 
-def ndarray_matmul(self_ty, other_ty):
+def ndarray_matmul(self, value):
     from penty.penty import Types
-    dtype_ty, shape_ty = self_ty.__args__
-    other_ty =_astype(other_ty)
-    if other_ty in (bool, int, float):
+    dtype_ty, shape_ty = self.__args__
+    value =_astype(value)
+    if value in (bool, int, float):
         raise TypeError
-    if issubclass(other_ty, NDArray):
-        other_dtype_ty, other_shape_ty = other_ty.__args__
+    if issubclass(value, NDArray):
+        other_dtype_ty, other_shape_ty = value.__args__
         # using mul instead of matmul for type inference as matmul is not
         # defined for some scalars, including int
         new_dtype_ty = Types[_Module['operator']]['__mul__'](dtype_ty,
@@ -667,8 +739,8 @@ def ndarray_matmul(self_ty, other_ty):
                        _broadcast_shape(shape_ty, other_shape_ty)]
     raise TypeError
 
-def ndarray_getitem(self_ty, key_ty):
-    dtype_ty, shape_ty= self_ty.__args__
+def ndarray_getitem(self, key_ty):
+    dtype_ty, shape_ty= self.__args__
 
     if _astype(key_ty) is int:
         if len(shape_ty.__args__) == 1:
@@ -677,7 +749,7 @@ def ndarray_getitem(self_ty, key_ty):
             return NDArray[dtype_ty,
                            _Tuple[shape_ty.__args__[1:]]]
     if _astype(key_ty) is slice:
-        return ndarray_getitem(self_ty, _Tuple[key_ty])
+        return ndarray_getitem(self, _Tuple[key_ty])
 
     if issubclass(_astype(key_ty), tuple):
         if len(shape_ty.__args__) < len(key_ty.__args__):
@@ -718,15 +790,15 @@ def ndarray_getitem(self_ty, key_ty):
             return dtype_ty
     raise TypeError(key_ty)
 
-def ndarray_len(self_ty):
-    _, shape_ty = self_ty.__args__
+def ndarray_len(self):
+    _, shape_ty = self.__args__
     return shape_ty.__args__[0]
 
-def ndarray_str(self_ty):
+def ndarray_str(self):
     return str
 
-def ndarray_bool(self_ty):
-    _, shape_ty = self_ty.__args__
+def ndarray_bool(self):
+    _, shape_ty = self.__args__
     dims = shape_ty.__args__
     if all((issubclass(d, _Cst) and d.__args__[0]) for d in dims):
         return _Cst[True]
@@ -738,17 +810,20 @@ def ndarray_bool(self_ty):
 ##
 
 
-def ones_(shape_ty, dtype_ty=None):
-    if dtype_ty is None:
-        dtype_ty = float
-    elif issubclass(dtype_ty, _Ty):
-        dtype_ty = dtype_ty.__args__[0]
+def ones_(shape, dtype=None, order=_Cst['C']):
+    if dtype is None:
+        dtype = float
+    elif issubclass(dtype, _Ty):
+        dtype = dtype.__args__[0]
     else:
         raise NotImplementedError
-    if shape_ty is int or issubclass(shape_ty, _Cst):
-        return NDArray[dtype_ty, _Tuple[shape_ty]]
-    if issubclass(shape_ty, _Tuple):
-        return NDArray[dtype_ty, shape_ty]
+    if not issubclass(_astype(order), str):
+        raise TypeError
+
+    if shape is int or issubclass(shape, _Cst):
+        return NDArray[dtype, _Tuple[shape]]
+    if issubclass(shape, _Tuple):
+        return NDArray[dtype, shape]
     raise NotImplementedError
 
 
@@ -815,6 +890,7 @@ def register(registry):
     registry[_np.complexfloating] = resolve_base_attrs(_complexfloating_attrs,
                                                        registry)
 
+    registry[_np.bool_] = resolve_base_attrs(_bool_attrs, registry)
     registry[_np.int8] = resolve_base_attrs(_int8_attrs, registry)
     registry[_np.uint8] = resolve_base_attrs(_uint8_attrs, registry)
     registry[_np.int16] = resolve_base_attrs(_int16_attrs, registry)

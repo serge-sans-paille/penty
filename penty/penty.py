@@ -102,7 +102,7 @@ def normalize_test_ty(types):
     elif issubclass(types, Cst):
         return Cst[bool(types.__args__[0])]
     else:
-        return types
+        return Types[bool]['__init__'](types)
 
 
 def is_constantcall(func, args_ty):

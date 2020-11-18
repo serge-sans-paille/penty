@@ -1,10 +1,11 @@
-from unittest import TestCase
 import gast as ast
 import penty
 import penty.types as pentyping
 import typing
 
-class TestExpr(TestCase):
+from pentest import TestPenty
+
+class TestExpr(TestPenty):
 
     def assertTypesEqual(self, t0, t1):
         st0 = {str(ty) for ty in t0}

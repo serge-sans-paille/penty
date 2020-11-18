@@ -15,119 +15,145 @@ import operator as _operator
 ##
 #
 
-def int_divmod(self_ty, other_ty):
+def int_divmod(self, value):
     from penty.penty import Types
-    fd = Types[_Module['operator']]['__floordiv__'](self_ty, other_ty)
-    m = Types[_Module['operator']]['__mod__'](self_ty, other_ty)
+    fd = Types[_Module['operator']]['__floordiv__'](self, value)
+    m = Types[_Module['operator']]['__mod__'](self, value)
     return _Tuple[fd, m]
 
-def int_init(self_ty=None, base_ty=None):
-    if self_ty is None:
+def int_init(value=None, base=None):
+    if value is None:
         return _Cst[0]
 
-    if base_ty is not None:
-        if not issubclass(_astype(base_ty), int):
+    if base is not None:
+        if not issubclass(_astype(base), int):
             raise TypeError
 
     from penty.penty import Types
-    return Types[self_ty]['__int__'](self_ty)
+    if issubclass(value, (int, float, str)):
+        return int
+    if '__int__' in Types[value]:
+        return Types[value]['__int__'](value)
+    raise TypeError
 
 def int_make_binop(operator):
-    def binop(self_ty, other_ty):
-        self_ty, other_ty = _astype(self_ty), _astype(other_ty)
-        if issubclass(self_ty, int) and issubclass(other_ty, int):
+    def binop(self, value):
+        self, value = _astype(self), _astype(value)
+        if issubclass(self, int) and issubclass(value, int):
             return int
         else:
             raise TypeError
     return _CFT[binop, operator]
 
 def int_make_bitop(operator):
-    def binop(self_ty, other_ty):
-        self_ty, other_ty = _astype(self_ty), _astype(other_ty)
-        if issubclass(self_ty, int) and issubclass(other_ty, int):
+    def binop(self, value):
+        self, value = _astype(self), _astype(value)
+        if issubclass(self, int) and issubclass(value, int):
             return int
         else:
             raise TypeError
     return _CFT[binop, operator]
 
-def int_truediv(self_ty, other_ty):
-    self_ty, other_ty = _astype(self_ty), _astype(other_ty)
-    if issubclass(self_ty, int) and issubclass(other_ty, int):
+def int_truediv(self, value):
+    self, value = _astype(self), _astype(value)
+    if issubclass(self, int) and issubclass(value, int):
         return float
     else:
         raise TypeError
 
 def int_make_unaryop(operator):
-    def unaryop(self_ty):
-        if issubclass(self_ty, int):
+    def unaryop(self):
+        if issubclass(self, int):
             return int
         else:
             raise TypeError
     return _CFT[unaryop, operator]
 
-def int_bit_length(self_ty):
-    if issubclass(self_ty, int):
+def int_bit_length(self):
+    if issubclass(self, int):
         return int
     else:
         raise TypeError
 
-def int_conjugate(self_ty):
-    if issubclass(self_ty, int):
+def int_conjugate(self):
+    if issubclass(self, int):
         return int
     else:
         raise TypeError
 
-def int_bool(self_ty):
-    if issubclass(self_ty, int):
+def int_bool(self):
+    if issubclass(self, int):
         return bool
     else:
         raise TypeError
 
-def int_ceil(self_ty):
-    if issubclass(self_ty, int):
+def int_eq(self, value):
+    if issubclass(_astype(self), int):
+        return bool
+    else:
+        raise TypeError
+
+def int_ceil(self):
+    if issubclass(self, int):
         return int
     else:
         raise TypeError
 
-def int_int(self_ty):
-    if issubclass(self_ty, int):
+def int_int(self):
+    if issubclass(self, int):
         return int
     else:
         raise TypeError
 
-def int_abs(self_ty):
-    if issubclass(self_ty, int):
+def int_abs(self):
+    if issubclass(self, int):
         return int
     else:
         raise TypeError
 
-def int_float(self_ty):
-    if issubclass(self_ty, int):
+def int_float(self):
+    if issubclass(self, int):
         return float
     else:
         raise TypeError
 
-def int_str(self_ty):
-    if issubclass(self_ty, int):
+def int_ne(self, value):
+    if issubclass(_astype(self), int):
+        return bool
+    else:
+        raise TypeError
+
+
+def int_str(self):
+    if issubclass(self, int):
         return str
     else:
         raise TypeError
 
 def int_make_boolop(operator):
-    def boolop(self_ty, other_ty):
-        self_ty, other_ty = _astype(self_ty), _astype(other_ty)
-        if issubclass(self_ty, int) and issubclass(other_ty, int):
+    def boolop(self, value):
+        self, value = _astype(self), _astype(value)
+        if issubclass(self, int) and issubclass(value, int):
             return bool
         else:
             raise TypeError
     return _CFT[boolop, operator]
 
 def int_make_biniop(operator):
-    def biniop(self_ty, other_ty):
-        result_ty = operator(self_ty, other_ty)
-        # int are immutable so we don't update self_ty
+    def biniop(self, value):
+        result_ty = operator(self, value)
+        # int are immutable so we don't update self
         return result_ty
     return _CFT[biniop, operator]
+
+def int_pow(self, value, mod=_Cst[None]):
+    self, value = _astype(self), _astype(value)
+    if mod is not _Cst[None] and not issubclass(mod, int):
+        raise TypeError
+    if issubclass(self, int) and issubclass(value, int):
+        return int
+    else:
+        raise TypeError
 
 
 _int_attrs = {
@@ -138,7 +164,7 @@ _int_attrs = {
     '__bool__': _CFT[int_bool, int.__bool__],
     '__ceil__': _CFT[int_ceil, int.__ceil__],
     '__divmod__': _CFT[int_divmod, int.__divmod__],
-    '__eq__': lambda self_ty, other_ty: bool,
+    '__eq__': _CFT[int_eq, int.__eq__],
     '__float__': _CFT[int_float, int.__float__],
     '__floordiv__': int_make_binop(_operator.floordiv),
     '__ge__': int_make_boolop(_operator.ge),
@@ -152,11 +178,11 @@ _int_attrs = {
     '__mul__': int_make_binop(_operator.mul),
     '__mod__': int_make_binop(_operator.mod),
     '__name__': _Cst['int'],
-    '__ne__': lambda self_ty, other_ty: bool,
+    '__ne__': _CFT[int_ne, int.__ne__],
     '__neg__': int_make_unaryop(_operator.neg),
     '__or__': int_make_bitop(_operator.or_),
     '__pos__': int_make_unaryop(_operator.pos),
-    '__pow__': int_make_binop(_operator.pow),
+    '__pow__': _CFT[int_pow, int.__pow__],
     '__rshift__': int_make_bitop(_operator.rshift),
     '__str__': _CFT[int_str, int.__str__],
     '__sub__': int_make_binop(_operator.sub),
@@ -170,49 +196,46 @@ _int_attrs = {
     'real': int,
 }
 
-_int_attrs.update({
-    '__iadd__': int_make_biniop(_int_attrs['__add__']),
-    '__iand__': int_make_biniop(_int_attrs['__and__']),
-    '__ior__': int_make_biniop(_int_attrs['__or__']),
-    '__itruediv__': int_make_biniop(_int_attrs['__truediv__']),
-    '__ifloordiv__': int_make_biniop(_int_attrs['__floordiv__']),
-    '__imod__': int_make_biniop(_int_attrs['__mod__']),
-    '__imul__': int_make_biniop(_int_attrs['__mul__']),
-    '__isub__': int_make_biniop(_int_attrs['__sub__']),
-    '__ipow__': int_make_biniop(_int_attrs['__pow__']),
-    '__ixor__': int_make_biniop(_int_attrs['__xor__']),
-})
-
 ##
 #
 
 
-def bool_and(self_ty, other_ty):
-    self_ty, other_ty = _astype(self_ty), _astype(other_ty)
-    if self_ty is bool and other_ty is bool:
+def bool_and(self, value):
+    self, value = _astype(self), _astype(value)
+    if self is bool and value is bool:
         return bool
-    if all(issubclass(ty, (bool, int)) for ty in (self_ty, other_ty)):
+    if all(issubclass(ty, (bool, int)) for ty in (self, value)):
         return int
     raise TypeError
 
-def bool_init(value_ty):
+def bool_init(value=_Cst[False]):
     from penty.penty import Types
-    return Types[_astype(value_ty)]['__bool__'](value_ty)
+    if _astype(value) is bool:
+        return value
+    type_ = Types[_astype(value)]
+    if '__bool__' in type_:
+        return type_['__bool__'](value)
+    if '__len__' in type_:
+        len_ty = type_['__len__'](value)
+        if issubclass(len_ty, _Cst):
+            return _Cst[bool(len_ty.__args__[0])]
+        return bool
+    raise TypeError
 
-def bool_not(self_ty):
-    if self_ty is bool:
+def bool_not(self):
+    if self is bool:
         return bool
     else:
         raise TypeError
 
-def bool_or(self_ty, other_ty):
-    return bool_and(self_ty, other_ty)
+def bool_or(self, value):
+    return bool_and(self, value)
 
-def bool_str(value_ty):
+def bool_str(self):
     return str
 
-def bool_xor(self_ty, other_ty):
-    return bool_and(self_ty, other_ty)
+def bool_xor(self, value):
+    return bool_and(self, value)
 
 
 _bool_attrs = {
@@ -220,7 +243,6 @@ _bool_attrs = {
     '__bases__': _Tuple[_Ty[int]],
     '__init__': _CFT[bool_init, bool],
     '__name__': _Cst['bool'],
-    '__not__': _CFT[bool_not, _operator.not_],
     '__or__': _CFT[bool_or, bool.__or__],
     '__str__': _CFT[bool_str, bool.__str__],
     '__xor__': _CFT[bool_xor, bool.__xor__],
@@ -230,11 +252,11 @@ _bool_attrs = {
 ##
 #
 
-def FilteringBool_bool(self_ty):
-    return _Cst[self_ty.__args__[0]]
+def FilteringBool_bool(self):
+    return _Cst[self.__args__[0]]
 
-def FilteringBool_not(self_ty):
-    val, id_, filtered_tys = self_ty.__args__
+def FilteringBool_not(self):
+    val, id_, filtered_tys = self.__args__
     return _FilteringBool[
         not val,
         id_,
@@ -248,53 +270,68 @@ _FilteringBool_attrs = {
 ##
 #
 
-def float_abs(self_ty):
+def float_abs(self):
     return float
 
-def float_bool(self_ty):
+def float_bool(self):
     return bool
 
-def float_divmod(self_ty, other_ty):
-    return _Tuple[_float_attrs['__floordiv__'](self_ty, other_ty),
-                  _float_attrs['__mod__'](self_ty, other_ty)]
+def float_divmod(self, value):
+    return _Tuple[_float_attrs['__floordiv__'](self, value),
+                  _float_attrs['__mod__'](self, value)]
 
-def float_float(self_ty):
+def float_float(self):
     return float
 
-def float_init(self_ty):
+def float_init(value):
     from penty.penty import Types
-    return Types[self_ty]['__float__'](self_ty)
+    value = _astype(value)
+    if issubclass(value, (bool, int, float, str)):
+        return float
+    if '__float__' in Types[value]:
+        return Types[value]['__float__'](value)
+    raise TypeError
 
-def float_int(self_ty):
+def float_int(self):
     return int
 
 def float_make_binop(operator):
-    def binop(self_ty, other_ty):
-        self_ty, other_ty = _astype(self_ty), _astype(other_ty)
-        if self_ty is float and other_ty in (bool, int, float):
+    def binop(self, value):
+        self, value = _astype(self), _astype(value)
+        if self is float and value in (bool, int, float):
             return float
         else:
             raise TypeError
     return _CFT[binop, operator]
 
 def float_make_unaryop(operator):
-    def unaryop(self_ty):
-        if self_ty is float:
+    def unaryop(self):
+        if self is float:
             return float
         raise TypeError
     return _CFT[unaryop, operator]
 
 
 def float_make_boolop(operator):
-    def boolop(self_ty, other_ty):
-        self_ty, other_ty = _astype(self_ty), _astype(other_ty)
-        if self_ty is float and other_ty in (bool, int, float):
+    def boolop(self, value):
+        self, value = _astype(self), _astype(value)
+        if self is float and value in (bool, int, float):
             return bool
         else:
             raise TypeError
     return _CFT[boolop, operator]
 
-def float_str(self_ty):
+def float_pow(self, value, mod=_Cst[None]):
+    self, value = _astype(self), _astype(value)
+    if mod is not _Cst[None] and not issubclass(mod, int):
+        raise TypeError
+    if issubclass(self, float) and issubclass(value, (int, float)):
+        return float
+    else:
+        raise TypeError
+
+
+def float_str(self):
     return str
 
 
@@ -319,7 +356,7 @@ _float_attrs = {
     '__ne__': float_make_boolop(_operator.ne),
     '__neg__': float_make_unaryop(_operator.neg),
     '__pos__': float_make_unaryop(_operator.pos),
-    '__pow__': float_make_binop(_operator.pow),
+    '__pow__': _CFT[float_pow, float.__pow__],
     '__str__': _CFT[float_str, float.__str__],
     '__sub__': float_make_binop(_operator.sub),
     '__truediv__': float_make_binop(_operator.truediv),
@@ -331,18 +368,18 @@ for slot in ('add', 'divmod', 'floordiv', 'mod', 'mul', 'pow', 'sub', 'truediv')
 ##
 #
 
-def complex_abs(self_ty):
-    if not issubclass(self_ty, complex):
+def complex_abs(self):
+    if not issubclass(self, complex):
         raise TypeError
     return complex
 
-def complex_bool(self_ty):
-    if not issubclass(self_ty, complex):
+def complex_bool(self):
+    if not issubclass(self, complex):
         raise TypeError
     return bool
 
-def complex_divmod(self_ty, other_ty):
-    if not issubclass(self_ty, complex):
+def complex_divmod(self, value):
+    if not issubclass(self, complex):
         raise TypeError
     raise TypeError
 
@@ -353,7 +390,7 @@ def complex_init(real_ty, imag_ty=None):
     if imag_ty is None:
         if issubclass(real_ty, complex):
             return complex
-        Types[real_ty]['__float__'](real_ty)
+        Types[float]['__init__'](real_ty)
         return complex
 
     # interestingly, if the real part is a complex, everything is fine (!)
@@ -370,28 +407,28 @@ def complex_init(real_ty, imag_ty=None):
     Types[imag_ty]['__float__'](imag_ty)
     return complex
 
-def complex_eq(self_ty, other_ty):
-    if not issubclass(self_ty, complex):
+def complex_eq(self, value):
+    if not issubclass(self, complex):
         raise TypeError
     return bool
 
-def complex_ne(self_ty, other_ty):
-    if not issubclass(self_ty, complex):
+def complex_ne(self, value):
+    if not issubclass(self, complex):
         raise TypeError
     return bool
 
-def complex_int(self_ty):
-    if not issubclass(self_ty, complex):
+def complex_int(self):
+    if not issubclass(self, complex):
         raise TypeError
     raise TypeError
 
 def complex_make_binop(operator):
-    def binop(self_ty, other_ty):
-        self_ty, other_ty = _astype(self_ty), _astype(other_ty)
-        if not issubclass(self_ty, complex):
+    def binop(self, value):
+        self, value = _astype(self), _astype(value)
+        if not issubclass(self, complex):
             raise TypeError
 
-        if not issubclass(other_ty, (int, float, complex)):
+        if not issubclass(value, (int, float, complex)):
             raise TypeError
 
         return complex
@@ -399,22 +436,32 @@ def complex_make_binop(operator):
     return _CFT[binop, operator]
 
 def complex_make_unaryop(operator):
-    def unaryop(self_ty):
-        if not issubclass(self_ty, complex):
+    def unaryop(self):
+        if not issubclass(self, complex):
             raise TypeError
         return complex
     return _CFT[unaryop, operator]
 
 
 def complex_make_boolop(operator):
-    def boolop(self_ty, other_ty):
-        if not issubclass(self_ty, complex):
+    def boolop(self, value):
+        if not issubclass(self, complex):
             raise TypeError
         raise TypeError
     return _CFT[boolop, operator]
 
-def complex_str(self_ty):
-    if not issubclass(self_ty, complex):
+def complex_pow(self, value, mod=_Cst[None]):
+    self, value = _astype(self), _astype(value)
+    if mod is not _Cst[None] and not issubclass(mod, int):
+        raise TypeError
+    if issubclass(self, complex) and issubclass(value, (int, float, complex)):
+        return complex
+    else:
+        raise TypeError
+
+
+def complex_str(self):
+    if not issubclass(self, complex):
         raise TypeError
     return str
 
@@ -438,7 +485,7 @@ _complex_attrs = {
     '__ne__': _CFT[complex_ne, _operator.ne],
     '__neg__': complex_make_unaryop(_operator.neg),
     '__pos__': complex_make_unaryop(_operator.pos),
-    '__pow__': complex_make_binop(_operator.pow),
+    '__pow__': _CFT[complex_pow, complex.__pow__],
     '__str__': _CFT[complex_str, complex.__str__],
     '__sub__': complex_make_binop(_operator.sub),
     '__truediv__': complex_make_binop(_operator.truediv),
@@ -451,56 +498,59 @@ for slot in ('add', 'divmod', 'floordiv', 'mod', 'mul', 'pow', 'sub', 'truediv')
 #
 str_iterator = type(iter(""))
 
-def str_bool(self_ty):
-    if self_ty is str:
+def str_bool(self):
+    if self is str:
         return bool
     else:
         raise TypeError
 
-def str_int(self_ty):
-    if self_ty is str:
+def str_int(self):
+    if self is str:
         return int
     else:
         raise TypeError
 
-def str_init(self_ty):
+def str_init(self):
     from penty.penty import Types
-    return Types[self_ty]['__str__'](self_ty)
+    return Types[self]['__str__'](self)
 
 
-def str_float(self_ty):
-    if self_ty is str:
+def str_float(self):
+    if self is str:
         return float
     else:
         raise TypeError
 
-def str_str(self_ty):
-    if self_ty is str:
+def str_str(self):
+    if self is str:
         return str
     else:
         raise TypeError
 
 
-def str_iter(self_ty):
-    if _astype(self_ty) is str:
+def str_iter(self):
+    if _astype(self) is str:
         return str_iterator
     else:
         raise TypeError
 
-def str_lt(self_ty, other_ty):
-    if _astype(self_ty) is str and _astype(other_ty) is str:
+def str_len(self):
+    if self is str:
+        return int
+    else:
+        raise TypeError
+
+def str_lt(self, value):
+    if _astype(self) is str and _astype(value) is str:
         return bool
     else:
         raise TypeError
 
 _str_attrs = {
     '__bases__': _Tuple[_Ty[object]],
-    '__bool__': _CFT[str_bool, bool],
-    '__float__': _CFT[str_float, float],
     '__init__': _CFT[str_init, str],
-    '__int__': _CFT[str_int, int],
     '__iter__': _FT[str_iter],
-    '__len__': _CFT[lambda *args: int, str.__len__],
+    '__len__': _CFT[str_len, str.__len__],
     '__lt__': _CFT[str_lt, str.__lt__],
     '__name__': _Cst['str'],
     '__str__': _CFT[str_str, str.__str__],
@@ -509,8 +559,8 @@ _str_attrs = {
 ##
 #
 
-def none_eq(self_ty, other_ty):
-    return _Cst[bool(other_ty is _Cst[None])]
+def none_eq(self, value):
+    return _Cst[bool(value is _Cst[None])]
 
 _none_attrs = {
     '__eq__': _CFT[none_eq, _operator.eq],
@@ -521,111 +571,102 @@ _none_attrs = {
 ##
 #
 
-def dict_bool(self_ty):
-    if not issubclass(self_ty, dict):
+def dict_contains(self, key):
+    if not issubclass(self, dict):
         raise TypeError
-    if not self_ty.__args__[0]:
+    if not self.__args__[0]:
         return _Cst[False]
     return bool
 
-def dict_contains(self_ty, value_ty):
-    if not issubclass(self_ty, dict):
-        raise TypeError
-    if not self_ty.__args__[0]:
-        return _Cst[False]
-    return bool
-
-def dict_clear(self_ty):
-    if not issubclass(self_ty, dict):
+def dict_clear(self):
+    if not issubclass(self, dict):
         raise TypeError
     return _Cst[None]
 
-def dict_copy(self_ty):
-    if not issubclass(self_ty, dict):
+def dict_copy(self):
+    if not issubclass(self, dict):
         raise TypeError
-    return _Dict[self_ty.__args__[0].copy(),
-                 self_ty.__args__[1].copy()]
+    return _Dict[self.__args__[0].copy(),
+                 self.__args__[1].copy()]
 
-def dict_delitem(self_ty, value_ty):
-    if not issubclass(self_ty, dict):
+def dict_delitem(self, key):
+    if not issubclass(self, dict):
         raise TypeError
-    if not self_ty.__args__[0]:
+    if not self.__args__[0]:
         raise TypeError
     return _Cst[None]
 
-def dict_get(self_ty, key_ty, default_ty=None):
-    if not issubclass(self_ty, dict):
-        raise TypeError
-    if default_ty is None:
-        default_ty = _Cst[None]
-
-    return self_ty.__args__[1].union([default_ty])
-
-def dict_getitem(self_ty, key_ty):
-    if not issubclass(self_ty, dict):
+def dict_get(self, key, default=_Cst[None]):
+    if not issubclass(self, dict):
         raise TypeError
 
-    return self_ty.__args__[1].copy()
+    return self.__args__[1].union([default])
 
-def dict_pop(self_ty, key_ty, default_ty=None):
-    return dict_get(self_ty, key_ty, default_ty)
+def dict_clear(self):
+    return _Cst[None]
 
-def dict_popitem(self_ty):
-    if not issubclass(self_ty, dict):
+def dict_getitem(self, key):
+    if not issubclass(self, dict):
         raise TypeError
 
-    return {_Tuple[key_ty, value_ty]
-            for key_ty, value_ty in _itertools.product(*self_ty.__args__)}
+    return self.__args__[1].copy()
 
-def dict_items(self_ty):
-    if not issubclass(self_ty, dict):
+def dict_pop(self, key, default=_Cst[None]):
+    return dict_get(self, key, default)
+
+def dict_popitem(self):
+    if not issubclass(self, dict):
+        raise TypeError
+
+    return {_Tuple[key, value_ty]
+            for key, value_ty in _itertools.product(*self.__args__)}
+
+def dict_items(self):
+    if not issubclass(self, dict):
         raise TypeError
     return _DictItemIterator[{_Tuple[kty, vty]
                               for kty, vty in
-                              _itertools.product(*self_ty.__args__)}]
+                              _itertools.product(*self.__args__)}]
 
-def dict_keys(self_ty):
-    if not issubclass(self_ty, dict):
+def dict_keys(self):
+    if not issubclass(self, dict):
         raise TypeError
-    return _DictKeyIterator[self_ty.__args__[0]]
+    return _DictKeyIterator[self.__args__[0]]
 
-def dict_len(self_ty):
-    if not issubclass(self_ty, dict):
+def dict_len(self):
+    if not issubclass(self, dict):
         raise TypeError
-    if not self_ty.__args__[0]:
+    if not self.__args__[0]:
         return _Cst[0]
     return int
 
-def dict_setdefault(self_ty, key_ty, default_ty=None):
-    if not issubclass(self_ty, dict):
+def dict_setdefault(self, key, default=_Cst[None]):
+    if not issubclass(self, dict):
         raise TypeError
-    if default_ty is None:
-        default_ty = _Cst[None]
-    else:
-        default_ty = _astype(default_ty)
+    default = _astype(default)
 
-    self_ty.__args__[0].add(_astype(key_ty))
-    self_ty.__args__[1].add(default_ty)
+    self.__args__[0].add(_astype(key))
+    self.__args__[1].add(default)
 
-    return dict_get(self_ty, key_ty, default_ty)
+    return dict_get(self, key, default)
 
-def dict_setitem(self_ty, index_ty, value_ty):
-    if not issubclass(self_ty, dict):
+def dict_setitem(self, key, value):
+    if not issubclass(self, dict):
         raise TypeError
-    self_ty.__args__[0].add(index_ty)
-    self_ty.__args__[1].add(value_ty)
+    self.__args__[0].add(key)
+    self.__args__[1].add(value)
     return _Cst[None]
 
-def dict_update(self_ty, *other_tys):
+def dict_update(self, *other_tys):
     from penty.penty import Types
-    if not issubclass(self_ty, dict):
+    if not issubclass(self, dict):
         raise TypeError
 
     for other_ty in other_tys:
         other_ty = _astype(other_ty)
         if issubclass(other_ty, _Dict):
-            self_ty.__args__[0].update(other_ty.__args__[0])
-            self_ty.__args__[1].update(other_ty.__args__[1])
+            self.__args__[0].update(other_ty.__args__[0])
+            self.__args__[1].update(other_ty.__args__[1])
             continue
 
         if '__iter__' not in Types[other_ty]:
@@ -644,16 +685,16 @@ def dict_update(self_ty, *other_tys):
                     raise TypeError
                 if len(value_ty.__args__) != 2:
                     raise TypeError
-                self_ty.__args__[0].add(_astype(value_ty.__args__[0]))
-                self_ty.__args__[1].add(_astype(value_ty.__args__[1]))
+                self.__args__[0].add(_astype(value_ty.__args__[0]))
+                self.__args__[1].add(_astype(value_ty.__args__[1]))
     return _Cst[None]
 
-def dict_eq(self_ty, other_ty):
-    if not issubclass(self_ty, dict):
+def dict_eq(self, value):
+    if not issubclass(self, dict):
         raise TypeError
-    if not issubclass(other_ty, dict):
+    if not issubclass(value, dict):
         return _Cst[False]
-    if bool(self_ty.__args__[0]) ^ bool(other_ty.__args__[0]):
+    if bool(self.__args__[0]) ^ bool(value.__args__[0]):
         return _Cst[False]
     return bool
 
@@ -664,51 +705,48 @@ def dict_init(items_ty=None):
         dict_update(result_ty, items_ty)
     return result_ty
 
-def dict_iter(self_ty):
-    if not issubclass(self_ty, dict):
+def dict_iter(self):
+    if not issubclass(self, dict):
         raise TypeError
-    return _DictKeyIterator[self_ty.__args__[0]]
+    return _DictKeyIterator[self.__args__[0]]
 
-def dict_fromkeys(iterable_ty, value_ty=None):
+def dict_fromkeys(iterable, value=_Cst[None]):
     from penty.penty import Types
 
-    iter_ty = Types[iterable_ty]['__iter__'](iterable_ty)
-    key_ty = Types[iter_ty]['__next__'](iter_ty)
+    iter_ty = Types[iterable]['__iter__'](iterable)
+    key = Types[iter_ty]['__next__'](iter_ty)
 
-    if value_ty is None:
-        return _Dict[key_ty, _Cst[None]]
-    else:
-        return _Dict[key_ty, value_ty]
+    return _Dict[key, value]
 
 def make_dict_compare():
-    def dict_compare(self_ty, other_ty):
-        if not issubclass(other_ty, dict):
+    def dict_compare(self, value):
+        if not issubclass(value, dict):
             raise TypeError
         return bool
-    return dict_compare
+    return _FT[dict_compare]
 
-def dict_ne(self_ty, other_ty):
-    if not issubclass(self_ty, dict):
+def dict_ne(self, value):
+    if not issubclass(self, dict):
         raise TypeError
-    if not issubclass(other_ty, dict):
+    if not issubclass(value, dict):
         return _Cst[True]
-    if bool(self_ty.__args__[0]) ^ bool(other_ty.__args__[0]):
+    if bool(self.__args__[0]) ^ bool(value.__args__[0]):
         return _Cst[True]
     return bool
 
-def dict_values(self_ty):
-    if not issubclass(self_ty, dict):
+def dict_values(self):
+    if not issubclass(self, dict):
         raise TypeError
-    return _DictValueIterator[self_ty.__args__[1]]
+    return _DictValueIterator[self.__args__[1]]
 
 def dict_instanciate(ty):
     return _dict_methods
 
 _dict_methods = {
-    '__bool__': _FT[dict_bool],
     '__contains__': _FT[dict_contains],
     '__delitem__': _FT[dict_delitem],
     '__getitem__': _FT[dict_getitem],
+    '__init__': _FT[dict_init],
     '__iter__': _FT[dict_iter],
     '__len__': _FT[dict_len],
     '__gt__': make_dict_compare(),
@@ -733,20 +771,20 @@ _dict_methods = {
 _dict_attrs = {
     '__bases__': _Tuple[_Ty[object]],
     '__name__': _Cst['dict'],
-    '__init__': _FT[dict_init],
-    'from_keys': _FT[dict_fromkeys],
+    'clear': _FT[dict_clear],
+    'fromkeys': _FT[dict_fromkeys],
 }
 _dict_attrs.update(_dict_methods)
 
 ##
 #
 
-def dict_item_iterator_iter(self_ty):
+def dict_item_iterator_iter(self):
     # not exactly correct, python use a temporary type here
-    return self_ty
+    return self
 
-def dict_item_iterator_next(self_ty):
-    return set(self_ty.__args__[0])
+def dict_item_iterator_next(self):
+    return set(self.__args__[0])
 
 def dict_item_iterator_instanciate(ty):
     return {
@@ -757,12 +795,12 @@ def dict_item_iterator_instanciate(ty):
 ##
 #
 
-def dict_key_iterator_iter(self_ty):
+def dict_key_iterator_iter(self):
     # not exactly correct, python use a temporary type here
-    return self_ty
+    return self
 
-def dict_key_iterator_next(self_ty):
-    return set(self_ty.__args__[0])
+def dict_key_iterator_next(self):
+    return set(self.__args__[0])
 
 def dict_key_iterator_instanciate(ty):
     return {
@@ -772,12 +810,12 @@ def dict_key_iterator_instanciate(ty):
 ##
 #
 
-def dict_value_iterator_iter(self_ty):
+def dict_value_iterator_iter(self):
     # not exactly correct, python use a temporary type here
-    return self_ty
+    return self
 
-def dict_value_iterator_next(self_ty):
-    return set(self_ty.__args__[0])
+def dict_value_iterator_next(self):
+    return set(self.__args__[0])
 
 def dict_value_iterator_instanciate(ty):
     return {
@@ -788,26 +826,26 @@ def dict_value_iterator_instanciate(ty):
 ##
 #
 
-def list_append(self_ty, value_ty):
-    self_ty.__args__[0].add(_astype(value_ty))
+def list_append(self, value_ty):
+    self.__args__[0].add(_astype(value_ty))
     return _Cst[None]
 
-def list_count(self_ty, elt_ty):
+def list_count(self, elt_ty):
     return int
 
-def list_getitem(self_ty, key_ty):
-    base_value_ty, = self_ty.__args__
+def list_getitem(self, key):
+    base_value_ty, = self.__args__
 
-    if key_ty in (bool, int):
+    if key in (bool, int):
         return base_value_ty
-    elif key_ty is slice:
-        return self_ty
-    elif issubclass(key_ty, _Cst):
-        key_v = key_ty.__args__[0]
+    elif key is slice:
+        return self
+    elif issubclass(key, _Cst):
+        key_v = key.__args__[0]
         if isinstance(key_v, (bool, int)):
             return base_value_ty
         elif isinstance(key_v, slice):
-            return self_ty
+            return self
     else:
         raise TypeError
 
@@ -835,27 +873,27 @@ _object_attrs = {
 ##
 #
 
-def set_and(self_ty, other_ty):
-    if not issubclass(other_ty, set):
+def set_and(self, value):
+    if not issubclass(value, set):
         raise TypeError
-    if not self_ty.__args__[0]:
+    if not self.__args__[0]:
         return _Set[{}]
-    return _Set[self_ty.__args__[0] | other_ty.__args__[0]]
+    return _Set[self.__args__[0] | value.__args__[0]]
 
 def make_set_compare():
-    def set_compare(self_ty, other_ty):
-        if not issubclass(other_ty, set):
+    def set_compare(self, value):
+        if not issubclass(value, set):
             raise TypeError
         return bool
-    return set_compare
+    return _FT[set_compare]
 
-def set_iand(self_ty, other_ty):
-    if not issubclass(self_ty, set):
+def set_iand(self, value):
+    if not issubclass(self, set):
         raise TypeError
-    if not issubclass(other_ty, set):
+    if not issubclass(value, set):
         raise TypeError
-    self_ty.__args__[0] |= other_ty.__args__[0]
-    return self_ty
+    self.__args__[0] |= value.__args__[0]
+    return self
 
 def set_init(elts_ty=None):
     from penty.penty import Types
@@ -869,132 +907,132 @@ def set_init(elts_ty=None):
     next_ty = Types[iter_ty]['__next__'](iter_ty)
     return _Set[next_ty]
 
-def set_ior(self_ty, other_ty):
-    if not issubclass(self_ty, set):
+def set_ior(self, value):
+    if not issubclass(self, set):
         raise TypeError
-    if not issubclass(other_ty, set):
+    if not issubclass(value, set):
         raise TypeError
-    self_ty.__args__[0] |= other_ty.__args__[0]
-    return self_ty
+    self.__args__[0] |= value.__args__[0]
+    return self
 
-def set_isub(self_ty, other_ty):
-    if not issubclass(self_ty, set):
+def set_isub(self, value):
+    if not issubclass(self, set):
         raise TypeError
-    if not issubclass(other_ty, set):
+    if not issubclass(value, set):
         raise TypeError
-    return self_ty
+    return self
 
-def set_ixor(self_ty, other_ty):
-    if not issubclass(self_ty, set):
+def set_ixor(self, value):
+    if not issubclass(self, set):
         raise TypeError
-    if not issubclass(other_ty, set):
+    if not issubclass(value, set):
         raise TypeError
-    self_ty.__args__[0] |= other_ty.__args__[0]
-    return self_ty
+    self.__args__[0] |= value.__args__[0]
+    return self
 
-def set_len(self_ty):
-    if not issubclass(self_ty, set):
+def set_len(self):
+    if not issubclass(self, set):
         raise TypeError
-    if not self_ty.__args__[0]:
+    if not self.__args__[0]:
         return _Cst[0]
     return int
 
-def set_iter(self_ty):
-    if not issubclass(self_ty, set):
+def set_iter(self):
+    if not issubclass(self, set):
         raise TypeError
-    return _SetIterator[self_ty.__args__[0]]
+    return _SetIterator[self.__args__[0]]
 
-def set_or(self_ty, other_ty):
-    if not issubclass(self_ty, set):
+def set_or(self, value):
+    if not issubclass(self, set):
         raise TypeError
-    if not issubclass(other_ty, set):
+    if not issubclass(value, set):
         raise TypeError
-    return _Set[self_ty.__args__[0] | other_ty.__args__[0]]
+    return _Set[self.__args__[0] | value.__args__[0]]
 
-def set_sub(self_ty, other_ty):
-    if not issubclass(self_ty, set):
+def set_sub(self, value):
+    if not issubclass(self, set):
         raise TypeError
-    if not issubclass(other_ty, set):
+    if not issubclass(value, set):
         raise TypeError
-    return _Set[self_ty.__args__[0]]
+    return _Set[self.__args__[0]]
 
-def set_xor(self_ty, other_ty):
-    if not issubclass(self_ty, set):
+def set_xor(self, value):
+    if not issubclass(self, set):
         raise TypeError
-    if not issubclass(other_ty, set):
+    if not issubclass(value, set):
         raise TypeError
-    return _Set[self_ty.__args__[0] | other_ty.__args__[0]]
+    return _Set[self.__args__[0] | value.__args__[0]]
 
-def set_add(self_ty, value_ty):
-    if not issubclass(self_ty, set):
+def set_add(self, value_ty):
+    if not issubclass(self, set):
         raise TypeError
-    self_ty.__args__[0].add(_astype(value_ty))
+    self.__args__[0].add(_astype(value_ty))
     return _Cst[None]
 
-def set_bool(self_ty):
-    if not issubclass(self_ty, set):
+def set_bool(self):
+    if not issubclass(self, set):
         raise TypeError
-    if not self_ty.__args__[0]:
+    if not self.__args__[0]:
         return _Cst[False]
     return bool
 
-def set_clear(self_ty):
-    if not issubclass(self_ty, set):
+def set_clear(self):
+    if not issubclass(self, set):
         raise TypeError
     return _Cst[None]
 
-def set_contains(self_ty, value_ty):
-    if not issubclass(self_ty, set):
+def set_contains(self, value_ty):
+    if not issubclass(self, set):
         raise TypeError
-    if not self_ty.__args__[0]:
+    if not self.__args__[0]:
         return _Cst[False]
     return bool
 
-def set_copy(self_ty):
-    if not issubclass(self_ty, set):
+def set_copy(self):
+    if not issubclass(self, set):
         raise TypeError
-    return _Set[self_ty.__args__[0].copy()]
+    return _Set[self.__args__[0].copy()]
 
-def set_difference(self_ty, *other_tys):
+def set_difference(self, *values):
     from penty.penty import Types
-    if not issubclass(self_ty, set):
+    if not issubclass(self, set):
         raise TypeError
-    for other_ty in other_tys:
-        if '__iter__' not in Types[other_ty]:
+    for value in values:
+        if '__iter__' not in Types[value]:
             raise TypeError
-    return _Set[self_ty.__args__[0].copy()]
+    return _Set[self.__args__[0].copy()]
 
-def set_difference_update(self_ty, *other_tys):
-    if not issubclass(self_ty, set):
+def set_difference_update(self, *values):
+    if not issubclass(self, set):
         raise TypeError
-    set_difference(self_ty, *other_tys)
+    set_difference(self, *values)
     return _Cst[None]
 
-def set_discard(self_ty, elt_ty):
-    if not issubclass(self_ty, set):
+def set_discard(self, elt_ty):
+    if not issubclass(self, set):
         raise TypeError
-    if not self_ty.__args__[0]:
+    if not self.__args__[0]:
         raise TypeError
     return _Cst[None]
 
-def set_eq(self_ty, other_ty):
-    if not issubclass(self_ty, set):
+def set_eq(self, value):
+    if not issubclass(self, set):
         raise TypeError
-    if not issubclass(other_ty, set):
+    if not issubclass(value, set):
         return _Cst[False]
-    if bool(self_ty.__args__[0]) ^ bool(other_ty.__args__[0]):
+    if bool(self.__args__[0]) ^ bool(value.__args__[0]):
         return _Cst[False]
     return bool
 
-def set_intersection(self_ty, *other_tys):
+def set_intersection(self, *values):
     from penty.penty import Types
-    if not issubclass(self_ty, set):
+    if not issubclass(self, set):
         raise TypeError
-    intersection_tys = self_ty.__args__[0].copy()
-    for other_ty in other_tys:
-        if '__iter__' not in Types[other_ty]:
+    intersection_tys = self.__args__[0].copy()
+    for value in values:
+        if '__iter__' not in Types[value]:
             raise TypeError
-        iter_tys = Types[other_ty]['__iter__'](other_ty)
+        iter_tys = Types[value]['__iter__'](value)
         if not isinstance(iter_tys, set):
             iter_tys = {iter_tys}
         for iter_ty in iter_tys:
@@ -1008,80 +1046,79 @@ def set_intersection(self_ty, *other_tys):
             intersection_tys.update(value_tys)
     return _Set[intersection_tys]
 
-def set_intersection_update(self_ty, *other_tys):
-    if not issubclass(self_ty, set):
+def set_intersection_update(self, *values):
+    if not issubclass(self, set):
         raise TypeError
-    updated = set_intersection(self_ty, *other_tys)
-    self_ty.__args__[0].update(updated.__args__[0])
+    updated = set_intersection(self, *values)
+    self.__args__[0].update(updated.__args__[0])
     return _Cst[None]
 
-def set_isdisjoint(self_ty, other_ty):
+def set_isdisjoint(self, value):
     from penty.penty import Types
-    if not issubclass(self_ty, set):
+    if not issubclass(self, set):
         raise TypeError
-    if not self_ty.__args__[0] or not other_ty.__args__[0]:
+    if not self.__args__[0] or not value.__args__[0]:
         return _Cst[True]
-    if '__iter__' not in Types[other_ty]:
+    if '__iter__' not in Types[value]:
         raise TypeError
     return bool
 
-def set_issubset(self_ty, other_ty):
+def set_issubset(self, value):
     from penty.penty import Types
-    if not issubclass(self_ty, set):
+    if not issubclass(self, set):
         raise TypeError
-    if not self_ty.__args__[0]:
+    if not self.__args__[0]:
         return _Cst[True]
-    if '__iter__' not in Types[other_ty]:
+    if '__iter__' not in Types[value]:
         raise TypeError
     return bool
 
-def set_issuperset(self_ty, other_ty):
-    if not issubclass(self_ty, set):
+def set_issuperset(self, value):
+    if not issubclass(self, set):
         raise TypeError
-    if not self_ty.__args__[0] and not other_ty.__args__[0]:
+    if not self.__args__[0] and not value.__args__[0]:
         return _Cst[True]
-    return set_issubset(self_ty, other_ty)
+    return set_issubset(self, value)
 
-def set_ne(self_ty, other_ty):
-    if not issubclass(self_ty, set):
+def set_ne(self, value):
+    if not issubclass(self, set):
         raise TypeError
-    if not issubclass(other_ty, set):
+    if not issubclass(value, set):
         return _Cst[True]
-    if bool(self_ty.__args__[0]) ^ bool(other_ty.__args__[0]):
+    if bool(self.__args__[0]) ^ bool(value.__args__[0]):
         return _Cst[True]
     return bool
 
-def set_pop(self_ty):
-    if not issubclass(self_ty, set):
+def set_pop(self):
+    if not issubclass(self, set):
         raise TypeError
-    if not self_ty.__args__[0]:
+    if not self.__args__[0]:
         raise TypeError
-    return self_ty.__args__[0].copy()
+    return self.__args__[0].copy()
 
-def set_remove(self_ty, value_ty):
-    if not issubclass(self_ty, set):
+def set_remove(self, value_ty):
+    if not issubclass(self, set):
         raise TypeError
-    if not self_ty.__args__[0]:
+    if not self.__args__[0]:
         raise TypeError
     return _Cst[None]
 
-def set_symmetric_difference(self_ty, other_ty):
-    return set_intersection(self_ty, other_ty)
+def set_symmetric_difference(self, value):
+    return set_intersection(self, value)
 
-def set_symmetric_difference_update(self_ty, other_ty):
-    return set_intersection_update(self_ty, other_ty)
+def set_symmetric_difference_update(self, value):
+    return set_intersection_update(self, value)
 
-def set_union(self_ty, *other_tys):
-    return set_intersection(self_ty, *other_tys)
+def set_union(self, *values):
+    return set_intersection(self, *values)
 
-def set_update(self_ty, *other_tys):
-    return set_intersection_update(self_ty, *other_tys)
+def set_update(self, *values):
+    return set_intersection_update(self, *values)
 
 def set_instanciate(ty):
     return _set_methods
 
 _set_methods = {
-    '__bool__': _FT[set_bool],
     '__and__': _FT[set_and],
     '__contains__': _FT[set_contains],
     '__eq__': _FT[set_eq],
@@ -1132,8 +1169,8 @@ _set_attrs.update({
 ##
 #
 
-def set_iterator_next(self_ty):
-    return set(self_ty.__args__[0])
+def set_iterator_next(self):
+    return set(self.__args__[0])
 
 def set_iterator_instanciate(ty):
     return {
@@ -1143,18 +1180,18 @@ def set_iterator_instanciate(ty):
 ##
 #
 
-def tuple_bool(self_ty):
-    return _Cst[bool(self_ty.__args__)]
+def tuple_bool(self):
+    return _Cst[bool(self.__args__)]
 
-def tuple_getitem(self_ty, key_ty):
-    base_value_types = self_ty.__args__
+def tuple_getitem(self, key):
+    base_value_types = self.__args__
 
-    if key_ty in (bool, int):
+    if key in (bool, int):
         return set(base_value_types)
-    elif key_ty is slice:
+    elif key is slice:
         return tuple
-    elif issubclass(key_ty, _Cst):
-        key_v = key_ty.__args__[0]
+    elif issubclass(key, _Cst):
+        key_v = key.__args__[0]
         if isinstance(key_v, (bool, int)):
             return base_value_types[key_v]
         elif isinstance(key_v, slice):
@@ -1169,7 +1206,7 @@ def tuple_instanciate(ty):
     return {
         '__bool__': _FT[tuple_bool],
         '__getitem__': _FT[tuple_getitem],
-        '__len__': _FT[lambda self_ty: _Cst[len(self_ty.__args__)]],
+        '__len__': _FT[lambda self: _Cst[len(self.__args__)]],
     }
 
 _tuple_attrs = {
@@ -1180,10 +1217,10 @@ _tuple_attrs = {
 ##
 #
 
-def str_iterator_next(self_ty):
-    if self_ty is str_iterator:
+def str_iterator_next(self):
+    if self is str_iterator:
         return str
-    elif isinstance(self_ty, str_iterator):
+    elif isinstance(self, str_iterator):
         return str
     else:
         raise TypeError
@@ -1195,35 +1232,35 @@ _str_iterator_attrs = {
 ##
 #
 
-def abs_(self_type):
+def abs_(x):
     from penty.penty import Types
-    return Types[self_type]['__abs__'](self_type)
+    return Types[x]['__abs__'](x)
 
 ##
 #
 
-def divmod_(self_ty, other_ty):
+def divmod_(x, y):
     from penty.penty import Types
-    self_ty, other_ty = _astype(self_ty), _astype(other_ty)
+    x, y = _astype(x), _astype(y)
     try:
-        return Types[self_ty]['__divmod__'](self_ty, other_ty)
+        return Types[x]['__divmod__'](x, y)
     except TypeError:
-        if '__rdivmod__' in Types[other_ty]:
-            return Types[other_ty]['__rdivmod__'](other_ty, self_ty)
+        if '__rdivmod__' in Types[y]:
+            return Types[y]['__rdivmod__'](y, x)
         raise
 
 ##
 #
 
-def id_(self_types):
+def id_(obj):
     return int
 
 ##
 #
 
-def repr_(self_ty):
-    if issubclass(self_ty, _Cst):
-        self_v = self_ty.__args__[0]
+def repr_(obj):
+    if issubclass(obj, _Cst):
+        self_v = obj.__args__[0]
         return _Cst[repr(self_v)]
     else:
         return str
@@ -1231,60 +1268,60 @@ def repr_(self_ty):
 ##
 #
 
-def len_(self_type):
+def len_(obj):
     from penty.penty import Types
-    if issubclass(self_type, _Cst):
-        return _Cst[len(self_type.__args__[0])]
+    if issubclass(obj, _Cst):
+        return _Cst[len(obj.__args__[0])]
     else:
-        return Types[self_type]['__len__'](self_type)
+        return Types[obj]['__len__'](obj)
 
 ##
 #
 
-def isinstance_(obj_ty, class_or_tuple_ty, node=None):
+def isinstance_(obj, class_or_tuple, node=None):
     from penty.penty import Types
     type_ty, = Types[_Module['builtins']]['type']
-    obj_ty = type_ty(obj_ty, node)
-    return issubclass_(obj_ty, class_or_tuple_ty)
+    obj = type_ty(obj, node)
+    return issubclass_(obj, class_or_tuple)
 
 ##
 #
 
-def issubclass_(cls_ty, class_or_tuple_ty):
-    orig_cls_ty = cls_ty
+def issubclass_(cls, class_or_tuple):
+    orig_cls_ty = cls
 
-    def helper(cls_ty, class_ty, node):
+    def helper(cls, class_ty, node):
         from penty.penty import Types
         from penty.pentypes.operator import IsOperator
-        issame = IsOperator(cls_ty, class_ty)
+        issame = IsOperator(cls, class_ty)
         if issame.__args__[0]:
             return _FilteringBool[True, node, (class_ty.__args__[0],)]
 
-        if cls_ty is _Ty[object]:
+        if cls is _Ty[object]:
             return _FilteringBool[False, node, (orig_cls_ty.__args__[0],)]
 
-        for base_ty in Types[cls_ty]['__bases__'].__args__:
+        for base_ty in Types[cls]['__bases__'].__args__:
             isbasesame = helper(base_ty, class_ty, node)
             if isbasesame.__args__[0]:
                 return _FilteringBool[True, node, (class_ty.__args__[0],)]
 
         return _FilteringBool[False, node, (orig_cls_ty.__args__[0],)]
 
-    node = cls_ty.__args__[1] if issubclass(cls_ty, _TypeOf) else None
+    node = cls.__args__[1] if issubclass(cls, _TypeOf) else None
 
-    if issubclass(class_or_tuple_ty, tuple):
-        if not class_or_tuple_ty.__args__[0]:
+    if issubclass(class_or_tuple, tuple):
+        if not class_or_tuple.__args__[0]:
             raise TypeError
 
-        result_tys = {helper(cls_ty, class_ty, node)
-                      for class_ty in class_or_tuple_ty.__args__}
+        result_tys = {helper(cls, class_ty, node)
+                      for class_ty in class_or_tuple.__args__}
 
         for result_ty in result_tys:
             if result_ty.__args__[0]:
                 return result_ty
         return result_tys
     else:
-        return helper(cls_ty, class_or_tuple_ty, node)
+        return helper(cls, class_or_tuple, node)
 
 ##
 #
@@ -1312,10 +1349,10 @@ def slice_(lower_ty, upper_ty, step_ty):
 ##
 #
 
-def sorted_(iterable_ty, *, key=_Cst[None], reverse=_Cst[False]):
+def sorted_(iterable, *, key=_Cst[None], reverse=_Cst[False]):
     from penty.penty import Types
 
-    iter_ty = Types[iterable_ty]['__iter__'](iterable_ty)
+    iter_ty = Types[iterable]['__iter__'](iterable)
     elts_ty = _asset(Types[iter_ty]['__next__'](iter_ty))
 
     # check key argument
@@ -1328,8 +1365,8 @@ def sorted_(iterable_ty, *, key=_Cst[None], reverse=_Cst[False]):
         keys_ty = elts_ty
 
     # check that elements are comparable
-    for self_ty, other_ty in _itertools.product(keys_ty, keys_ty):
-        Types[_Module['operator']]['lt'](self_ty, other_ty)
+    for self, value in _itertools.product(keys_ty, keys_ty):
+        Types[_Module['operator']]['lt'](self, value)
 
     # check reverse keyword argument
     if '__bool__' not in Types[_astype(reverse)]:
@@ -1340,11 +1377,11 @@ def sorted_(iterable_ty, *, key=_Cst[None], reverse=_Cst[False]):
 ##
 #
 
-def type_(self_ty, node=None):
+def type_(self, node=None):
     if node is None:
-        return _Ty[_astype(self_ty)]
+        return _Ty[_astype(self)]
     else:
-        return _TypeOf[_astype(self_ty), node.id]
+        return _TypeOf[_astype(self), node.id]
 
 ##
 #
