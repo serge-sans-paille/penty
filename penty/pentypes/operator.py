@@ -145,8 +145,12 @@ class NotOperatorMeta(UnaryOperatorMeta):
             func = Types[operand_ty]['__not__']
         else:
             def func(argument_ty):
-                bool_ty = Types[argument_ty]['__bool__'](argument_ty)
-                return Types[bool_ty]['__not__'](bool_ty)
+                bool_ty = Types[bool]['__init__'](argument_ty)
+                if bool_ty is bool:
+                    return bool
+                if issubclass(bool_ty, Cst):
+                    return Cst[not bool_ty.__args__[0]]
+                raise TypeError
 
         return func(operand_ty)
 

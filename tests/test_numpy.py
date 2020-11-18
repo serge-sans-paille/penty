@@ -2,26 +2,25 @@ from unittest import TestCase
 import gast as ast
 import penty
 import penty.types as pentyping
-from penty.pentypes.numpy import NDArray
+from penty.pentypes.numpy import NDArray, register as register_numpy
 import typing
 import numpy as np
 
-class TestPenty(TestCase):
+from pentest import TestPenty, inject_spec_test
 
-    def assertTypesEqual(self, t0, t1):
-        st0 = {str(ty) for ty in t0}
-        st1 = {str(ty) for ty in t1}
-        self.assertEqual(st0, st1)
-
+class TestNumpyBase(TestPenty):
     def assertIsType(self, expr, ty, env={}):
-        if not isinstance(ty, set):
-            ty = {ty}
-        env = {k: v if isinstance(v, set) else {v}
-               for k, v in env.items()}
-        env = penty.type_exec("import numpy as np", env)
-        self.assertTypesEqual(penty.type_eval(expr, env), ty)
+        env = penty.type_exec("import numpy as np", env.copy())
+        super(TestNumpyBase, self).assertIsType(expr, ty, env)
 
-class TestDtype(TestPenty):
+class TestNumpySpecs(TestCase):
+    pass
+
+register_numpy(penty.penty.Types)
+inject_spec_test(TestNumpySpecs, pentyping.Module['numpy'], np, 'numpy')
+
+
+class TestDtype(TestNumpyBase):
     pass
 
 def make_integer_dtype_test(dtype):
@@ -267,7 +266,7 @@ for dtype in (np.complex64, np.complex128):
             'test_{}'.format(dtype.__name__),
             make_complex_dtype_test(dtype))
 
-class TestNumpy(TestPenty):
+class TestNumpy(TestNumpyBase):
 
     def test_ones(self):
         self.assertIsType('np.ones(x)',
@@ -289,15 +288,7 @@ class TestNumpy(TestPenty):
                           NDArray[int, pentyping.Tuple[pentyping.Cst[1], int]],
                           env={'x':int})
 
-class TestNDArray(TestCase):
-
-    def assertIsType(self, expr, ty, env={}):
-        if not isinstance(ty, set):
-            ty = {ty}
-        env = {k: v if isinstance(v, set) else {v}
-               for k, v in env.items()}
-        env = penty.type_exec("import numpy as np", env)
-        self.assertEqual(penty.type_eval(expr, env), ty)
+class TestNDArray(TestNumpyBase):
 
     def test_abs(self):
         self.assertIsType('x.__abs__()',
