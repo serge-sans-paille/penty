@@ -805,18 +805,14 @@ def ndarray_bool(self):
     if any((issubclass(d, _Cst) and not d.__args__[0]) for d in dims):
         return _Cst[False]
     return bool
-
 #
 ##
 
+# ones, empty, zeros only differ by some default argument
+def _oez(shape, dtype, order):
+    if not issubclass(dtype, (_np.number, int, float, complex)):
+        raise TypeError
 
-def ones_(shape, dtype=None, order=_Cst['C']):
-    if dtype is None:
-        dtype = float
-    elif issubclass(dtype, _Ty):
-        dtype = dtype.__args__[0]
-    else:
-        raise NotImplementedError
     if not issubclass(_astype(order), str):
         raise TypeError
 
@@ -825,6 +821,35 @@ def ones_(shape, dtype=None, order=_Cst['C']):
     if issubclass(shape, _Tuple):
         return NDArray[dtype, shape]
     raise NotImplementedError
+
+#
+##
+
+def empty_(shape, dtype=float, order=_Cst['C']):
+    if issubclass(dtype, _Ty):
+        dtype = dtype.__args__[0]
+
+    return _oez(shape, dtype, order)
+
+#
+##
+
+def ones_(shape, dtype=_Cst[None], order=_Cst['C']):
+    if dtype is _Cst[None]:
+        dtype = float
+    elif issubclass(dtype, _Ty):
+        dtype = dtype.__args__[0]
+
+    return _oez(shape, dtype, order)
+
+#
+##
+
+def zeros_(shape, dtype=float, order=_Cst['C']):
+    if issubclass(dtype, _Ty):
+        dtype = dtype.__args__[0]
+
+    return _oez(shape, dtype, order)
 
 
 def ndarray_instanciate(ty):
@@ -907,6 +932,7 @@ def register(registry):
     registry[_np.complex128] = resolve_base_attrs(_complex128_attrs, registry)
 
     registry[_Module['numpy']] = {
+        'empty': _FT[empty_],
         'int8': _Ty[_np.int8],
         'uint8': _Ty[_np.uint8],
         'int16': _Ty[_np.int16],
@@ -921,4 +947,5 @@ def register(registry):
         'float128': _Ty[_np.complex128],
         'ones': _FT[ones_],
         'random': _Module['numpy.random'],
+        'zeros': _FT[zeros_],
     }
