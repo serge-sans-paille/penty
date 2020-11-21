@@ -268,25 +268,38 @@ for dtype in (np.complex64, np.complex128):
 
 class TestNumpy(TestNumpyBase):
 
-    def test_ones(self):
-        self.assertIsType('np.ones(x)',
+    def make_test_oez(self, oez):
+        self.assertIsType('oez(x)',
                           NDArray[float, pentyping.Tuple[int]],
-                          env={'x':int})
-        self.assertIsType('np.ones(1)',
+                          env={'x':int, 'oez': oez})
+        self.assertIsType('oez(1)',
                           NDArray[float, pentyping.Tuple[pentyping.Cst[1]]],
-                          env={'x':int})
-        self.assertIsType('np.ones((1, x))',
+                          env={'x':int, 'oez': oez})
+        self.assertIsType('oez((1, x))',
                           NDArray[float, pentyping.Tuple[pentyping.Cst[1], int]],
-                          env={'x':int})
-        self.assertIsType('np.ones(x, int)',
+                          env={'x':int, 'oez': oez})
+        self.assertIsType('oez(x, int)',
                           NDArray[int, pentyping.Tuple[int]],
-                          env={'x':int})
-        self.assertIsType('np.ones(1, int)',
+                          env={'x':int, 'oez': oez})
+        self.assertIsType('oez(1, int)',
                           NDArray[int, pentyping.Tuple[pentyping.Cst[1]]],
-                          env={'x':int})
-        self.assertIsType('np.ones((1, x), int)',
+                          env={'x':int, 'oez': oez})
+        self.assertIsType('oez((1, x), int)',
                           NDArray[int, pentyping.Tuple[pentyping.Cst[1], int]],
-                          env={'x':int})
+                          env={'x':int, 'oez': oez})
+
+    def test_ones(self):
+        ones_ty = penty.penty.Types[pentyping.Module['numpy']]['ones']
+        self.make_test_oez(ones_ty)
+
+    def test_empty(self):
+        empty_ty = penty.penty.Types[pentyping.Module['numpy']]['empty']
+        self.make_test_oez(empty_ty)
+
+    def test_zeros(self):
+        zeros_ty = penty.penty.Types[pentyping.Module['numpy']]['zeros']
+        self.make_test_oez(zeros_ty)
+
 
 class TestNDArray(TestNumpyBase):
 
