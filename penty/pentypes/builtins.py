@@ -2,15 +2,19 @@ from penty.types import Cst as _Cst, Module as _Module, Type as _Ty
 from penty.types import astype as _astype, TypeOf as _TypeOf, asset as _asset
 from penty.types import ConstFunctionType as _CFT, Tuple as _Tuple
 from penty.types import FunctionType as _FT, Generator as _Generator
+from penty.types import MethodType as _MT
 from penty.types import FilteringBool as _FilteringBool, get_typer as _get_typer
 from penty.types import List as _List, Set as _Set, Dict as _Dict
 from penty.types import SetIterator as _SetIterator
 from penty.types import DictKeyIterator as _DictKeyIterator
 from penty.types import DictValueIterator as _DictValueIterator
 from penty.types import DictItemIterator as _DictItemIterator
+from penty.types import ListIterator as _ListIterator
 from penty.types import resolve_base_attrs
 import itertools as _itertools
 import operator as _operator
+
+import sys
 
 ##
 #
@@ -826,43 +830,216 @@ def dict_value_iterator_instanciate(ty):
 ##
 #
 
-def list_append(self, value_ty):
-    self.__args__[0].add(_astype(value_ty))
+def list_add(self, value):
+    if not issubclass(value, list):
+        raise TypeError
+    return _List[self.__args__[0].union(value.__args__[0])]
+
+def list_append(self, object):
+    self.__args__[0].add(_astype(object))
     return _Cst[None]
 
-def list_count(self, elt_ty):
+def list_contains(self, key):
+    # We cannot compare self.__args__[0] with key.__args__[0] for non
+    # empty intersection since values can evaluate equal while having different
+    # types (1 == 1.0)
+    return bool
+
+def list_delitem(self, key):
+    from penty.penty import Types
+    idx_ty = _astype(key)
+    if issubclass(idx_ty, int):
+        return _Cst[None]
+    elif issubclass(idx_ty, int):
+        return _Cst[None]
+    elif '__index__' in Types[idx_ty]:
+        # PEP-0357 indexing
+        if issubclass(Types[idx_ty]['__index__'](idx_ty), int):
+            return Cst[None]
+    raise TypeError
+
+def list_eq(self, value):
+    if not issubclass(value, list):
+        return _Cst[False]
+    # Since `[1] == [1.0]`, we cannot inspect types of elements of self and
+    # other
+    return bool
+
+def list_bool_binop(self, value):
+    if not issubclass(value, list):
+        raise TypeError
+    return bool
+
+def list_getitem(self, idx):
+    from penty.penty import Types
+    idx_ty = _astype(idx)
+    if issubclass(idx_ty, int):
+        return self.__args__[0]
+    elif issubclass(idx_ty, slice):
+        return self
+    elif '__index__' in Types[idx_ty]:
+        # PEP-0357 indexing
+        if issubclass(Types[idx_ty]['__index__'](idx_ty), int):
+            return self.__args__[0]
+    raise TypeError
+
+def list_iadd(self, value):
+    list_extend(self, value)
+    return self
+
+def list_imul(self, value):
+    if not issubclass(_astype(value), int):
+        raise TypeError
+    return self
+
+def list_init(elts_ty=None):
+    from penty.penty import Types
+    if elts_ty is None:
+        return _List[set()]
+    if '__iter__' not in Types[elts_ty]:
+        raise TypeError
+    iter_ty = Types[elts_ty]['__iter__'](elts_ty)
+    if '__next__' not in Types[iter_ty]:
+        raise TypeError
+    next_ty = Types[iter_ty]['__next__'](iter_ty)
+    return _List[next_ty]
+
+def list_iter(self):
+    return _ListIterator[self.__args__[0]]
+
+def list_len(self):
+    if not self.__args__[0]:
+        return _Cst[0]
     return int
 
-def list_getitem(self, key):
-    base_value_ty, = self.__args__
-
-    if key in (bool, int):
-        return base_value_ty
-    elif key is slice:
-        return self
-    elif issubclass(key, _Cst):
-        key_v = key.__args__[0]
-        if isinstance(key_v, (bool, int)):
-            return base_value_ty
-        elif isinstance(key_v, slice):
-            return self
-    else:
+def list_mul(self, value):
+    if not issubclass(_astype(value), int):
         raise TypeError
+    return self
+
+def list_ne(self, value):
+    if not issubclass(value, list):
+        return _Cst[True]
+    return bool
+
+def list_reversed(self):
+    return _ListIterator[self.__args__[0]]
+
+def list_setitem(self, key, value):
+    if issubclass(_astype(key), int):
+        self.__args__[0].add(_astype(value))
+    elif _astype(key) is slice:
+        # value should be iterable
+        from penty.penty import Types
+        if '__iter__' not in Types[value]:
+            raise TypeError
+        iter_ty = Types[value]['__iter__'](value)
+        if '__next__' not in Types[iter_ty]:
+            raise TypeError
+        next_ty = Types[iter_ty]['__next__'](iter_ty)
+        self.__args__[0].update(next_ty)
+    return _Cst[None]
+
+def list_str(self):
+    return str
+
+def list_clear(self):
+    return _Cst[None]
+
+def list_copy(self):
+    return _List[self.__args__[0].copy()]
+
+def list_count(self, value):
+    if self.__args__[0] == set():
+        return _Cst[0]
+    return int
+
+def list_extend(self, iterable):
+    from penty.penty import Types
+    if '__iter__' not in Types[iterable]:
+        raise TypeError
+    iter_ty = Types[iterable]['__iter__'](iterable)
+    if '__next__' not in Types[iter_ty]:
+        raise TypeError
+    next_ty = Types[iter_ty]['__next__'](iter_ty)
+    self.__args__[0].update(next_ty)
+    return _Cst[None]
+
+def list_index(self, value, start=_Cst[0], stop=_Cst[sys.maxsize]):
+    if not issubclass(_astype(start), int):
+        raise TypeError
+    if not issubclass(_astype(stop), int):
+        raise TypeError
+    return int
+
+def list_insert(self, index, object):
+    if not issubclass(_astype(index), int):
+        raise TypeError
+    self.__args__[0].add(object)
+    return _Cst[None]
+
+def list_pop(self, index=_Cst[-1]):
+    if not issubclass(_astype(index), int):
+        raise TypeError
+    return self.__args__[0].copy()
+
+def list_remove(self, value):
+    #a = [1.0] ; a.remove(1) ; a == []
+    return _Cst[None]
+
+def list_reverse(self):
+    return _Cst[None]
 
 def list_instanciate(ty):
-    return {
-        '__bool__': _FT[lambda *args: bool],
-        '__getitem__': _FT[list_getitem],
-        '__len__': _FT[lambda *args: int],
-        'append': _FT[list_append],
-        'count': _FT[list_count],
-    }
+    return _list_methods
 
-_list_attrs = {
+_list_methods = {
+    '__add__': _MT[list, list_add],
+    '__contains__': _MT[list, list_contains],
+    '__delitem__': _MT[list, list_delitem],
+    '__eq__': _MT[list, list_eq],
+    '__ge__': _MT[list, list_bool_binop],
+    '__getitem__': _MT[list, list_getitem],
+    '__gt__': _MT[list, list_bool_binop],
+    '__iadd__': _MT[list, list_iadd],
+    '__imul__': _MT[list, list_imul],
+    '__iter__': _MT[list, list_iter],
+    '__le__': _MT[list, list_bool_binop],
+    '__len__': _MT[list, list_len],
+    '__lt__': _MT[list, list_bool_binop],
+    '__mul__': _MT[list, list_mul],
+    '__ne__': _MT[list, list_ne],
+    '__reversed__': _MT[list, list_reversed],
+    '__rmul__': _MT[list, list_mul],
+    '__setitem__': _MT[list, list_setitem],
+    '__str__': _MT[list, list_str],
+    'append': _MT[list, list_append],
+    'clear': _MT[list, list_clear],
+    'copy': _MT[list, list_copy],
+    'count': _MT[list, list_count],
+    'extend': _MT[list, list_extend],
+    'index': _MT[list, list_index],
+    'insert': _MT[list, list_insert],
+    'pop': _MT[list, list_pop],
+    'remove': _MT[list, list_remove],
+    'reverse': _MT[list, list_reverse],
+}
+
+_list_attrs = _list_methods.copy()
+_list_attrs.update({
+    '__init__': _FT[list_init],
     '__bases__': _Tuple[_Ty[object]],
     '__name__': _Cst['list'],
-    'append': _FT[lambda self, elt: list_append(self, elt)],
-}
+})
+
+
+def list_iterator_next(self_ty):
+    return set(self_ty.__args__[0])
+
+def list_iterator_instanciate(ty):
+    return {
+        '__next__': _FT[list_iterator_next],
+    }
 
 ##
 #
@@ -1323,6 +1500,13 @@ def issubclass_(cls, class_or_tuple):
     else:
         return helper(cls, class_or_tuple, node)
 
+def reversed_(sequence):
+    from penty.penty import Types
+    if '__reversed__' not in Types[sequence]:
+        raise TypeError
+    return Types[sequence]['__reversed__'](sequence)
+
+
 ##
 #
 
@@ -1408,6 +1592,7 @@ def register(registry):
         registry[_DictKeyIterator] = dict_key_iterator_instanciate
         registry[_DictValueIterator] = dict_value_iterator_instanciate
         registry[_List] = list_instanciate
+        registry[_ListIterator] = list_iterator_instanciate
         registry[_Set] = set_instanciate
         registry[_Tuple] = tuple_instanciate
 
@@ -1425,7 +1610,9 @@ def register(registry):
             'len': {_CFT[len_, len]},
             'map': {_CFT[map_, map]},
             'object': {_Ty[object]},
+            'list': {_Ty[list]},
             'repr': {_FT[repr_]},
+            'reversed': {_FT[reversed_]},
             'set': {_Ty[set]},
             'sorted': {_FT[sorted_]},
             'str': {_Ty[str]},

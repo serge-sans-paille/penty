@@ -168,6 +168,11 @@ class TestBuiltins(TestPenty):
                           env={'x': {int, pentyping.Cst[None]}})
         self.assertIsType('type(x)(x)', int, env={'x': int})
 
+    def test_reversed(self):
+        self.assertIsType('reversed(x)', pentyping.ListIterator[{int, float}],
+                          env={'x': pentyping.List[{int, float}]})
+
+
 
 class TestBool(TestPenty):
 
@@ -459,6 +464,7 @@ class TestComplex(TestPenty):
     def test_str(self):
         self.assertIsType('str(1j)', pentyping.Cst[str(1j)])
         self.assertIsType('str(x)', str, env={'x': complex})
+        self.assertIsType('str(x)', str, env={'x':  pentyping.List[{int}]})
 
     def test_sub(self):
         self.assertIsType('1j - 2j', pentyping.Cst[1j - 2j])
@@ -656,6 +662,250 @@ class TestDict(TestPenty):
 
 
 class TestList(TestPenty):
+
+    def test_add(self):
+        self.assertIsType(
+            'x + y', pentyping.List[{int}],
+            env={'x': pentyping.List[{int}],
+                 'y': pentyping.List[{int}]}
+        )
+        self.assertIsType(
+            'x + y', pentyping.List[{int, float}],
+            env={'x': pentyping.List[{int}],
+                 'y': pentyping.List[{float}]}
+        )
+        with self.assertRaises(TypeError):
+            self.assertIsType('x + y', None, env={'x': pentyping.List[{int}],
+                                                  'y': int})
+
+    def test_bool(self):
+        self.assertIsType('bool(list())', pentyping.Cst[False], env={})
+        self.assertIsType('bool(x)', bool, env={'x': pentyping.List[{int}]})
+
+    def test_contains(self):
+        self.assertIsType(
+            'x in y',
+            bool,
+            env={'x': int, 'y': pentyping.List[{float}]}
+        )
+
+    def test_delitem(self):
+        self.assertIsType(
+            'x.__delitem__(y)',
+            pentyping.Cst[None],
+            env={'x': pentyping.List[{int}], 'y': int}
+        )
+        self.assertIsType(
+            'x.__delitem__(y)',
+            pentyping.Cst[None],
+            env={'x': pentyping.List[{int}], 'y': pentyping.Cst[3]}
+        )
+        with self.assertRaises(TypeError):
+            self.assertIsType(
+                'x.__delitem__(y)',
+                pentyping.Cst[None],
+                env={'x': pentyping.List[{int}], 'y': float}
+            )
+
+    def test_eq(self):
+        self.assertIsType(
+            'x == y', bool, env={'x': pentyping.List[{int}],
+                                 'y': pentyping.List[{int}]}
+        )
+        self.assertIsType(
+            'x == 3', pentyping.Cst[False], env={'x': pentyping.List[{int}]}
+        )
+
+    def test_ge(self):
+        self.assertIsType(
+            'x >= y', bool, env={'x': pentyping.List[{int}],
+                                 'y': pentyping.List[{int}]}
+        )
+
+    def test_getitem(self):
+        self.assertIsType(
+            'x[0]', {int, float}, env={'x': pentyping.List[{int, float}]}
+        )
+        self.assertIsType(
+            'x[:3]', pentyping.List[{int, float}],
+            env={'x': pentyping.List[{int, float}]}
+        )
+
+    def test_iadd(self):
+        self.assertIsType(
+            'x.__iadd__(y)', pentyping.List[{int, float}],
+            env={'x': pentyping.List[{int}],
+                 'y': pentyping.List[{float}]}
+        )
+
+    def test_imul(self):
+        self.assertIsType(
+            'x.__imul__(y)', pentyping.List[{int, float}],
+            env={'x': pentyping.List[{int, float}], 'y': int}
+        )
+        with self.assertRaises(TypeError):
+            self.assertIsType(
+                'x.__imul__(list())', None,
+                env={'x': pentyping.List[{int, float}]}
+        )
+
+    def test_le(self):
+        self.assertIsType(
+            'x <= y', bool, env={'x': pentyping.List[{int}],
+                                 'y': pentyping.List[{int}]}
+        )
+
+    def test_len(self):
+        self.assertIsType(
+            'len(x)', int, env={'x': pentyping.List[{int}]}
+        )
+        self.assertIsType(
+            'len(x)', pentyping.Cst[0], env={'x': pentyping.List[set()]}
+        )
+        self.assertIsType('len(list())', pentyping.Cst[0], env={})
+
+    def test_lt(self):
+        self.assertIsType(
+            'x < y', bool, env={'x': pentyping.List[{int}],
+                                'y': pentyping.List[{int}]}
+        )
+
+    def test_mul(self):
+        self.assertIsType(
+            'x * y', pentyping.List[{int, float}],
+            env={'x': pentyping.List[{int, float}], 'y': int}
+        )
+        with self.assertRaises(TypeError):
+            self.assertIsType(
+                'x * list()', None, env={'x': pentyping.List[{int, float}]}
+        )
+
+    def test_ne(self):
+        self.assertIsType('x != y', bool,
+                          env={'x': pentyping.List[{int}],
+                               'y': pentyping.List[{int, float}]})
+        self.assertIsType('x != list()', bool,
+                          env={'x': pentyping.List[{int}]})
+        self.assertIsType('x != 3', pentyping.Cst[True],
+                          env={'x': pentyping.List[{int}]})
+
+    def test_repr(self):
+        self.assertIsType('repr(x)', str,
+                          env={'x': pentyping.List[{int}]})
+        self.assertIsType('repr(list())', str, env={})
+
+    def test_reversed(self):
+        self.assertIsType('reversed(x)', pentyping.ListIterator[{float}],
+                          env={'x': pentyping.List[{float}]})
+
+    def test_rmul(self):
+        self.assertIsType('x * y', pentyping.List[{int, float}],
+                          {'x': int, 'y': pentyping.List[{int, float}]})
+
+    def test_setitem(self):
+        self.assertIsType(
+            'x.__setitem__(y, 3), x',
+            pentyping.Tuple[pentyping.Cst[None], pentyping.List[{int, float}]],
+            env={'x': pentyping.List[{float}], 'y': int}
+        )
+        self.assertIsType(
+            'x.__setitem__(y, [1, 2]), x',
+            pentyping.Tuple[pentyping.Cst[None], pentyping.List[{int, float}]],
+            env={'x': pentyping.List[{float}], 'y': slice}
+        )
+        with self.assertRaises(TypeError):
+            self.assertIsType(
+                'x.__setitem__(y, 2), x',
+                None,
+                env={'x': pentyping.List[{float}], 'y': slice}
+            )
+
+    def test_str(self):
+        self.assertIsType('[1, 2].__str__()', str, env={})
+
+    def test_clear(self):
+        self.assertIsType('x.clear(), x', 
+                          pentyping.Tuple[pentyping.Cst[None],
+                                          pentyping.List[{int, float}]],
+                          env={'x': pentyping.List[{int, float}]})
+
+    def test_copy(self):
+        self.assertIsType('x.copy(), x.append(y), x',
+                          pentyping.Tuple[
+                              pentyping.List[{float}],
+                              pentyping.Cst[None],
+                              pentyping.List[{int, float}]
+                          ],
+                          env={'x': pentyping.List[{float}],
+                               'y': int})
+
+    def test_count(self):
+        self.assertIsType('x.count(y)', pentyping.Cst[0],
+                          env={'x': pentyping.List[set()], 'y': int})
+        self.assertIsType('x.count(y)', int,
+                          env={'x': pentyping.List[{int}], 'y': int})
+
+    def test_extend(self):
+        self.assertIsType('x.extend(y), x',
+                          pentyping.Tuple[pentyping.Cst[None],
+                                          pentyping.List[{int}]],
+                          env={'x': pentyping.List[set()],
+                               'y': pentyping.List[{int}]})
+        self.assertIsType('x.extend(y), x',
+                          pentyping.Tuple[pentyping.Cst[None],
+                                          pentyping.List[{int, float}]],
+                          env={'x': pentyping.List[{float}],
+                               'y': pentyping.List[{int}]})
+        with self.assertRaises(TypeError):
+            self.assertIsType('x.extend(y), x',
+                              None,
+                              env={'x': pentyping.List[{float}],
+                                   'y': int})
+
+    def test_index(self):
+        self.assertIsType('x.index(y)',
+                          int,
+                          env={'x': pentyping.List[{int}], 'y': float})
+        self.assertIsType('x.index(y, 0, 3)',
+                          int,
+                          env={'x': pentyping.List[{int}], 'y': float})
+        with self.assertRaises(TypeError):
+            self.assertIsType('x.index(y, 0.0, 3)',
+                              None,
+                              env={'x': pentyping.List[{int}], 'y': float})
+        with self.assertRaises(TypeError):
+            self.assertIsType('x.index(y, 0, 3.0)',
+                              None,
+                              env={'x': pentyping.List[{int}], 'y': float})
+    def test_insert(self):
+        self.assertIsType('x.insert(0, y), x',
+                          pentyping.Tuple[pentyping.Cst[None],
+                                          pentyping.List[{int, float}]],
+                          env={'x': pentyping.List[{int}],
+                               'y': float})
+        with self.assertRaises(TypeError):
+            self.assertIsType('x.insert(slice(), y), x',
+                              None,
+                              env={'x': pentyping.List[{int}],
+                                   'y': float})
+        with self.assertRaises(TypeError):
+            self.assertIsType('x.insert(0.0, y), x',
+                              None,
+                              env={'x': pentyping.List[{int}],
+                                   'y': float})
+
+    def test_pop(self):
+        self.assertIsType('x.pop()', {int}, env={'x': pentyping.List[{int}]})
+        with self.assertRaises(TypeError):
+            self.assertIsType('x.pop(y)', None,
+                              env={'x': pentyping.List[{int}],
+                                   'y': float})
+
+    def test_reverse(self):
+        self.assertIsType('x.reverse(), x',
+                          pentyping.Tuple[pentyping.Cst[None],
+                                          pentyping.List[{int}]],
+                          env={'x': pentyping.List[{int}]})
 
     def test_append(self):
         self.assertIsType('x.append(y), x',

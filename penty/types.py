@@ -26,6 +26,7 @@ def astype(ty):
     else:
         return ty
 
+
 def resolve_base_attrs(attrs, registry):
     for base in attrs['__bases__'].__args__:
         for attr, value in registry[base.__args__[0]].items():
@@ -126,6 +127,33 @@ class FunctionTypeMeta(CstMeta):
 
 
 class FunctionType(Cst, metaclass=FunctionTypeMeta):
+    pass
+
+
+class MethodTypeMeta(FunctionTypeMeta):
+    cache = {}
+
+    def __getitem__(self, args):
+        assert len(args) == 2
+        if args not in MethodTypeMeta.cache:
+            class LocalMethodType(MethodType):
+                __args__ = args[1],
+                __self_ty__ = args[0]
+
+            MethodTypeMeta.cache[args] = LocalMethodType
+        return MethodTypeMeta.cache[args]
+
+    def __repr__(self):
+        return 'MethodType[{}::{})]'.format(self.__self_ty__,
+                                            self.__args__[0])
+
+    def __call__(self, *args):
+        if not issubclass(astype(args[0]), self.__self_ty__):
+            raise RuntimeError
+        return self.__args__[0](*args)
+
+
+class MethodType(FunctionType, metaclass=MethodTypeMeta):
     pass
 
 
@@ -231,6 +259,7 @@ class TupleMeta(type):
     def __getitem__(self, args):
         if not isinstance(args, tuple):
             args = args,
+
         if args not in TupleMeta.cache:
             class LocalTuple(Tuple):
                 __args__ = args
@@ -262,6 +291,22 @@ class ListMeta(type):
 
 
 class List(list, metaclass=ListMeta):
+    pass
+
+
+class ListIteratorMeta(type):
+
+    def __getitem__(self, args):
+        class LocalListIterator(ListIterator):
+            __args__ = args,
+        return LocalListIterator
+
+    def __repr__(self):
+        sortedelts = sorted(map(str, self.__args__[0]))
+        return 'ListIterator[{{{}}}]'.format(', '.join(sortedelts))
+
+
+class ListIterator(metaclass=ListIteratorMeta):
     pass
 
 
