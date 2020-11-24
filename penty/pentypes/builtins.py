@@ -990,6 +990,25 @@ def list_remove(self, value):
 def list_reverse(self):
     return _Cst[None]
 
+def list_sort(self, *, key=_Cst[None], reverse=_Cst[False]):
+    from penty.penty import Types
+    typer_instance = _get_typer()
+
+    # Find possible return values of the key fct
+    if key is not _Cst[None]:
+        key_ty = set()
+        for elt_ty in self.__args__[0]:
+            key_ty.update(_asset(typer_instance._call(key, elt_ty)))
+
+        # check that they are all comparable
+        for left, right in _itertools.product(key_ty, key_ty):
+            Types[_Module['operator']]['lt'](left, right)
+
+    if not issubclass(_astype(reverse), int):
+        raise TypeError
+
+    return _Cst[None]
+
 def list_instanciate(ty):
     return _list_methods
 
@@ -1023,6 +1042,7 @@ _list_methods = {
     'pop': _MT[list, list_pop],
     'remove': _MT[list, list_remove],
     'reverse': _MT[list, list_reverse],
+    'sort': _MT[list, list_sort],
 }
 
 _list_attrs = _list_methods.copy()

@@ -122,8 +122,8 @@ class FunctionTypeMeta(CstMeta):
     def __repr__(self):
         return 'FunctionType[{}]'.format(self.__args__[0])
 
-    def __call__(self, *args):
-        return self.__args__[0](*args)
+    def __call__(self, *args, **kwargs):
+        return self.__args__[0](*args, **kwargs)
 
 
 class FunctionType(Cst, metaclass=FunctionTypeMeta):
@@ -147,10 +147,10 @@ class MethodTypeMeta(FunctionTypeMeta):
         return 'MethodType[{}::{})]'.format(self.__self_ty__,
                                             self.__args__[0])
 
-    def __call__(self, *args):
+    def __call__(self, *args, **kwargs):
         if not issubclass(astype(args[0]), self.__self_ty__):
             raise RuntimeError
-        return self.__args__[0](*args)
+        return self.__args__[0](*args, **kwargs)
 
 
 class MethodType(FunctionType, metaclass=MethodTypeMeta):

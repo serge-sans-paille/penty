@@ -915,6 +915,31 @@ class TestList(TestPenty):
                           {pentyping.List[{int, float}]},
                           env={'x': pentyping.List[float], 'y': int})
 
+    def test_sort(self):
+        self.assertIsType(
+            'x.sort()',
+            pentyping.Cst[None],
+            env={'x': pentyping.List[{float}]})
+        self.assertIsType(
+            'x.sort(reverse=y)',
+            pentyping.Cst[None],
+            env={'x': pentyping.List[{float}],
+                 'y': bool})
+        self.assertIsType(
+            'x.sort(key=int)',
+            pentyping.Cst[None],
+            env={'x': pentyping.List[{float}]})
+        self.assertIsType(
+            'x.sort(key=lambda a: a[0])',
+            pentyping.Cst[None],
+            env={'x': pentyping.List[{pentyping.Tuple[float, int]}]})
+        with self.assertRaises(TypeError):
+            self.assertIsType(
+                'x.sort(reverse=y)',
+                pentyping.Cst[None],
+                env={'x': pentyping.List[{float}],
+                     'y': float})
+
 
 class TestSet(TestPenty):
 

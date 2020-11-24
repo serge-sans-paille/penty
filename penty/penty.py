@@ -105,11 +105,15 @@ def normalize_test_ty(types):
         return Types[bool]['__init__'](types)
 
 
-def is_constantcall(func, args_ty):
+def is_constantcall(func, args_ty, kwargs_ty):
     if not issubclass(func, CFT):
         return False
-    return all(issubclass(ty, Cst) and not issubclass(ty, FilteringBool)
-               for ty in args_ty)
+    return (
+        all(issubclass(ty, Cst) and not issubclass(ty, FilteringBool)
+               for ty in args_ty) and
+        all(issubclass(ty, Cst) and not issubclass(ty, FilteringBool)
+               for ty in kwargs_ty.values())
+    )
 
 
 def totype(value):
@@ -170,6 +174,22 @@ def expand_args(fty, args_ty, kwargs_ty):
     return new_args_ty, new_kwargs_ty
 
 
+def args_combinations(*args, **kwargs):
+    """
+    Given a bunch of arguments that are all a set of types, generate all
+    possible possible combinations of argument type
+    args is list of type or set of types
+    kwargs is a dict whose values are types or set of types
+    """
+    def asset(v):
+        if isinstance(v, set):
+            return v
+        else:
+            return {v}
+    keys = list(kwargs.keys())
+    for curr_args in itertools.product(*[asset(a) for a in args]):
+        for curr_kwargs in itertools.product(*[asset(kwargs[k]) for k in keys]):
+            yield curr_args, {k: v for (k, v) in zip(keys, curr_kwargs)}
 
 
 
@@ -226,19 +246,21 @@ class Typer(ast.NodeVisitor):
             return self._call(func, *args, **kwonly)
         else:
             result_type = set()
-            all_args = itertools.product(*args) if args else [[]]
-            for args_ty in list(all_args):
-                args_ty = list(args_ty)
+            for curr_args, curr_kwargs in args_combinations(*args, **kwonly):
                 # automatically fold constant if possible
-                if is_constantcall(func, args_ty):
+                # TODO support wargs in constcall
+                if is_constantcall(func, curr_args, curr_kwargs):
                     _, realfunc = func.__args__
-                    realres = realfunc(*[arg.__args__[0] for arg in args_ty])
+                    realres = realfunc(
+                        *[arg.__args__[0] for arg in curr_args],
+                        **{k: v.__args__[0] for k, v in curr_kwargs.items()}
+                    )
                     tyres = totype(realres)
                     if tyres is not None:
                         result_type.add(tyres)
                         continue
 
-                rty = func(*args_ty)
+                rty = func(*curr_args, **curr_kwargs)
                 if isinstance(rty, set):
                     result_type.update(rty)
                 else:
@@ -840,10 +862,11 @@ class Typer(ast.NodeVisitor):
 
         # propagate constexpr-ness
         if issubclass(func, CFT) and issubclass(self_ty, Cst):
-            return CFT[lambda *p: func(self_ty, *p),
-                       lambda *p: func.__args__[1](self_ty.__args__[0], *p)]
+            return CFT[lambda *p, **kwargs: func(self_ty, *p, **kwargs),
+                       lambda *p, **kwargs: func.__args__[1](
+                           self_ty.__args__[0], *p, **kwargs)]
         else:
-            return FT[lambda *p: func(self_ty, *p)]
+            return FT[lambda *p, **kwargs: func(self_ty, *p, **kwargs)]
 
     def _unbounded_attr(self, value_ty, attr):
         return Types[value_ty][attr]
