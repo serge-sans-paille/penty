@@ -60,6 +60,14 @@ class TestExpr(TestPenty):
         self.assertIsType('(lambda y: y)(y=x)', int, env={'x': int})
         self.assertIsType('(lambda x, y: x + y)(1., y=x)', float, env={'x': int})
         self.assertIsType('(lambda x, *, y: x + y)(1., y=x)', float, env={'x': int})
+        self.assertIsType('(lambda x, *, y: x + y)(1., y=2.)', pentyping.Cst[3.], env={'x': int})
+
+    def test_call_ty(self):
+        self.assertIsType('int()', pentyping.Cst[0])
+        self.assertIsType('int(x)', int, env={'x': int})
+        self.assertIsType('int(x, y)', int, env={'x': int, 'y': int})
+        self.assertIsType('int(1, base=x)', int, env={'x': int})
+        self.assertIsType('int("110", base=2)', pentyping.Cst[6])
 
     def test_ifexpr_ty(self):
         self.assertIsType('x if x else y',
