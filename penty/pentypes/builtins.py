@@ -577,77 +577,49 @@ _none_attrs = {
 #
 
 def dict_contains(self, key):
-    if not issubclass(self, dict):
-        raise TypeError
     if not self.__args__[0]:
         return _Cst[False]
     return bool
 
 def dict_clear(self):
-    if not issubclass(self, dict):
-        raise TypeError
     return _Cst[None]
 
 def dict_copy(self):
-    if not issubclass(self, dict):
-        raise TypeError
     return _Dict[self.__args__[0].copy(),
                  self.__args__[1].copy()]
 
 def dict_delitem(self, key):
-    if not issubclass(self, dict):
-        raise TypeError
     if not self.__args__[0]:
         raise TypeError
     return _Cst[None]
 
 def dict_get(self, key, default=_Cst[None]):
-    if not issubclass(self, dict):
-        raise TypeError
-
     return self.__args__[1].union([default])
 
-def dict_clear(self):
-    return _Cst[None]
-
 def dict_getitem(self, key):
-    if not issubclass(self, dict):
-        raise TypeError
-
     return self.__args__[1].copy()
 
 def dict_pop(self, key, default=_Cst[None]):
     return dict_get(self, key, default)
 
 def dict_popitem(self):
-    if not issubclass(self, dict):
-        raise TypeError
-
     return {_Tuple[key, value_ty]
             for key, value_ty in _itertools.product(*self.__args__)}
 
 def dict_items(self):
-    if not issubclass(self, dict):
-        raise TypeError
     return _DictItemIterator[{_Tuple[kty, vty]
                               for kty, vty in
                               _itertools.product(*self.__args__)}]
 
 def dict_keys(self):
-    if not issubclass(self, dict):
-        raise TypeError
     return _DictKeyIterator[self.__args__[0]]
 
 def dict_len(self):
-    if not issubclass(self, dict):
-        raise TypeError
     if not self.__args__[0]:
         return _Cst[0]
     return int
 
 def dict_setdefault(self, key, default=_Cst[None]):
-    if not issubclass(self, dict):
-        raise TypeError
     default = _astype(default)
 
     self.__args__[0].add(_astype(key))
@@ -656,16 +628,12 @@ def dict_setdefault(self, key, default=_Cst[None]):
     return dict_get(self, key, default)
 
 def dict_setitem(self, key, value):
-    if not issubclass(self, dict):
-        raise TypeError
     self.__args__[0].add(key)
     self.__args__[1].add(value)
     return _Cst[None]
 
 def dict_update(self, *other_tys):
     from penty.penty import Types
-    if not issubclass(self, dict):
-        raise TypeError
 
     for other_ty in other_tys:
         other_ty = _astype(other_ty)
@@ -695,8 +663,6 @@ def dict_update(self, *other_tys):
     return _Cst[None]
 
 def dict_eq(self, value):
-    if not issubclass(self, dict):
-        raise TypeError
     if not issubclass(value, dict):
         return _Cst[False]
     if bool(self.__args__[0]) ^ bool(value.__args__[0]):
@@ -711,8 +677,6 @@ def dict_init(items_ty=None):
     return result_ty
 
 def dict_iter(self):
-    if not issubclass(self, dict):
-        raise TypeError
     return _DictKeyIterator[self.__args__[0]]
 
 def dict_fromkeys(iterable, value=_Cst[None]):
@@ -725,14 +689,10 @@ def dict_fromkeys(iterable, value=_Cst[None]):
 
 def make_dict_compare():
     def dict_compare(self, value):
-        if not issubclass(value, dict):
-            raise TypeError
         return bool
-    return _FT[dict_compare]
+    return _MT[dict, dict_compare]
 
 def dict_ne(self, value):
-    if not issubclass(self, dict):
-        raise TypeError
     if not issubclass(value, dict):
         return _Cst[True]
     if bool(self.__args__[0]) ^ bool(value.__args__[0]):
@@ -740,43 +700,40 @@ def dict_ne(self, value):
     return bool
 
 def dict_values(self):
-    if not issubclass(self, dict):
-        raise TypeError
     return _DictValueIterator[self.__args__[1]]
 
 def dict_instanciate(ty):
     return _dict_methods
 
 _dict_methods = {
-    '__contains__': _FT[dict_contains],
-    '__delitem__': _FT[dict_delitem],
-    '__getitem__': _FT[dict_getitem],
+    '__contains__': _MT[dict, dict_contains],
+    '__delitem__': _MT[dict, dict_delitem],
+    '__getitem__': _MT[dict, dict_getitem],
     '__init__': _FT[dict_init],
-    '__iter__': _FT[dict_iter],
-    '__len__': _FT[dict_len],
+    '__iter__': _MT[dict, dict_iter],
+    '__len__': _MT[dict, dict_len],
     '__gt__': make_dict_compare(),
     '__ge__': make_dict_compare(),
     '__lt__': make_dict_compare(),
     '__le__': make_dict_compare(),
-    '__eq__': _FT[dict_eq],
-    '__ne__': _FT[dict_ne],
-    '__setitem__': _FT[dict_setitem],
-    'clear': _FT[dict_clear],
-    'copy': _FT[dict_copy],
-    'get': _FT[dict_get],
-    'items': _FT[dict_items],
-    'keys': _FT[dict_keys],
-    'pop': _FT[dict_pop],
-    'popitem': _FT[dict_popitem],
-    'setdefault': _FT[dict_setdefault],
-    'update': _FT[dict_update],
-    'values': _FT[dict_values],
+    '__eq__': _MT[dict, dict_eq],
+    '__ne__': _MT[dict, dict_ne],
+    '__setitem__': _MT[dict, dict_setitem],
+    'clear': _MT[dict, dict_clear],
+    'copy': _MT[dict, dict_copy],
+    'get': _MT[dict, dict_get],
+    'items': _MT[dict, dict_items],
+    'keys': _MT[dict, dict_keys],
+    'pop': _MT[dict, dict_pop],
+    'popitem': _MT[dict, dict_popitem],
+    'setdefault': _MT[dict, dict_setdefault],
+    'update': _MT[dict, dict_update],
+    'values': _MT[dict, dict_values],
 }
 
 _dict_attrs = {
     '__bases__': _Tuple[_Ty[object]],
     '__name__': _Cst['dict'],
-    'clear': _FT[dict_clear],
     'fromkeys': _FT[dict_fromkeys],
 }
 _dict_attrs.update(_dict_methods)
@@ -1072,22 +1029,16 @@ _object_attrs = {
 #
 
 def set_and(self, value):
-    if not issubclass(value, set):
-        raise TypeError
     if not self.__args__[0]:
         return _Set[{}]
     return _Set[self.__args__[0] | value.__args__[0]]
 
 def make_set_compare():
     def set_compare(self, value):
-        if not issubclass(value, set):
-            raise TypeError
         return bool
-    return _FT[set_compare]
+    return _MT[set, set_compare]
 
 def set_iand(self, value):
-    if not issubclass(self, set):
-        raise TypeError
     if not issubclass(value, set):
         raise TypeError
     self.__args__[0] |= value.__args__[0]
@@ -1106,116 +1057,82 @@ def set_init(elts_ty=None):
     return _Set[next_ty]
 
 def set_ior(self, value):
-    if not issubclass(self, set):
-        raise TypeError
     if not issubclass(value, set):
         raise TypeError
     self.__args__[0] |= value.__args__[0]
     return self
 
 def set_isub(self, value):
-    if not issubclass(self, set):
-        raise TypeError
     if not issubclass(value, set):
         raise TypeError
     return self
 
 def set_ixor(self, value):
-    if not issubclass(self, set):
-        raise TypeError
     if not issubclass(value, set):
         raise TypeError
     self.__args__[0] |= value.__args__[0]
     return self
 
 def set_len(self):
-    if not issubclass(self, set):
-        raise TypeError
     if not self.__args__[0]:
         return _Cst[0]
     return int
 
 def set_iter(self):
-    if not issubclass(self, set):
-        raise TypeError
     return _SetIterator[self.__args__[0]]
 
 def set_or(self, value):
-    if not issubclass(self, set):
-        raise TypeError
     if not issubclass(value, set):
         raise TypeError
     return _Set[self.__args__[0] | value.__args__[0]]
 
 def set_sub(self, value):
-    if not issubclass(self, set):
-        raise TypeError
     if not issubclass(value, set):
         raise TypeError
     return _Set[self.__args__[0]]
 
 def set_xor(self, value):
-    if not issubclass(self, set):
-        raise TypeError
     if not issubclass(value, set):
         raise TypeError
     return _Set[self.__args__[0] | value.__args__[0]]
 
 def set_add(self, value_ty):
-    if not issubclass(self, set):
-        raise TypeError
     self.__args__[0].add(_astype(value_ty))
     return _Cst[None]
 
 def set_bool(self):
-    if not issubclass(self, set):
-        raise TypeError
     if not self.__args__[0]:
         return _Cst[False]
     return bool
 
 def set_clear(self):
-    if not issubclass(self, set):
-        raise TypeError
     return _Cst[None]
 
 def set_contains(self, value_ty):
-    if not issubclass(self, set):
-        raise TypeError
     if not self.__args__[0]:
         return _Cst[False]
     return bool
 
 def set_copy(self):
-    if not issubclass(self, set):
-        raise TypeError
     return _Set[self.__args__[0].copy()]
 
 def set_difference(self, *values):
     from penty.penty import Types
-    if not issubclass(self, set):
-        raise TypeError
     for value in values:
         if '__iter__' not in Types[value]:
             raise TypeError
     return _Set[self.__args__[0].copy()]
 
 def set_difference_update(self, *values):
-    if not issubclass(self, set):
-        raise TypeError
     set_difference(self, *values)
     return _Cst[None]
 
 def set_discard(self, elt_ty):
-    if not issubclass(self, set):
-        raise TypeError
     if not self.__args__[0]:
         raise TypeError
     return _Cst[None]
 
 def set_eq(self, value):
-    if not issubclass(self, set):
-        raise TypeError
     if not issubclass(value, set):
         return _Cst[False]
     if bool(self.__args__[0]) ^ bool(value.__args__[0]):
@@ -1224,8 +1141,6 @@ def set_eq(self, value):
 
 def set_intersection(self, *values):
     from penty.penty import Types
-    if not issubclass(self, set):
-        raise TypeError
     intersection_tys = self.__args__[0].copy()
     for value in values:
         if '__iter__' not in Types[value]:
@@ -1245,16 +1160,12 @@ def set_intersection(self, *values):
     return _Set[intersection_tys]
 
 def set_intersection_update(self, *values):
-    if not issubclass(self, set):
-        raise TypeError
     updated = set_intersection(self, *values)
     self.__args__[0].update(updated.__args__[0])
     return _Cst[None]
 
 def set_isdisjoint(self, value):
     from penty.penty import Types
-    if not issubclass(self, set):
-        raise TypeError
     if not self.__args__[0] or not value.__args__[0]:
         return _Cst[True]
     if '__iter__' not in Types[value]:
@@ -1263,8 +1174,6 @@ def set_isdisjoint(self, value):
 
 def set_issubset(self, value):
     from penty.penty import Types
-    if not issubclass(self, set):
-        raise TypeError
     if not self.__args__[0]:
         return _Cst[True]
     if '__iter__' not in Types[value]:
@@ -1272,15 +1181,11 @@ def set_issubset(self, value):
     return bool
 
 def set_issuperset(self, value):
-    if not issubclass(self, set):
-        raise TypeError
     if not self.__args__[0] and not value.__args__[0]:
         return _Cst[True]
     return set_issubset(self, value)
 
 def set_ne(self, value):
-    if not issubclass(self, set):
-        raise TypeError
     if not issubclass(value, set):
         return _Cst[True]
     if bool(self.__args__[0]) ^ bool(value.__args__[0]):
@@ -1288,15 +1193,11 @@ def set_ne(self, value):
     return bool
 
 def set_pop(self):
-    if not issubclass(self, set):
-        raise TypeError
     if not self.__args__[0]:
         raise TypeError
     return self.__args__[0].copy()
 
 def set_remove(self, value_ty):
-    if not issubclass(self, set):
-        raise TypeError
     if not self.__args__[0]:
         raise TypeError
     return _Cst[None]
@@ -1317,44 +1218,44 @@ def set_instanciate(ty):
     return _set_methods
 
 _set_methods = {
-    '__and__': _FT[set_and],
-    '__contains__': _FT[set_contains],
-    '__eq__': _FT[set_eq],
+    '__and__': _MT[set, set_and],
+    '__contains__': _MT[set, set_contains],
+    '__eq__': _MT[set, set_eq],
     '__ge__': make_set_compare(),
     '__gt__': make_set_compare(),
-    '__iand__': _FT[set_iand],
-    '__ior__': _FT[set_ior],
-    '__isub__': _FT[set_isub],
-    '__iter__': _FT[set_iter],
-    '__ixor__': _FT[set_ixor],
+    '__iand__': _MT[set, set_iand],
+    '__ior__': _MT[set, set_ior],
+    '__isub__': _MT[set, set_isub],
+    '__iter__': _MT[set, set_iter],
+    '__ixor__': _MT[set, set_ixor],
     '__le__': make_set_compare(),
-    '__len__': _FT[set_len],
+    '__len__': _MT[set, set_len],
     '__lt__': make_set_compare(),
-    '__ne__': _FT[set_ne],
-    '__or__': _FT[set_or],
-    '__rand__': _FT[set_and],
-    '__ror__': _FT[set_or],
-    '__rsub__': _FT[set_sub],
-    '__rxor__': _FT[set_xor],
-    '__sub__': _FT[set_sub],
-    '__xor__': _FT[set_xor],
-    'add': _FT[set_add],
-    'clear': _FT[set_clear],
-    'copy': _FT[set_copy],
-    'difference': _FT[set_difference],
-    'difference_update': _FT[set_difference_update],
-    'discard': _FT[set_discard],
-    'intersection': _FT[set_intersection],
-    'intersection_update': _FT[set_intersection_update],
-    'isdisjoint': _FT[set_isdisjoint],
-    'issubset': _FT[set_issubset],
-    'issuperset': _FT[set_issuperset],
-    'pop': _FT[set_pop],
-    'remove': _FT[set_remove],
-    'symmetric_difference': _FT[set_symmetric_difference],
-    'symmetric_difference_update': _FT[set_symmetric_difference_update],
-    'union': _FT[set_union],
-    'update': _FT[set_update],
+    '__ne__': _MT[set, set_ne],
+    '__or__': _MT[set, set_or],
+    '__rand__': _MT[set, set_and],
+    '__ror__': _MT[set, set_or],
+    '__rsub__': _MT[set, set_sub],
+    '__rxor__': _MT[set, set_xor],
+    '__sub__': _MT[set, set_sub],
+    '__xor__': _MT[set, set_xor],
+    'add': _MT[set, set_add],
+    'clear': _MT[set, set_clear],
+    'copy': _MT[set, set_copy],
+    'difference': _MT[set, set_difference],
+    'difference_update': _MT[set, set_difference_update],
+    'discard': _MT[set, set_discard],
+    'intersection': _MT[set, set_intersection],
+    'intersection_update': _MT[set, set_intersection_update],
+    'isdisjoint': _MT[set, set_isdisjoint],
+    'issubset': _MT[set, set_issubset],
+    'issuperset': _MT[set, set_issuperset],
+    'pop': _MT[set, set_pop],
+    'remove': _MT[set, set_remove],
+    'symmetric_difference': _MT[set, set_symmetric_difference],
+    'symmetric_difference_update': _MT[set, set_symmetric_difference_update],
+    'union': _MT[set, set_union],
+    'update': _MT[set, set_update],
 }
 
 _set_attrs = _set_methods.copy()
@@ -1402,9 +1303,9 @@ def tuple_getitem(self, key):
 
 def tuple_instanciate(ty):
     return {
-        '__bool__': _FT[tuple_bool],
-        '__getitem__': _FT[tuple_getitem],
-        '__len__': _FT[lambda self: _Cst[len(self.__args__)]],
+        '__bool__': _MT[tuple, tuple_bool],
+        '__getitem__': _MT[tuple, tuple_getitem],
+        '__len__': _MT[tuple, lambda self: _Cst[len(self.__args__)]],
     }
 
 _tuple_attrs = {
