@@ -300,6 +300,37 @@ class TestNumpy(TestNumpyBase):
         zeros_ty = penty.penty.Types[pentyping.Module['numpy']]['zeros']
         self.make_test_oez(zeros_ty)
 
+    def make_test_oez_like(self, oez_like):
+        self.assertIsType('oez_like(x)',
+                          NDArray[float, pentyping.Tuple[int]],
+                          env={'x':NDArray[float, pentyping.Tuple[int]],
+                               'oez_like': oez_like})
+        self.assertIsType('oez_like(x)',
+                          NDArray[complex, pentyping.Tuple[pentyping.Cst[3]]],
+                          env={'x':NDArray[complex,
+                                           pentyping.Tuple[pentyping.Cst[3]]],
+                               'oez_like': oez_like})
+        self.assertIsType('oez_like(x, dtype=None, order="K", subok=True, shape=3)',
+                          NDArray[float, pentyping.Tuple[pentyping.Cst[3]]],
+                          env={'x':NDArray[float, pentyping.Tuple[int]],
+                               'oez_like': oez_like})
+        self.assertIsType('oez_like(x, dtype=int, order="K", subok=False, shape=None)',
+                          NDArray[int, pentyping.Tuple[int]],
+                          env={'x':NDArray[float, pentyping.Tuple[int]],
+                               'oez_like': oez_like})
+
+    def test_ones_like(self):
+        ones_like_ty = penty.penty.Types[pentyping.Module['numpy']]['ones_like']
+        self.make_test_oez_like(ones_like_ty)
+
+    def test_empty_like(self):
+        empty_like_ty = penty.penty.Types[pentyping.Module['numpy']]['empty_like']
+        self.make_test_oez_like(empty_like_ty)
+
+    def test_zeros_like(self):
+        zeros_like_ty = penty.penty.Types[pentyping.Module['numpy']]['zeros_like']
+        self.make_test_oez_like(zeros_like_ty)
+
 
 class TestNDArray(TestNumpyBase):
 
