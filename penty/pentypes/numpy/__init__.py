@@ -9,6 +9,36 @@ import itertools
 import numbers
 import numpy as _np
 import operator
+import collections
+
+import inspect
+
+# patch signature of a few common numpy functions
+_inspect_getfullargspec = inspect.getfullargspec
+def getfullargspec(func):
+    if func in (_np.empty_like, _np.ones_like, _np.zeros_like):
+        if func is _np.empty_like:
+            sig = inspect._signature_fromstr(
+                inspect.Signature, func,
+                func.__doc__.strip().split('\n', maxsplit=1)[0])
+        else:
+            sig = inspect.signature(func)
+        return inspect.FullArgSpec(
+            list(sig.parameters.keys()),  # args
+            None,  # varargs
+            None,  # varkw
+            tuple(v.default
+                  for v in sig.parameters.values()
+                  if v.default is not inspect._empty),  # defaults
+            [],  # knwonlyargs
+            {},  # kwonlydefaults
+            {},  # annotations
+        )
+    else:
+        return _inspect_getfullargspec(func)
+
+inspect.getfullargspec = getfullargspec
+
 
 def _broadcast_dim(self, other):
     if self is other:
@@ -810,6 +840,9 @@ def ndarray_bool(self):
 
 # ones, empty, zeros only differ by some default argument
 def _oez(shape, dtype, order):
+    if issubclass(dtype, _Ty):
+        dtype = dtype.__args__[0]
+
     if not issubclass(dtype, (_np.number, int, float, complex)):
         raise TypeError
 
@@ -822,14 +855,50 @@ def _oez(shape, dtype, order):
         return NDArray[dtype, shape]
     raise NotImplementedError
 
+def _oez_like(a, dtype, order, subok, shape):
+    if not issubclass(a, NDArray):
+        raise TypeError
+
+    if dtype is _Cst[None]:
+        dtype = a.__args__[0]
+
+    if issubclass(dtype, _Ty):
+        dtype = dtype.__args__[0]
+
+    if not issubclass(dtype, (_np.number, int, float, complex)):
+        raise TypeError
+
+    if not issubclass(_astype(order), str):
+        raise TypeError
+
+    if not issubclass(_astype(subok), bool):
+        raise TypeError
+
+    if shape is _Cst[None]:
+        shape = a.__args__[1]
+
+    if shape is int or issubclass(shape, _Cst):
+        shape = _Tuple[shape]
+
+    # there's currently no child class of ndarray anyway :-)
+    if subok is _Cst[True]:
+        return a.__base__[dtype, shape]
+    else:
+        return NDArray[dtype, shape]
+
+
 #
 ##
 
 def empty_(shape, dtype=float, order=_Cst['C']):
-    if issubclass(dtype, _Ty):
-        dtype = dtype.__args__[0]
-
     return _oez(shape, dtype, order)
+
+#
+##
+
+def empty_like_(prototype, dtype=_Cst[None], order=_Cst['K'], subok=_Cst[True],
+                shape=_Cst[None]):
+    return _oez_like(prototype, dtype, order, subok, shape)
 
 #
 ##
@@ -837,20 +906,30 @@ def empty_(shape, dtype=float, order=_Cst['C']):
 def ones_(shape, dtype=_Cst[None], order=_Cst['C']):
     if dtype is _Cst[None]:
         dtype = float
-    elif issubclass(dtype, _Ty):
-        dtype = dtype.__args__[0]
-
     return _oez(shape, dtype, order)
 
 #
 ##
 
-def zeros_(shape, dtype=float, order=_Cst['C']):
-    if issubclass(dtype, _Ty):
-        dtype = dtype.__args__[0]
+def ones_like_(a, dtype=_Cst[None], order=_Cst['K'], subok=_Cst[True],
+               shape=_Cst[None]):
+    return _oez_like(a, dtype, order, subok, shape)
 
+#
+##
+
+def zeros_(shape, dtype=float, order=_Cst['C']):
     return _oez(shape, dtype, order)
 
+#
+##
+
+def zeros_like_(a, dtype=_Cst[None], order=_Cst['K'], subok=_Cst[True],
+                shape=_Cst[None]):
+    return _oez_like(a, dtype, order, subok, shape)
+
+#
+##
 
 def ndarray_instanciate(ty):
     return {
@@ -933,6 +1012,7 @@ def register(registry):
 
     registry[_Module['numpy']] = {
         'empty': _FT[empty_],
+        'empty_like': _FT[empty_like_],
         'int8': _Ty[_np.int8],
         'uint8': _Ty[_np.uint8],
         'int16': _Ty[_np.int16],
@@ -946,6 +1026,8 @@ def register(registry):
         'float64': _Ty[_np.complex64],
         'float128': _Ty[_np.complex128],
         'ones': _FT[ones_],
+        'ones_like': _FT[ones_like_],
         'random': _Module['numpy.random'],
         'zeros': _FT[zeros_],
+        'zeros_like': _FT[zeros_like_],
     }
