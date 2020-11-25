@@ -36,8 +36,9 @@ def int_init(value=None, base=None):
     from penty.penty import Types
     if issubclass(value, (int, float, str)):
         return int
+
     if '__int__' in Types[value]:
-        return Types[value]['__int__'](value)
+        return Types[value]['__int__'](_astype(value))
     raise TypeError
 
 def int_make_binop(operator):

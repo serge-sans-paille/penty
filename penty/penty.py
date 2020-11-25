@@ -146,12 +146,16 @@ def expand_args(fty, args_ty, kwargs_ty):
         kwonlyargs = [arg.id for arg in node.args.kwonlyargs]
         kwarg = node.args.kwarg
 
-    if issubclass(fty, FT):
+    elif issubclass(fty, FT):
         func = fty.__args__[0]
         fullargspec = inspect.getfullargspec(func)
         args = fullargspec.args
         kwonlyargs = fullargspec.kwonlyargs
         kwarg = fullargspec.varkw
+
+    elif issubclass(fty, Type):
+        func = Types[fty.__args__[0]]['__init__']
+        return expand_args(func, args_ty, kwargs_ty)
 
     # FIXME: handle posonlyargs, defaults
     if len(args_ty) > len(args):
