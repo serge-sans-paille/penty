@@ -1,19 +1,18 @@
-from unittest import TestCase
 from textwrap import dedent
 import gast as ast
 import penty
 import penty.types as pentyping
 import typing
 
-class TestStmt(TestCase):
+from pentest import TestPenty
+
+class TestStmt(TestPenty):
 
     def assertIsType(self, stmt, expr, ty, env={}):
-        if not isinstance(ty, set):
-            ty = {ty}
         type_env = penty.type_exec(dedent(stmt), {})
         type_env.update({k: v if isinstance(v, set) else {v}
                          for k, v in env.items()})
-        self.assertEqual(penty.type_eval(expr, type_env), ty)
+        super(TestStmt, self).assertIsType(expr, ty, type_env)
 
     def test_fdef_noarg_ty(self):
         self.assertIsType('def func(): pass',
@@ -23,6 +22,24 @@ class TestStmt(TestCase):
         self.assertIsType('def func(x): return x',
                           'func(x)', int,
                           env={'x':int})
+
+    def test_fdef_default_arg(self):
+        self.assertIsType('def func(x, y=1.): return x + y',
+                          'func(x)',
+                          float,
+                          env={'x': int})
+
+        self.assertIsType('def func(w, x= "e", y=1, z=[1]): return w, x, y, z',
+                          'func(x, 1.)',
+                          pentyping.Tuple[int,
+                                          pentyping.Cst[1.],
+                                          pentyping.Cst[1],
+                                          pentyping.List[int]],
+                          env={'x': int})
+
+        self.assertIsType('def func(x, y=[]): y.append(x); return y',
+                          '(func(1), func(1.))[1]',
+                          pentyping.List[{int, float}])
 
     def test_fdef_kwarg_ty(self):
         self.assertIsType('def func(y): return y',
@@ -44,6 +61,10 @@ class TestStmt(TestCase):
         self.assertIsType('def func(*, x, y): return x, y',
                           'func(y=1., x=x)',
                           pentyping.Tuple[int, pentyping.Cst[1.]],
+                          env={'x':int})
+        self.assertIsType('def func(*, x="2", y): return x, y',
+                          'func(y=x)',
+                          pentyping.Tuple[pentyping.Cst["2"], int],
                           env={'x':int})
 
     def test_recursive_function_ty(self):
