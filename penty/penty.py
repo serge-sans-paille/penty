@@ -168,13 +168,6 @@ def expand_args(fty, args_ty, kwargs_ty):
         new_args_ty.append(new_kwargs_ty.pop(arg))
     assert len(new_args_ty) == len(args)
 
-    if kwarg is None:
-        if len(new_kwargs_ty) != len(kwonlyargs):
-            raise TypeError
-        for arg in kwonlyargs:
-            if arg not in new_kwargs_ty:
-                raise TypeError
-
     return new_args_ty, new_kwargs_ty
 
 
@@ -220,8 +213,10 @@ class Typer(ast.NodeVisitor):
             if call_key in self.callstack:
                 return {}
 
-            new_bindings = {arg.id: arg_ty for arg, arg_ty in
-                            zip(fnode.args.args, args)}
+            new_bindings = func.defaults.copy()
+
+            new_bindings.update({arg.id: arg_ty for arg, arg_ty in
+                                 zip(fnode.args.args, args)})
             new_bindings.update(kwonly)
             new_bindings['@'] = set()
             self.bindings.append(new_bindings)
@@ -239,8 +234,9 @@ class Typer(ast.NodeVisitor):
             self.bindings.pop()
         elif issubclass(func, Lambda):
             lnode, = func.__args__
-            new_bindings = {arg.id: arg_ty for arg, arg_ty in
-                            zip(lnode.args.args, args)}
+            new_bindings = func.defaults.copy()
+            new_bindings.update({arg.id: arg_ty for arg, arg_ty in
+                            zip(lnode.args.args, args)})
             new_bindings.update(kwonly)
             self.bindings.append(new_bindings)
             result_type = self.visit(lnode.body)
@@ -292,6 +288,19 @@ class Typer(ast.NodeVisitor):
         else:
             raise NotImplementedError
 
+    def _default_dict(self, args):
+        defaults = {
+            k.id: self.visit(v)
+            for k, v in zip(args.args[-len(args.defaults):],
+                            args.defaults)
+        }
+        defaults.update({
+            k.id: self.visit(v)
+            for k, v in zip(args.kwonlyargs, args.kw_defaults)
+            if v is not None
+        })
+        return defaults
+
     # stmt
     def visit_Module(self, node):
         prev = ()
@@ -302,7 +311,11 @@ class Typer(ast.NodeVisitor):
         return prev
 
     def visit_FunctionDef(self, node):
-        self.bindings[-1][node.name] = {FDef[node]}
+        fdef = FDef[node]
+        # bind the lifetime of the defaults to the function's
+        # this erase previous default's...
+        fdef.defaults = self._default_dict(node.args)
+        self.bindings[-1][node.name] = {fdef}
         return node,
 
     def visit_Return(self, node):
@@ -656,7 +669,9 @@ class Typer(ast.NodeVisitor):
         return self._call(Ops[type(node.op)], operand_ty)
 
     def visit_Lambda(self, node):
-        return {Lambda[node]}
+        ldef = Lambda[node]
+        ldef.defaults = self._default_dict(node.args)
+        return {ldef}
 
     def visit_IfExp(self, node):
         test_types = self.visit(node.test)
