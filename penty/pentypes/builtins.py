@@ -1454,6 +1454,12 @@ def map_(func_ty, *args_ty):
 ##
 #
 
+def oct_(number):
+    return hex_(number)
+
+##
+#
+
 def slice_(lower_ty, upper_ty, step_ty):
     isstatic = all(issubclass(ty, _Cst)
                    for ty in (lower_ty, upper_ty, step_ty))
@@ -1578,7 +1584,7 @@ def register(registry):
             # 'min': {},
             # 'next': {},
             'object': {_Ty[object]},
-            # 'oct': {},
+            'oct': {_CFT[oct_, oct]},
             # 'open': {},
             # 'ord': {},
             # 'pow': {},
