@@ -1279,9 +1279,6 @@ def set_iterator_instanciate(ty):
 ##
 #
 
-def tuple_bool(self):
-    return _Cst[bool(self.__args__)]
-
 def tuple_getitem(self, key):
     base_value_types = self.__args__
 
@@ -1300,18 +1297,47 @@ def tuple_getitem(self, key):
     else:
         raise TypeError
 
+def tuple_init(iterable=None):
+    from penty.penty import Types
 
-def tuple_instanciate(ty):
-    return {
-        '__bool__': _MT[tuple, tuple_bool],
-        '__getitem__': _MT[tuple, tuple_getitem],
-        '__len__': _MT[tuple, lambda self: _Cst[len(self.__args__)]],
-    }
+    if iterable is None:
+        return _Tuple[()]
+    if issubclass(iterable, tuple):
+        return iterable
+    if issubclass(iterable, _Cst):
+        ctuple = tuple(iterable.__args__[0])
+        return _Tuple[tuple(type(x) for x in ctuple)]
+    iterable_ty = Types[iterable]
+    if '__len__' in iterable_ty and iterable_ty['__len__'](iterable) is _Cst[0]:
+        return _Tuple[()]
+    if '__iter__' not in iterable_ty:
+        raise TypeError
+    iter_ty = iterable_ty['__iter__'](iterable)
+    if '__next__' not in Types[iter_ty]:
+        raise TypeError
+    elts_ty = _asset(Types[iter_ty]['__next__'](iter_ty))
+    # FIXME: should we have frozen sets as tuple elts?
+    return {_Tuple[elt_ty, ...] for elt_ty in elts_ty}
 
-_tuple_attrs = {
+def tuple_len(self):
+    if self.__args__[-1] is Ellipsis:
+        return int
+    return _Cst[len(self.__args__)]
+
+_tuple_methods = {
+    '__getitem__': _MT[tuple, tuple_getitem],
+    '__init__': _FT[tuple_init],
+    '__len__': _MT[tuple, tuple_len],
+}
+
+_tuple_attrs = _tuple_methods.copy()
+_tuple_attrs.update({
     '__bases__': _Tuple[_Ty[object]],
     '__name__': _Cst['tuple'],
-}
+})
+
+def tuple_instanciate(ty):
+    return _tuple_methods
 
 ##
 #
@@ -1608,7 +1634,7 @@ def register(registry):
             'str': {_Ty[str]},
             # 'sum': {},
             # 'super': {},
-            # 'tuple': {},
+            'tuple': {_Ty[tuple]},
             'type': {_FT[type_]},
             # 'vars': {},
             # 'zip': {},

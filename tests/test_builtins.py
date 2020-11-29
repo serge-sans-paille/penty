@@ -181,6 +181,17 @@ class TestBuiltins(TestPenty):
                           pentyping.List[str],
                           env={'x': str})
 
+    def test_tuple(self):
+        self.assertIsType('tuple()', pentyping.Tuple[()])
+        self.assertIsType('tuple("er")', pentyping.Tuple[str, str])
+        self.assertIsType('tuple(x)', pentyping.Tuple[str, int],
+                          env={'x': pentyping.Tuple[str, int]})
+        self.assertIsType('tuple(x)', pentyping.Tuple[int, ...],
+                          env={'x': pentyping.List[int]})
+        self.assertIsType('tuple([])', pentyping.Tuple[()])
+        with self.assertRaises(TypeError):
+            self.assertIsType('tuple(x)', tuple, env={'x': int})
+
     def test_type(self):
         self.assertIsType('type(x) is int',
                           pentyping.FilteringBool[True, 'x', (int,)],
