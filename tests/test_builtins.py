@@ -4,6 +4,7 @@ import builtins
 import gast as ast
 import penty.types as pentyping
 import math
+import numpy as np
 import typing
 
 from pentest import TestPenty, inject_spec_test
@@ -62,6 +63,13 @@ class TestBuiltins(TestPenty):
         self.assertIsType('float(x)', float, env={'x': int})
         self.assertIsType('float(x)', float, env={'x': float})
         self.assertIsType('float(x)', float, env={'x': str})
+
+    def test_hex(self):
+        self.assertIsType('hex(3)', pentyping.Cst[hex(3)])
+        self.assertIsType('hex(x)', str, env={'x': int})
+        self.assertIsType('hex(x)', str, env={'x': np.uint8})
+        with self.assertRaises(TypeError):
+            self.assertIsType('hex(x)', None, env={'x': complex})
 
     def test_int(self):
         self.assertIsType('int(x)', int, env={'x': bool})
