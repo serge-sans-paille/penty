@@ -1338,6 +1338,11 @@ def abs_(x):
 ##
 #
 
+def bin_(number):
+    return hex_(number)
+
+##
+#
 def divmod_(x, y):
     from penty.penty import Types
     x, y = _astype(x), _astype(y)
@@ -1539,7 +1544,7 @@ def register(registry):
             # 'all': {},
             # 'any': {},
             # 'ascii': {},
-            # 'bin': {},
+            'bin': {_CFT[bin_, bin]},
             'bool': {_Ty[bool]},
             # 'bytearray': {},
             # 'bytes': {},
