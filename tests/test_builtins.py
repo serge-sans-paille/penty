@@ -156,6 +156,13 @@ class TestBuiltins(TestPenty):
                           pentyping.Generator[str],
                           env={'x': str, 'y': str})
 
+    def test_oct(self):
+        self.assertIsType('oct(3)', pentyping.Cst[oct(3)])
+        self.assertIsType('oct(x)', str, env={'x': int})
+        self.assertIsType('oct(x)', str, env={'x': np.uint8})
+        with self.assertRaises(TypeError):
+            self.assertIsType('oct(x)', None, env={'x': complex})
+
     def test_sorted(self):
         self.assertIsType('sorted(x)',
                           pentyping.List[str],
