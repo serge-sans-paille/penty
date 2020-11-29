@@ -1347,6 +1347,16 @@ def divmod_(x, y):
         if '__rdivmod__' in Types[y]:
             return Types[y]['__rdivmod__'](y, x)
         raise
+##
+#
+
+def hex_(number):
+    from penty.penty import Types
+    if issubclass(number, int):
+        return str
+    if '__index__' in Types[number]:
+        return hex_(Types[number]['__index__'](number))
+    raise TypeError
 
 ##
 #
@@ -1551,7 +1561,7 @@ def register(registry):
             # 'hasattr': {},
             # 'hash': {},
             # 'help': {},
-            # 'hex': {},
+            'hex': {_CFT[hex_, hex]},
             'id': {_FT[id_]},
             # 'input': {},
             'int': {_Ty[int]},
