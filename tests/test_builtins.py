@@ -22,6 +22,13 @@ class TestBuiltins(TestPenty):
         self.assertIsType('abs(x)', int, env={'x': int})
         self.assertIsType('abs(x)', float, env={'x': float})
 
+    def test_bin(self):
+        self.assertIsType('bin(3)', pentyping.Cst[bin(3)])
+        self.assertIsType('bin(x)', str, env={'x': int})
+        self.assertIsType('bin(x)', str, env={'x': np.uint8})
+        with self.assertRaises(TypeError):
+            self.assertIsType('bin(x)', None, env={'x': complex})
+
     def test_complex(self):
         self.assertIsType('complex(x)', complex, env={'x': bool})
         self.assertIsType('complex(x)', complex, env={'x': int})
