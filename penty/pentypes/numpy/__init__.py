@@ -229,10 +229,15 @@ def make_integer_dtype(dtype):
 
     def dtype_pow(self, value, mod=_Cst[None]):
         self, value = _astype(self), _astype(value)
-        if mod is not _Cst[None] and not issubclass(mod, dtype):
+        if not issubclass(self, dtype):
             raise TypeError
-        if issubclass(self, dtype) and issubclass(value, dtype):
-            return dtype
+        if mod is not _Cst[None]:
+            if issubclass(mod, (int, _np.integer)):
+                return type(pow(dtype(), value(), mod()))
+            else:
+                raise TypeError
+        if issubclass(value, (int, _np.integer)):
+            return type(pow(dtype(), value()))
         else:
             raise TypeError
 
@@ -430,7 +435,7 @@ def make_float_dtype(dtype):
 
     def dtype_pow(self, value, mod=_Cst[None]):
         self, value = _astype(self), _astype(value)
-        if mod is not _Cst[None] and not issubclass(mod, dtype):
+        if mod is not _Cst[None]:
             raise TypeError
         if issubclass(self, dtype) and issubclass(value, dtype):
             return dtype
@@ -606,7 +611,7 @@ def make_complex_dtype(dtype):
 
     def dtype_pow(self, value, mod=_Cst[None]):
         self, value = _astype(self), _astype(value)
-        if mod is not _Cst[None] and not issubclass(mod, dtype):
+        if mod is not _Cst[None]:
             raise TypeError
         if issubclass(self, dtype) and issubclass(value, dtype):
             return dtype
