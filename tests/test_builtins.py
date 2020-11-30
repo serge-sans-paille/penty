@@ -170,6 +170,12 @@ class TestBuiltins(TestPenty):
         with self.assertRaises(TypeError):
             self.assertIsType('oct(x)', None, env={'x': complex})
 
+    def test_pow(self):
+        self.assertIsType('pow(3, 4.)', pentyping.Cst[pow(3, 4.)])
+        self.assertIsType('pow(x, 4.)', float, env={'x': int})
+        with self.assertRaises(TypeError):
+            self.assertIsType('pow(x, 2)', None, env={'x': pentyping.Set[int]})
+
     def test_sorted(self):
         self.assertIsType('sorted(x)',
                           pentyping.List[str],
@@ -273,6 +279,15 @@ class TestInt(TestPenty):
 
     def test_numerator(self):
         self.assertIsType('x.numerator', int, env={'x': int})
+
+    def test_pow(self):
+        self.assertIsType('pow(3, 2)', pentyping.Cst[pow(3, 2)])
+        self.assertIsType('pow(3, 2.)', pentyping.Cst[pow(3, 2.)])
+        self.assertIsType('pow(3, x)', int, env={'x': int})
+        self.assertIsType('pow(3, x)', float, env={'x': float})
+        self.assertIsType('pow(3, x, 2)', int, env={'x': int})
+        with self.assertRaises(TypeError):
+            self.assertIsType('pow(3, x, 2)', int, env={'x': float})
 
     def test_real(self):
         self.assertIsType('x.real', int, env={'x': int})
@@ -391,6 +406,8 @@ class TestFloat(TestPenty):
         self.assertIsType('x ** 3.4', float, env={'x': float})
         self.assertIsType('x ** x', float, env={'x': float})
         self.assertIsType('2 ** x', float, env={'x': float})
+        with self.assertRaises(TypeError):
+            self.assertIsType('pow(x, 2, 2)', None, env={'x': float})
 
     def test_sub(self):
         self.assertIsType('1. - 3.4', pentyping.Cst[1 - 3.4])
@@ -493,6 +510,8 @@ class TestComplex(TestPenty):
         self.assertIsType('x ** 2', complex, env={'x': complex})
         self.assertIsType('x ** 3.1', complex, env={'x': complex})
         self.assertIsType('x ** 3j', complex, env={'x': complex})
+        with self.assertRaises(TypeError):
+            self.assertIsType('pow(x, 2, 2)', None, env={'x': complex})
 
     def test_str(self):
         self.assertIsType('str(1j)', pentyping.Cst[str(1j)])

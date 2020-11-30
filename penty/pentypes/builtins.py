@@ -152,11 +152,19 @@ def int_make_biniop(operator):
     return _CFT[biniop, operator]
 
 def int_pow(self, value, mod=_Cst[None]):
-    self, value = _astype(self), _astype(value)
-    if mod is not _Cst[None] and not issubclass(mod, int):
+    self, value, mod = _astype(self), _astype(value), _astype(mod)
+    if not issubclass(self, int):
         raise TypeError
-    if issubclass(self, int) and issubclass(value, int):
+    if mod is not _Cst[None]:
+        if not issubclass(value, int):
+            raise TypeError
+        if not issubclass(mod, int):
+            raise TypeError
         return int
+    if issubclass(value, int):
+        return int
+    elif issubclass(value, float):
+        return value
     else:
         raise TypeError
 
@@ -328,7 +336,7 @@ def float_make_boolop(operator):
 
 def float_pow(self, value, mod=_Cst[None]):
     self, value = _astype(self), _astype(value)
-    if mod is not _Cst[None] and not issubclass(mod, int):
+    if mod is not _Cst[None]:
         raise TypeError
     if issubclass(self, float) and issubclass(value, (int, float)):
         return float
@@ -457,7 +465,7 @@ def complex_make_boolop(operator):
 
 def complex_pow(self, value, mod=_Cst[None]):
     self, value = _astype(self), _astype(value)
-    if mod is not _Cst[None] and not issubclass(mod, int):
+    if mod is not _Cst[None]:
         raise TypeError
     if issubclass(self, complex) and issubclass(value, (int, float, complex)):
         return complex
@@ -1491,6 +1499,26 @@ def oct_(number):
 ##
 #
 
+def pow_impl(base, exp, mod):
+    from penty.penty import Types
+    base = _astype(base)
+    exp = _astype(exp)
+    mod = _astype(mod)
+    if '__pow__' in Types[base]:
+        return Types[base]['__pow__'](base, exp, mod)
+    else:
+        raise TypeError
+
+if sys.version_info < (3, 8):
+    def pow_(x, y, z=_Cst[None]):
+        return pow_impl(x, y, z)
+else:
+    def pow_(base, exp, mod=_Cst[None]):
+        return pow_impl(base, exp, mod)
+
+##
+#
+
 def slice_(lower_ty, upper_ty, step_ty):
     isstatic = all(issubclass(ty, _Cst)
                    for ty in (lower_ty, upper_ty, step_ty))
@@ -1618,7 +1646,7 @@ def register(registry):
             'oct': {_CFT[oct_, oct]},
             # 'open': {},
             # 'ord': {},
-            # 'pow': {},
+            'pow': {_CFT[pow_, pow]},
             # 'print': {},
             # 'property': {},
             # 'quit': {},
