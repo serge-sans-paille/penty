@@ -457,6 +457,15 @@ class TestComplex(TestPenty):
         with self.assertRaises(TypeError):
             self.assertIsType('filter(x, "er")', None, env={'x': complex})
 
+    def test_iter(self):
+        self.assertIsType('iter(x)', pentyping.ListIterator[str],
+                          env={'x': pentyping.List[str]})
+        self.assertIsType('iter(x)', type(iter("")),
+                          env={'x': str})
+        self.assertIsType('iter(lambda: x, 1)',
+                          pentyping.Generator[int],
+                          env={'x': int})
+
     def test_eq(self):
         self.assertIsType('x == x', bool, env={'x': complex})
         self.assertIsType('x == 1', bool, env={'x': complex})
