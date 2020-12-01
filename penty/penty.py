@@ -276,7 +276,7 @@ class Typer(ast.NodeVisitor):
         iter_types.update(*[self._call(Types[Module['builtins']]['iter'], {ty})
                             for ty in types])
         value_types = set()
-        value_types.update(*[self._call(Types[ty]['__next__'], {ty})
+        value_types.update(*[self._call(Types[Module['builtins']]['next'], {ty})
                              for ty in iter_types])
         return value_types
 

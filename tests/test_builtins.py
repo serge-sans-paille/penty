@@ -523,6 +523,16 @@ class TestComplex(TestPenty):
         self.assertIsType('-(1j)', pentyping.Cst[-(1j)])
         self.assertIsType('-x', complex, env={'x': complex})
 
+    def test_next(self):
+        self.assertIsType('next(iter("str"))', str)
+        self.assertIsType('next(iter(x))', int, env={'x': pentyping.List[int]})
+        self.assertIsType('next(iter(x), 1.)', {int, float},
+                          env={'x': pentyping.List[int]})
+        self.assertIsType('next(iter(x), None)', {int, pentyping.Cst[None]},
+                          env={'x': pentyping.Set[int]})
+        with self.assertRaises(TypeError):
+            self.assertIsType('next(x)', None, env={'x': complex})
+
     def test_pos(self):
         self.assertIsType('+(1j)', pentyping.Cst[+(1j)])
         self.assertIsType('+x', complex, env={'x': complex})

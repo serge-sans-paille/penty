@@ -654,9 +654,7 @@ def dict_update(self, *other_tys):
         if not isinstance(iter_tys, set):
             iter_tys = {iter_tys}
         for iter_ty in iter_tys:
-            if '__next__' not in Types[iter_ty]:
-                raise TypeError
-            value_tys = Types[iter_ty]['__next__'](iter_ty)
+            value_tys = next_(iter_ty)
             if not isinstance(value_tys, set):
                 value_tys = {value_tys}
             for value_ty in value_tys:
@@ -689,7 +687,7 @@ def dict_fromkeys(iterable, value=_Cst[None]):
     from penty.penty import Types
 
     iter_ty = iter_(iterable)
-    key = Types[iter_ty]['__next__'](iter_ty)
+    key = next_(iter_ty)
 
     return _Dict[key, value]
 
@@ -861,9 +859,7 @@ def list_init(elts_ty=None):
     if elts_ty is None:
         return _List[set()]
     iter_ty = iter_(elts_ty)
-    if '__next__' not in Types[iter_ty]:
-        raise TypeError
-    next_ty = Types[iter_ty]['__next__'](iter_ty)
+    next_ty = next_(iter_ty)
     return _List[next_ty]
 
 def list_iter(self):
@@ -894,9 +890,7 @@ def list_setitem(self, key, value):
         # value should be iterable
         from penty.penty import Types
         iter_ty = iter_(value)
-        if '__next__' not in Types[iter_ty]:
-            raise TypeError
-        next_ty = Types[iter_ty]['__next__'](iter_ty)
+        next_ty = next_(iter_ty)
         self.__args__[0].update(next_ty)
     return _Cst[None]
 
@@ -917,9 +911,7 @@ def list_count(self, value):
 def list_extend(self, iterable):
     from penty.penty import Types
     iter_ty = iter_(iterable)
-    if '__next__' not in Types[iter_ty]:
-        raise TypeError
-    next_ty = Types[iter_ty]['__next__'](iter_ty)
+    next_ty = next_(iter_ty)
     self.__args__[0].update(next_ty)
     return _Cst[None]
 
@@ -1049,9 +1041,7 @@ def set_init(elts_ty=None):
     if elts_ty is None:
         return _Set[set()]
     iter_ty = iter_(elts_ty)
-    if '__next__' not in Types[iter_ty]:
-        raise TypeError
-    next_ty = Types[iter_ty]['__next__'](iter_ty)
+    next_ty = next_(iter_ty)
     return _Set[next_ty]
 
 def set_ior(self, value):
@@ -1144,9 +1134,7 @@ def set_intersection(self, *values):
         if not isinstance(iter_tys, set):
             iter_tys = {iter_tys}
         for iter_ty in iter_tys:
-            if '__next__' not in Types[iter_ty]:
-                raise TypeError
-            value_tys = Types[iter_ty]['__next__'](iter_ty)
+            value_tys = next_(iter_ty)
             if not isinstance(value_tys, set):
                 value_tys = {value_tys}
             # still taking the union and not the intersection, because of cases
@@ -1304,9 +1292,7 @@ def tuple_init(iterable=None):
     if '__len__' in iterable_ty and iterable_ty['__len__'](iterable) is _Cst[0]:
         return _Tuple[()]
     iter_ty = iter_(iterable)
-    if '__next__' not in Types[iter_ty]:
-        raise TypeError
-    elts_ty = _asset(Types[iter_ty]['__next__'](iter_ty))
+    elts_ty = _asset(next_(iter_ty))
     # FIXME: should we have frozen sets as tuple elts?
     return {_Tuple[elt_ty, ...] for elt_ty in elts_ty}
 
@@ -1376,9 +1362,7 @@ def filter_(func, iterable):
     from penty.penty import Types
     typer_instance = _get_typer()
     iter_ty = iter_(iterable)
-    if '__next__' not in Types[iter_ty]:
-        raise TypeError
-    elts_ty = _asset(Types[iter_ty]['__next__'](iter_ty))
+    elts_ty = _asset(next_(iter_ty))
     if func is _Cst[None]:
         return _Generator[elts_ty]
     else:
@@ -1506,10 +1490,21 @@ def map_(func_ty, *args_ty):
     from penty.penty import Types
     typer_instance = _get_typer()
     iters_ty = [iter_(arg_ty) for arg_ty in args_ty]
-    elts_ty = [_asset(Types[iter_ty]['__next__'](iter_ty))
-               for iter_ty in iters_ty]
+    elts_ty = [_asset(next_(iter_ty)) for iter_ty in iters_ty]
     result_ty = typer_instance._call(func_ty, *elts_ty)
     return _Generator[result_ty]
+
+##
+#
+
+def next_(iterator, default=None):
+    from penty.penty import Types
+    if '__next__' not in Types[iterator]:
+        raise TypeError
+    result_tys = _asset(Types[iterator]['__next__'](iterator))
+    if default is not None:
+        result_tys.add(_astype(default))
+    return result_tys
 
 ##
 #
@@ -1554,8 +1549,7 @@ def slice_(lower_ty, upper_ty, step_ty):
 def sorted_(iterable, *, key=_Cst[None], reverse=_Cst[False]):
     from penty.penty import Types
 
-    iter_ty = iter_(iterable)
-    elts_ty = _asset(Types[iter_ty]['__next__'](iter_ty))
+    elts_ty = _asset(next_(iter_(iterable)))
 
     # check key argument
     typer_instance = _get_typer()
@@ -1662,7 +1656,7 @@ def register(registry):
             # 'max': {},
             # 'memoryview': {},
             # 'min': {},
-            # 'next': {},
+            'next': {_FT[next_]},
             'object': {_Ty[object]},
             'oct': {_CFT[oct_, oct]},
             # 'open': {},
