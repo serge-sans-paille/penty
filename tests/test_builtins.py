@@ -444,6 +444,19 @@ class TestComplex(TestPenty):
         with self.assertRaises(TypeError):
             self.assertIsType('divmod(x, 2.j)', None, env={'x': complex})
 
+    def test_filter(self):
+        self.assertIsType('filter(None, x)', pentyping.Generator[str],
+                          env={'x': str})
+        self.assertIsType('filter(len, x)', pentyping.Generator[str],
+                          env={'x': str})
+        self.assertIsType('filter(lambda x: x == 1, x)',
+                          pentyping.Generator[int],
+                          env={'x': pentyping.List[int]})
+        with self.assertRaises(TypeError):
+            self.assertIsType('filter(None, x)', None, env={'x': complex})
+        with self.assertRaises(TypeError):
+            self.assertIsType('filter(x, "er")', None, env={'x': complex})
+
     def test_eq(self):
         self.assertIsType('x == x', bool, env={'x': complex})
         self.assertIsType('x == 1', bool, env={'x': complex})

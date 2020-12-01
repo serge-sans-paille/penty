@@ -1389,6 +1389,27 @@ def divmod_(x, y):
 ##
 #
 
+def filter_(func, iterable):
+    from penty.penty import Types
+    typer_instance = _get_typer()
+    if '__iter__' not in Types[iterable]:
+        raise TypeError
+    iter_ty = Types[iterable]['__iter__'](iterable)
+    if '__next__' not in Types[iter_ty]:
+        raise TypeError
+    elts_ty = _asset(Types[iter_ty]['__next__'](iter_ty))
+    if func is _Cst[None]:
+        return _Generator[elts_ty]
+    else:
+        results_ty = typer_instance._call(func, *elts_ty)
+        for result_ty in results_ty:
+            bool_ty = Types[bool]['__init__'](result_ty)
+            if _astype(bool_ty) is not bool:
+                raise TypeError
+        return _Generator[elts_ty]
+##
+#
+
 def hex_(number):
     from penty.penty import Types
     if issubclass(number, int):
@@ -1470,6 +1491,9 @@ def issubclass_(cls, class_or_tuple):
         return result_tys
     else:
         return helper(cls, class_or_tuple, node)
+
+##
+#
 
 def reversed_(sequence):
     from penty.penty import Types
@@ -1617,7 +1641,7 @@ def register(registry):
             # 'eval': {},
             # 'exec': {},
             # 'exit': {},
-            # 'filter': {},
+            'filter': {_CFT[filter_, filter]},
             'float': {_Ty[float]},
             # 'format': {},
             # 'frozenset': {},
