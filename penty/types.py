@@ -297,6 +297,9 @@ class List(list, metaclass=ListMeta):
 class ListIteratorMeta(type):
 
     def __getitem__(self, args):
+        if not isinstance(args, set):
+            args = {args}
+
         class LocalListIterator(ListIterator):
             __args__ = args,
         return LocalListIterator

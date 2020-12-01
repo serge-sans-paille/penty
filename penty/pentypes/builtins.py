@@ -650,9 +650,7 @@ def dict_update(self, *other_tys):
             self.__args__[1].update(other_ty.__args__[1])
             continue
 
-        if '__iter__' not in Types[other_ty]:
-            raise TypeError
-        iter_tys = Types[other_ty]['__iter__'](other_ty)
+        iter_tys = iter_(other_ty)
         if not isinstance(iter_tys, set):
             iter_tys = {iter_tys}
         for iter_ty in iter_tys:
@@ -690,7 +688,7 @@ def dict_iter(self):
 def dict_fromkeys(iterable, value=_Cst[None]):
     from penty.penty import Types
 
-    iter_ty = Types[iterable]['__iter__'](iterable)
+    iter_ty = iter_(iterable)
     key = Types[iter_ty]['__next__'](iter_ty)
 
     return _Dict[key, value]
@@ -862,9 +860,7 @@ def list_init(elts_ty=None):
     from penty.penty import Types
     if elts_ty is None:
         return _List[set()]
-    if '__iter__' not in Types[elts_ty]:
-        raise TypeError
-    iter_ty = Types[elts_ty]['__iter__'](elts_ty)
+    iter_ty = iter_(elts_ty)
     if '__next__' not in Types[iter_ty]:
         raise TypeError
     next_ty = Types[iter_ty]['__next__'](iter_ty)
@@ -897,9 +893,7 @@ def list_setitem(self, key, value):
     elif _astype(key) is slice:
         # value should be iterable
         from penty.penty import Types
-        if '__iter__' not in Types[value]:
-            raise TypeError
-        iter_ty = Types[value]['__iter__'](value)
+        iter_ty = iter_(value)
         if '__next__' not in Types[iter_ty]:
             raise TypeError
         next_ty = Types[iter_ty]['__next__'](iter_ty)
@@ -922,9 +916,7 @@ def list_count(self, value):
 
 def list_extend(self, iterable):
     from penty.penty import Types
-    if '__iter__' not in Types[iterable]:
-        raise TypeError
-    iter_ty = Types[iterable]['__iter__'](iterable)
+    iter_ty = iter_(iterable)
     if '__next__' not in Types[iter_ty]:
         raise TypeError
     next_ty = Types[iter_ty]['__next__'](iter_ty)
@@ -1056,9 +1048,7 @@ def set_init(elts_ty=None):
     from penty.penty import Types
     if elts_ty is None:
         return _Set[set()]
-    if '__iter__' not in Types[elts_ty]:
-        raise TypeError
-    iter_ty = Types[elts_ty]['__iter__'](elts_ty)
+    iter_ty = iter_(elts_ty)
     if '__next__' not in Types[iter_ty]:
         raise TypeError
     next_ty = Types[iter_ty]['__next__'](iter_ty)
@@ -1127,8 +1117,7 @@ def set_copy(self):
 def set_difference(self, *values):
     from penty.penty import Types
     for value in values:
-        if '__iter__' not in Types[value]:
-            raise TypeError
+        iter_(value)
     return _Set[self.__args__[0].copy()]
 
 def set_difference_update(self, *values):
@@ -1151,9 +1140,7 @@ def set_intersection(self, *values):
     from penty.penty import Types
     intersection_tys = self.__args__[0].copy()
     for value in values:
-        if '__iter__' not in Types[value]:
-            raise TypeError
-        iter_tys = Types[value]['__iter__'](value)
+        iter_tys = iter_(value)
         if not isinstance(iter_tys, set):
             iter_tys = {iter_tys}
         for iter_ty in iter_tys:
@@ -1176,16 +1163,14 @@ def set_isdisjoint(self, value):
     from penty.penty import Types
     if not self.__args__[0] or not value.__args__[0]:
         return _Cst[True]
-    if '__iter__' not in Types[value]:
-        raise TypeError
+    iter_(value)
     return bool
 
 def set_issubset(self, value):
     from penty.penty import Types
     if not self.__args__[0]:
         return _Cst[True]
-    if '__iter__' not in Types[value]:
-        raise TypeError
+    iter_(value)
     return bool
 
 def set_issuperset(self, value):
@@ -1318,9 +1303,7 @@ def tuple_init(iterable=None):
     iterable_ty = Types[iterable]
     if '__len__' in iterable_ty and iterable_ty['__len__'](iterable) is _Cst[0]:
         return _Tuple[()]
-    if '__iter__' not in iterable_ty:
-        raise TypeError
-    iter_ty = iterable_ty['__iter__'](iterable)
+    iter_ty = iter_(iterable)
     if '__next__' not in Types[iter_ty]:
         raise TypeError
     elts_ty = _asset(Types[iter_ty]['__next__'](iter_ty))
@@ -1392,9 +1375,7 @@ def divmod_(x, y):
 def filter_(func, iterable):
     from penty.penty import Types
     typer_instance = _get_typer()
-    if '__iter__' not in Types[iterable]:
-        raise TypeError
-    iter_ty = Types[iterable]['__iter__'](iterable)
+    iter_ty = iter_(iterable)
     if '__next__' not in Types[iter_ty]:
         raise TypeError
     elts_ty = _asset(Types[iter_ty]['__next__'](iter_ty))
@@ -1433,6 +1414,22 @@ def repr_(obj):
         return _Cst[repr(self_v)]
     else:
         return str
+
+##
+#
+
+def iter_(obj, sentinel=None):
+    from penty.penty import Types
+    if sentinel is None:
+        if '__iter__' not in Types[obj]:
+            raise TypeError
+        return Types[obj]['__iter__'](obj)
+    else:
+        typer_instance = _get_typer()
+        result_tys = _asset(typer_instance._call(obj))
+        if _astype(sentinel) not in result_tys:
+            raise RuntimeError
+        return _Generator[result_tys]
 
 ##
 #
@@ -1508,7 +1505,7 @@ def reversed_(sequence):
 def map_(func_ty, *args_ty):
     from penty.penty import Types
     typer_instance = _get_typer()
-    iters_ty = [Types[arg_ty]['__iter__'](arg_ty) for arg_ty in args_ty]
+    iters_ty = [iter_(arg_ty) for arg_ty in args_ty]
     elts_ty = [_asset(Types[iter_ty]['__next__'](iter_ty))
                for iter_ty in iters_ty]
     result_ty = typer_instance._call(func_ty, *elts_ty)
@@ -1557,7 +1554,7 @@ def slice_(lower_ty, upper_ty, step_ty):
 def sorted_(iterable, *, key=_Cst[None], reverse=_Cst[False]):
     from penty.penty import Types
 
-    iter_ty = Types[iterable]['__iter__'](iterable)
+    iter_ty = iter_(iterable)
     elts_ty = _asset(Types[iter_ty]['__next__'](iter_ty))
 
     # check key argument
@@ -1656,7 +1653,7 @@ def register(registry):
             'int': {_Ty[int]},
             'isinstance': {_CFT[isinstance_, isinstance]},
             'issubclass': {_CFT[issubclass_, issubclass]},
-            # 'iter': {},
+            'iter': {_CFT[iter_, iter]},
             'len': {_CFT[len_, len]},
             # 'license': {},
             'list': {_Ty[list]},
