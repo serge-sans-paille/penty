@@ -70,6 +70,23 @@ class TestBuiltins(TestPenty):
         self.assertIsType('float(x)', float, env={'x': float})
         self.assertIsType('float(x)', float, env={'x': str})
 
+    def test_hash(self):
+        self.assertIsType('hash(True)', pentyping.Cst[hash(True)])
+        self.assertIsType('hash(3)', pentyping.Cst[hash(3)])
+        self.assertIsType('hash(3.)', pentyping.Cst[hash(3.)])
+        self.assertIsType('hash(3j)', pentyping.Cst[hash(3j)])
+        self.assertIsType('hash("3")', pentyping.Cst[hash("3")])
+        self.assertIsType('hash(x)', int, env={'x': bool})
+        self.assertIsType('hash(x)', int, env={'x': int})
+        self.assertIsType('hash(x)', int, env={'x': float})
+        self.assertIsType('hash(x)', int, env={'x': complex})
+        self.assertIsType('hash(x)', int, env={'x': str})
+        self.assertIsType('hash(x)', int, env={'x': pentyping.Tuple[int]})
+        with self.assertRaises(TypeError):
+            self.assertIsType('hex(x)', None, env={'x': pentyping.Set[int]})
+        with self.assertRaises(TypeError):
+            self.assertIsType('hex(x)', None, env={'x': pentyping.List[int]})
+
     def test_hex(self):
         self.assertIsType('hex(3)', pentyping.Cst[hex(3)])
         self.assertIsType('hex(x)', str, env={'x': int})
@@ -601,6 +618,12 @@ class TestDict(TestPenty):
                           env={'x': pentyping.Dict[int, int],
                                'y': pentyping.Dict[set(), set()]})
 
+    def test_hash(self):
+        self.assertIsType('x.__hash__', pentyping.Cst[None],
+                          env={'x': pentyping.Dict[int, int]})
+        with self.assertRaises(TypeError):
+            self.assertIsType('dict([([x], 1)])', None, env={'x': complex})
+
     def test_init(self):
         self.assertIsType('dict()', pentyping.Dict[set(), set()])
         self.assertIsType('dict(x)', pentyping.Dict[str, int],
@@ -811,6 +834,10 @@ class TestList(TestPenty):
             'x[:3]', pentyping.List[{int, float}],
             env={'x': pentyping.List[{int, float}]}
         )
+
+    def test_hash(self):
+        self.assertIsType('x.__hash__', pentyping.Cst[None],
+                          env={'x': pentyping.List[int]})
 
     def test_iadd(self):
         self.assertIsType(
@@ -1069,6 +1096,12 @@ class TestSet(TestPenty):
         self.assertIsType('x > y', bool,
                           env={'x': pentyping.Set[int],
                                'y': pentyping.Set[str]})
+
+    def test_hash(self):
+        self.assertIsType('x.__hash__', pentyping.Cst[None],
+                          env={'x': pentyping.Set[int]})
+        with self.assertRaises(TypeError):
+            self.assertIsType('set([[x]])', None, env={'x': complex})
 
     def test_init(self):
         self.assertIsType('set("ert")', pentyping.Set[str])
