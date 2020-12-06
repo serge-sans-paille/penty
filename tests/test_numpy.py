@@ -26,6 +26,9 @@ class TestDtype(TestNumpyBase):
 def make_integer_dtype_test(dtype):
     def test_dtype(self):
         self.assertIsType('abs(x)', dtype, env={'x': dtype})
+        self.assertIsType('bin(x)', str, env={'x': dtype})
+        self.assertIsType('hex(x)', str, env={'x': dtype})
+        self.assertIsType('oct(x)', str, env={'x': dtype})
         self.assertIsType('x + x', dtype, env={'x': dtype})
         self.assertIsType('x + 1', type(dtype() + 1), env={'x': dtype})
         self.assertIsType('x & x', dtype, env={'x': dtype})
