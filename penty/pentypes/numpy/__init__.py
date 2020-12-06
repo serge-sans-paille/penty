@@ -947,6 +947,7 @@ def ndarray_instanciate(ty):
         '__ge__': _MT[_np.ndarray, ndarray_make_binop('__ge__')],
         '__gt__': _MT[_np.ndarray, ndarray_make_binop('__gt__')],
         '__getitem__': _MT[_np.ndarray, ndarray_getitem],
+        '__hash__': _Cst[None],
         '__invert__': _MT[_np.ndarray, ndarray_invert],
         '__le__': _MT[_np.ndarray, ndarray_make_binop('__le__')],
         '__len__': _MT[_np.ndarray, ndarray_len],

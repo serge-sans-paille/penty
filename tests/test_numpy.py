@@ -345,6 +345,10 @@ class TestNDArray(TestNumpyBase):
                           NDArray[int, pentyping.Tuple[pentyping.Cst[5]]],
                           env={'x': NDArray[int, pentyping.Tuple[pentyping.Cst[5]]]})
 
+    def test_hash(self):
+        self.assertIsType('x.__hash__', pentyping.Cst[None],
+                          env={'x': NDArray[int, pentyping.Tuple[int]]})
+
     def test_getitem(self):
         self.assertIsType('x[0]',
                           NDArray[float, pentyping.Tuple[int]],

@@ -122,6 +122,12 @@ def int_float(self):
     else:
         raise TypeError
 
+def int_hash(self):
+    if issubclass(self, int):
+        return int
+    else:
+        raise TypeError
+
 def int_ne(self, value):
     if issubclass(_astype(self), int):
         return bool
@@ -182,6 +188,7 @@ _int_attrs = {
     '__floordiv__': int_make_binop(_operator.floordiv),
     '__ge__': int_make_boolop(_operator.ge),
     '__gt__': int_make_boolop(_operator.gt),
+    '__hash__': _CFT[int_hash, int.__hash__],
     '__int__': _CFT[int_int, int],
     '__init__': _CFT[int_init, int],
     '__invert__': int_make_unaryop(_operator.inv),
@@ -296,6 +303,11 @@ def float_divmod(self, value):
 def float_float(self):
     return float
 
+def float_hash(self):
+    if not issubclass(self, float):
+        raise TypeError
+    return int
+
 def float_init(value):
     from penty.penty import Types
     value = _astype(value)
@@ -359,6 +371,7 @@ _float_attrs = {
     '__floordiv__': float_make_binop(_operator.floordiv),
     '__ge__': float_make_boolop(_operator.ge),
     '__gt__': float_make_boolop(_operator.gt),
+    '__hash__': _CFT[float_hash, float.__hash__],
     '__init__': _CFT[float_init, float],
     '__int__': _CFT[float_int, float.__int__],
     '__le__': float_make_boolop(_operator.le),
@@ -395,6 +408,11 @@ def complex_divmod(self, value):
     if not issubclass(self, complex):
         raise TypeError
     raise TypeError
+
+def complex_hash(self):
+    if not issubclass(self, complex):
+        raise TypeError
+    return int
 
 def complex_init(real_ty, imag_ty=None):
     from penty.penty import Types
@@ -488,6 +506,7 @@ _complex_attrs = {
     '__floordiv__': _FT[complex_divmod],  # same as floordiv: type error
     '__ge__': complex_make_boolop(_operator.ge),
     '__gt__': complex_make_boolop(_operator.gt),
+    '__hash__': _CFT[complex_hash, complex.__hash__],
     '__init__': _CFT[complex_init, complex],
     '__int__': _CFT[complex_int, complex.__int__],
     '__le__': complex_make_boolop(_operator.le),
@@ -514,6 +533,12 @@ str_iterator = type(iter(""))
 def str_bool(self):
     if self is str:
         return bool
+    else:
+        raise TypeError
+
+def str_hash(self):
+    if self is str:
+        return int
     else:
         raise TypeError
 
@@ -561,6 +586,7 @@ def str_lt(self, value):
 
 _str_attrs = {
     '__bases__': _Tuple[_Ty[object]],
+    '__hash__': _CFT[str_hash, str.__hash__],
     '__init__': _CFT[str_init, str],
     '__iter__': _FT[str_iter],
     '__len__': _CFT[str_len, str.__len__],
@@ -662,6 +688,7 @@ def dict_update(self, *other_tys):
                     raise TypeError
                 if len(value_ty.__args__) != 2:
                     raise TypeError
+                hash_(_astype(value_ty.__args__[0]))
                 self.__args__[0].add(_astype(value_ty.__args__[0]))
                 self.__args__[1].add(_astype(value_ty.__args__[1]))
     return _Cst[None]
@@ -707,12 +734,16 @@ def dict_values(self):
     return _DictValueIterator[self.__args__[1]]
 
 def dict_instanciate(ty):
+    keys, values = ty.__args__
+    for key in keys:
+        hash_(key)
     return _dict_methods
 
 _dict_methods = {
     '__contains__': _MT[dict, dict_contains],
     '__delitem__': _MT[dict, dict_delitem],
     '__getitem__': _MT[dict, dict_getitem],
+    '__hash__': _Cst[None],
     '__init__': _FT[dict_init],
     '__iter__': _MT[dict, dict_iter],
     '__len__': _MT[dict, dict_len],
@@ -970,6 +1001,7 @@ _list_methods = {
     '__ge__': _MT[list, list_bool_binop],
     '__getitem__': _MT[list, list_getitem],
     '__gt__': _MT[list, list_bool_binop],
+    '__hash__': _Cst[None],
     '__iadd__': _MT[list, list_iadd],
     '__imul__': _MT[list, list_imul],
     '__iter__': _MT[list, list_iter],
@@ -1041,7 +1073,9 @@ def set_init(elts_ty=None):
     if elts_ty is None:
         return _Set[set()]
     iter_ty = iter_(elts_ty)
-    next_ty = next_(iter_ty)
+    next_ty = _asset(next_(iter_ty))
+    for ty in next_ty:
+        hash_(ty)
     return _Set[next_ty]
 
 def set_ior(self, value):
@@ -1196,6 +1230,9 @@ def set_update(self, *values):
     return set_intersection_update(self, *values)
 
 def set_instanciate(ty):
+    keys, = ty.__args__
+    for key in keys:
+        hash_(key)
     return _set_methods
 
 _set_methods = {
@@ -1204,6 +1241,7 @@ _set_methods = {
     '__eq__': _MT[set, set_eq],
     '__ge__': make_set_compare(),
     '__gt__': make_set_compare(),
+    '__hash__': _Cst[None],
     '__iand__': _MT[set, set_iand],
     '__ior__': _MT[set, set_ior],
     '__isub__': _MT[set, set_isub],
@@ -1296,6 +1334,12 @@ def tuple_init(iterable=None):
     # FIXME: should we have frozen sets as tuple elts?
     return {_Tuple[elt_ty, ...] for elt_ty in elts_ty}
 
+def tuple_hash(self):
+    for ty in self.__args__:
+        hash_(_astype(ty))
+    return int
+
+
 def tuple_len(self):
     if self.__args__[-1] is Ellipsis:
         return int
@@ -1303,6 +1347,7 @@ def tuple_len(self):
 
 _tuple_methods = {
     '__getitem__': _MT[tuple, tuple_getitem],
+    '__hash__': _MT[tuple, tuple_hash],
     '__init__': _FT[tuple_init],
     '__len__': _MT[tuple, tuple_len],
 }
@@ -1372,6 +1417,18 @@ def filter_(func, iterable):
             if _astype(bool_ty) is not bool:
                 raise TypeError
         return _Generator[elts_ty]
+##
+#
+
+def hash_(obj):
+    from penty.penty import Types
+    if '__hash__' not in Types[obj]:
+        raise TypeError
+    hash_ty = Types[obj]['__hash__']
+    if hash_ty is _Cst[None]:
+        raise TypeError
+    return hash_ty(obj)
+
 ##
 #
 
@@ -1639,7 +1696,7 @@ def register(registry):
             # 'getattr': {},
             # 'globals': {},
             # 'hasattr': {},
-            # 'hash': {},
+            'hash': {_CFT[hash_, hash]},
             # 'help': {},
             'hex': {_CFT[hex_, hex]},
             'id': {_FT[id_]},
