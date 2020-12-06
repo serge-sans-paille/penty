@@ -25,7 +25,6 @@ class TestBuiltins(TestPenty):
     def test_bin(self):
         self.assertIsType('bin(3)', pentyping.Cst[bin(3)])
         self.assertIsType('bin(x)', str, env={'x': int})
-        self.assertIsType('bin(x)', str, env={'x': np.uint8})
         with self.assertRaises(TypeError):
             self.assertIsType('bin(x)', None, env={'x': complex})
 
@@ -74,7 +73,6 @@ class TestBuiltins(TestPenty):
     def test_hex(self):
         self.assertIsType('hex(3)', pentyping.Cst[hex(3)])
         self.assertIsType('hex(x)', str, env={'x': int})
-        self.assertIsType('hex(x)', str, env={'x': np.uint8})
         with self.assertRaises(TypeError):
             self.assertIsType('hex(x)', None, env={'x': complex})
 
@@ -166,7 +164,6 @@ class TestBuiltins(TestPenty):
     def test_oct(self):
         self.assertIsType('oct(3)', pentyping.Cst[oct(3)])
         self.assertIsType('oct(x)', str, env={'x': int})
-        self.assertIsType('oct(x)', str, env={'x': np.uint8})
         with self.assertRaises(TypeError):
             self.assertIsType('oct(x)', None, env={'x': complex})
 
