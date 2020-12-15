@@ -178,6 +178,30 @@ class TestBuiltins(TestPenty):
                           pentyping.Generator[str],
                           env={'x': str, 'y': str})
 
+    def test_max(self):
+        self.assertIsType('max(1, 2)', pentyping.Cst[max(1,2)])
+        self.assertIsType('max(1, 2.)', pentyping.Cst[max(1, 2.)])
+        self.assertIsType('max(x, 2.)', {int, float}, env={'x': int})
+        self.assertIsType('max(x, x + 1, 2.)', {int, float}, env={'x': int})
+        self.assertIsType('max([1, 2, 3])', int)
+        self.assertIsType('max([x, 2, 3])', {int, float}, env={'x': float})
+        self.assertIsType('max([x, "2", "3"], key=int)', str, env={'x': str})
+        self.assertIsType('max(x)', bool, env={'x': pentyping.List[bool]})
+        self.assertIsType('max(x, default=1)', {int, bool}, env={'x': pentyping.List[bool]})
+        self.assertIsType('max(x, key=lambda x: -x)', bool, env={'x': pentyping.List[bool]})
+
+    def test_min(self):
+        self.assertIsType('min(1, 2)', pentyping.Cst[min(1,2)])
+        self.assertIsType('min(1, 2.)', pentyping.Cst[min(1, 2.)])
+        self.assertIsType('min(x, 2.)', {int, float}, env={'x': int})
+        self.assertIsType('min(x, x + 1, 2.)', {int, float}, env={'x': int})
+        self.assertIsType('min([1, 2, 3])', int)
+        self.assertIsType('min([x, 2, 3])', {int, float}, env={'x': float})
+        self.assertIsType('min([x, "2", "3"], key=int)', str, env={'x': str})
+        self.assertIsType('min(x)', bool, env={'x': pentyping.List[bool]})
+        self.assertIsType('min(x, default=1)', {int, bool}, env={'x': pentyping.List[bool]})
+        self.assertIsType('min(x, key=lambda x: -x)', bool, env={'x': pentyping.List[bool]})
+
     def test_oct(self):
         self.assertIsType('oct(3)', pentyping.Cst[oct(3)])
         self.assertIsType('oct(x)', str, env={'x': int})

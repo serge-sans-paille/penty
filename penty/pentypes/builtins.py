@@ -144,7 +144,7 @@ def int_str(self):
 def int_make_boolop(operator):
     def boolop(self, value):
         self, value = _astype(self), _astype(value)
-        if issubclass(self, int) and issubclass(value, int):
+        if issubclass(self, int) and issubclass(value, (int, float)):
             return bool
         else:
             raise TypeError
@@ -1554,6 +1554,58 @@ def map_(func_ty, *args_ty):
 ##
 #
 
+def max_(arg1, *args, default=None, key=None):
+    from penty.penty import Types
+    typer_instance = _get_typer()
+    # max of a sequence
+    if not args:
+        iters_ty = _asset(iter_(arg1))
+        elts_ty = [_asset(next_(iter_ty)) for iter_ty in iters_ty]
+
+        comparables = set()
+        if key is not None:
+            for elt_ty in  elts_ty:
+                for ety in elt_ty:
+                    comparables.update(_asset(typer_instance._call(key, ety)))
+        else:
+            comparables.update(*elts_ty)
+
+        # check that elements are comparable
+        for self, value in _itertools.product(comparables, comparables):
+            Types[_Module['operator']]['gt'](self, value)
+
+        if default is None:
+            result_ty = set()
+        else:
+            result_ty = {_astype(default)}
+
+        return result_ty.union(*elts_ty)
+
+    # max among elements
+    all_args = {_astype(arg1)}
+    all_args.update(map(_astype, args))
+
+    comparables = set()
+    if key is not None:
+        for arg in all_args:
+            comparables.update(_asset(typer_instance._call(key, arg)))
+    else:
+        comparables.update(all_args)
+    # check that elements are comparable
+    for self, value in _itertools.product(comparables, comparables):
+        Types[_Module['operator']]['gt'](self, value)
+
+    return all_args
+
+##
+#
+
+def min_(arg1, *args, default=None, key=None):
+    return max_(arg1, *args, default=default, key=key)
+
+##
+#
+
 def next_(iterator, default=None):
     from penty.penty import Types
     if '__next__' not in Types[iterator]:
@@ -1710,9 +1762,9 @@ def register(registry):
             'list': {_Ty[list]},
             # 'locals': {},
             'map': {_CFT[map_, map]},
-            # 'max': {},
+            'max': {_CFT[max_, max]},
             # 'memoryview': {},
-            # 'min': {},
+            'min': {_CFT[min_, min]},
             'next': {_FT[next_]},
             'object': {_Ty[object]},
             'oct': {_CFT[oct_, oct]},
