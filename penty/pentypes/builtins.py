@@ -530,6 +530,12 @@ for slot in ('add', 'divmod', 'floordiv', 'mod', 'mul', 'pow', 'sub', 'truediv')
 #
 str_iterator = type(iter(""))
 
+def str_add(self, value):
+    value = _astype(value)
+    if issubclass(self, str) and issubclass(value, str):
+        return str
+    raise TypeError
+
 def str_bool(self):
     if self is str:
         return bool
@@ -585,6 +591,7 @@ def str_lt(self, value):
         raise TypeError
 
 _str_attrs = {
+    '__add__': _CFT[str_add, str.__add__],
     '__bases__': _Tuple[_Ty[object]],
     '__hash__': _CFT[str_hash, str.__hash__],
     '__init__': _CFT[str_init, str],
@@ -1682,6 +1689,27 @@ def sorted_(iterable, *, key=_Cst[None], reverse=_Cst[False]):
 ##
 #
 
+def sum_(iterable, start=_Cst[0]):
+    from penty.penty import Types
+    if '__len__' in Types[iterable]:
+        len_ty = Types[iterable]['__len__'](iterable)
+        if len_ty is _Cst[0]:
+            return start
+
+    result_tys = {_astype(start)}
+    iter_tys = _asset(iter_(iterable))
+    for iter_ty in iter_tys:
+        result_tys.update(_asset(next_(iter_ty)))
+
+    # check that elements are addable
+    for self, value in _itertools.product(result_tys, result_tys):
+        Types[_Module['operator']]['add'](self, value)
+
+    return result_tys
+
+##
+#
+
 def type_(self, node=None):
     if node is None:
         return _Ty[_astype(self)]
@@ -1784,7 +1812,7 @@ def register(registry):
             'sorted': {_FT[sorted_]},
             # 'staticmethod': {},
             'str': {_Ty[str]},
-            # 'sum': {},
+            'sum': {_CFT[sum_, sum]},
             # 'super': {},
             'tuple': {_Ty[tuple]},
             'type': {_FT[type_]},

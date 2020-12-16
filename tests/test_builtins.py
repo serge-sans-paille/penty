@@ -225,6 +225,16 @@ class TestBuiltins(TestPenty):
                           pentyping.List[str],
                           env={'x': str})
 
+    def test_sum(self):
+        self.assertIsType('sum([])', pentyping.Cst[0])
+        self.assertIsType('sum({}, start=3)', pentyping.Cst[3])
+        with self.assertRaises(TypeError):
+            self.assertIsType('sum("hello")', None)
+        self.assertIsType('sum(x, start="")', str,
+                          env={'x': str})
+        self.assertIsType('sum(x)', {int, float},
+                          env={'x': pentyping.List[float]})
+
     def test_tuple(self):
         self.assertIsType('tuple()', pentyping.Tuple[()])
         self.assertIsType('tuple("er")', pentyping.Tuple[str, str])
