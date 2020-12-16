@@ -22,6 +22,14 @@ class TestBuiltins(TestPenty):
         self.assertIsType('abs(x)', int, env={'x': int})
         self.assertIsType('abs(x)', float, env={'x': float})
 
+    def test_all(self):
+        self.assertIsType('all([])', pentyping.Cst[True])
+        self.assertIsType('all("er")', pentyping.Cst[True])
+        self.assertIsType('all(x)', bool, env={'x': str})
+        self.assertIsType('all(x)', pentyping.Cst[False],
+                          env={'x': pentyping.Tuple[pentyping.Cst[1],
+                                                    pentyping.Cst[""]]})
+
     def test_bin(self):
         self.assertIsType('bin(3)', pentyping.Cst[bin(3)])
         self.assertIsType('bin(x)', str, env={'x': int})
