@@ -108,12 +108,13 @@ def normalize_test_ty(types):
 def is_constantcall(func, args_ty, kwargs_ty):
     if not issubclass(func, CFT):
         return False
-    return (
-        all(issubclass(ty, Cst) and not issubclass(ty, FilteringBool)
-               for ty in args_ty) and
-        all(issubclass(ty, Cst) and not issubclass(ty, FilteringBool)
-               for ty in kwargs_ty.values())
-    )
+    def iscst(ty):
+        if issubclass(ty, Cst) and not issubclass(ty, FilteringBool):
+            return True
+        if issubclass(ty, Tuple) and all(map(iscst, ty.__args__)):
+            return True
+        return False
+    return all(map(iscst, itertools.chain(args_ty, kwargs_ty.values())))
 
 
 def totype(value):
@@ -189,6 +190,12 @@ def args_combinations(*args, **kwargs):
             yield curr_args, {k: v for (k, v) in zip(keys, curr_kwargs)}
 
 
+def asval(ty):
+    if issubclass(ty, Cst):
+        return ty.__args__[0]
+    if issubclass(ty, Tuple):
+        return tuple(map(asval, ty.__args__))
+
 
 class Typer(ast.NodeVisitor):
 
@@ -252,8 +259,8 @@ class Typer(ast.NodeVisitor):
                 if is_constantcall(func, curr_args, curr_kwargs):
                     _, realfunc = func.__args__
                     realres = realfunc(
-                        *[arg.__args__[0] for arg in curr_args],
-                        **{k: v.__args__[0] for k, v in curr_kwargs.items()}
+                        *[asval(arg) for arg in curr_args],
+                        **{k: asval(v) for k, v in curr_kwargs.items()}
                     )
                     tyres = totype(realres)
                     if tyres is not None:

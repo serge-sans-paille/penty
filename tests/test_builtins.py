@@ -227,6 +227,8 @@ class TestBuiltins(TestPenty):
 
     def test_sum(self):
         self.assertIsType('sum([])', pentyping.Cst[0])
+        self.assertIsType('sum(x)', pentyping.Cst[5],
+                          env={'x': pentyping.Tuple[pentyping.Cst[3], pentyping.Cst[2]]})
         self.assertIsType('sum({}, start=3)', pentyping.Cst[3])
         with self.assertRaises(TypeError):
             self.assertIsType('sum("hello")', None)
