@@ -1393,6 +1393,27 @@ def abs_(x):
 ##
 #
 
+def all_(iterable):
+    from penty.penty import Types
+    if '__len__' in Types[iterable]:
+        len_ty = Types[iterable]['__len__'](iterable)
+        if len_ty is _Cst[0]:
+            return _Cst[True]
+
+    elt_tys = set()
+    iter_tys = _asset(iter_(iterable))
+    for iter_ty in iter_tys:
+        elt_tys.update(_asset(next_(iter_ty)))
+
+    for elt_ty in elt_tys:
+        if bool_init(elt_ty) is _Cst[False]:
+            return _Cst[False]
+
+    return bool
+
+##
+#
+
 def bin_(number):
     return hex_(number)
 
@@ -1747,7 +1768,7 @@ def register(registry):
 
         registry[_Module['builtins']] = {
             'abs': {_CFT[abs_, abs]},
-            # 'all': {},
+            'all': {_CFT[all_, all]},
             # 'any': {},
             # 'ascii': {},
             'bin': {_CFT[bin_, bin]},
