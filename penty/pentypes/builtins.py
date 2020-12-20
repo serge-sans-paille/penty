@@ -1727,6 +1727,14 @@ def oct_(number):
 ##
 #
 
+def ord_(c):
+    if not issubclass(c, str):
+        raise TypeError
+    return int
+
+##
+#
+
 def pow_impl(base, exp, mod):
     from penty.penty import Types
     base = _astype(base)
@@ -1904,7 +1912,7 @@ def register(registry):
             'object': {_Ty[object]},
             'oct': {_CFT[oct_, oct]},
             # 'open': {},
-            # 'ord': {},
+            'ord': {_CFT[ord_, ord]},
             'pow': {_CFT[pow_, pow]},
             # 'print': {},
             # 'property': {},
