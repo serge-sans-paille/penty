@@ -332,6 +332,18 @@ class TestBuiltins(TestPenty):
         self.assertIsType('reversed(x)', pentyping.ListIterator[{int, float}],
                           env={'x': pentyping.List[{int, float}]})
 
+    def test_zip(self):
+        self.assertIsType('zip("2", "1")',
+                          pentyping.Generator[pentyping.Tuple[str, str]])
+        self.assertIsType('zip(x, "1", y)',
+                          pentyping.Generator[pentyping.Tuple[int, str, bool]],
+                          env={'x': pentyping.List[int],
+                               'y': pentyping.Set[bool]})
+        self.assertIsType('zip(x, "1")',
+                          {pentyping.Generator[pentyping.Tuple[int, str]],
+                           pentyping.Generator[pentyping.Tuple[str, str]]},
+                          env={'x': pentyping.List[{int,str}]})
+
 
 
 class TestBool(TestPenty):
