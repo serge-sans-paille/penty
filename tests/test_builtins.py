@@ -63,6 +63,14 @@ class TestBuiltins(TestPenty):
                           pentyping.Cst[callable(type("e"))],
                           env={'x': str})
 
+    def test_chr(self):
+        self.assertIsType('chr(31)', pentyping.Cst[chr(31)])
+        self.assertIsType('chr(x)', str, env={'x': int})
+        with self.assertRaises(TypeError):
+            self.assertIsType('chr(x)', None, env={'x': str})
+        with self.assertRaises(TypeError):
+            self.assertIsType('chr("x")', None)
+
     def test_complex(self):
         self.assertIsType('complex(x)', complex, env={'x': bool})
         self.assertIsType('complex(x)', complex, env={'x': int})

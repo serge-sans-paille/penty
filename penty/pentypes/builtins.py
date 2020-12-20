@@ -1453,6 +1453,17 @@ def callable_(obj):
 
 ##
 #
+
+def chr_(i):
+    from penty.penty import Types
+    if issubclass(i, int):
+        return str
+    if '__index__' in Types[i]:
+        return chr_(Types[i]['__index__'](i))
+    raise TypeError
+
+##
+#
 def divmod_(x, y):
     from penty.penty import Types
     x, y = _astype(x), _astype(y)
@@ -1806,7 +1817,7 @@ def register(registry):
             # 'bytearray': {},
             # 'bytes': {},
             'callable': {_CFT[callable_, callable]},
-            # 'chr': {},
+            'chr': {_CFT[chr_, chr]},
             # 'classmethod': {},
             # 'compileyy': {},
             'complex': {_Ty[complex]},
