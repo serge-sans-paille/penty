@@ -279,6 +279,12 @@ class TestBuiltins(TestPenty):
         with self.assertRaises(TypeError):
             self.assertIsType('oct(x)', None, env={'x': complex})
 
+    def test_ord(self):
+        self.assertIsType('ord("3")', pentyping.Cst[ord("3")])
+        self.assertIsType('ord(x)', int, env={'x': str})
+        with self.assertRaises(TypeError):
+            self.assertIsType('ord(x)', None, env={'x': complex})
+
     def test_pow(self):
         self.assertIsType('pow(3, 4.)', pentyping.Cst[pow(3, 4.)])
         self.assertIsType('pow(x, 4.)', float, env={'x': int})
