@@ -2,7 +2,7 @@ from penty.types import Cst as _Cst, Module as _Module, Type as _Ty
 from penty.types import astype as _astype, TypeOf as _TypeOf, asset as _asset
 from penty.types import ConstFunctionType as _CFT, Tuple as _Tuple
 from penty.types import FunctionType as _FT, Generator as _Generator
-from penty.types import MethodType as _MT
+from penty.types import MethodType as _MT, FDef as _FDef, Lambda as _Lambda
 from penty.types import FilteringBool as _FilteringBool, get_typer as _get_typer
 from penty.types import List as _List, Set as _Set, Dict as _Dict
 from penty.types import SetIterator as _SetIterator
@@ -1411,11 +1411,45 @@ def all_(iterable):
 
     return bool
 
+
+##
+#
+
+def any_(iterable):
+    from penty.penty import Types
+    if '__len__' in Types[iterable]:
+        len_ty = Types[iterable]['__len__'](iterable)
+        if len_ty is _Cst[0]:
+            return _Cst[False]
+
+    elt_tys = set()
+    iter_tys = _asset(iter_(iterable))
+    for iter_ty in iter_tys:
+        elt_tys.update(_asset(next_(iter_ty)))
+
+    for elt_ty in elt_tys:
+        if bool_init(elt_ty) is _Cst[True]:
+            return _Cst[True]
+
+    return bool
+
+##
+#
+
+def ascii_(obj):
+    return str
+
 ##
 #
 
 def bin_(number):
     return hex_(number)
+
+##
+#
+
+def callable_(obj):
+    return _Cst[issubclass(obj, (_FDef, _Lambda, _FT, _Ty))]
 
 ##
 #
@@ -1478,11 +1512,7 @@ def id_(obj):
 #
 
 def repr_(obj):
-    if issubclass(obj, _Cst):
-        self_v = obj.__args__[0]
-        return _Cst[repr(self_v)]
-    else:
-        return str
+    return str
 
 ##
 #
@@ -1769,13 +1799,13 @@ def register(registry):
         registry[_Module['builtins']] = {
             'abs': {_CFT[abs_, abs]},
             'all': {_CFT[all_, all]},
-            # 'any': {},
-            # 'ascii': {},
+            'any': {_CFT[any_, any]},
+            'ascii': {_CFT[ascii_, ascii]},
             'bin': {_CFT[bin_, bin]},
             'bool': {_Ty[bool]},
             # 'bytearray': {},
             # 'bytes': {},
-            # 'callable': {},
+            'callable': {_CFT[callable_, callable]},
             # 'chr': {},
             # 'classmethod': {},
             # 'compileyy': {},
@@ -1824,7 +1854,7 @@ def register(registry):
             # 'property': {},
             # 'quit': {},
             # 'range': {},
-            'repr': {_FT[repr_]},
+            'repr': {_CFT[repr_, repr]},
             'reversed': {_FT[reversed_]},
             # 'round': {},
             'set': {_Ty[set]},

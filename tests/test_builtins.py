@@ -30,11 +30,38 @@ class TestBuiltins(TestPenty):
                           env={'x': pentyping.Tuple[pentyping.Cst[1],
                                                     pentyping.Cst[""]]})
 
+    def test_any(self):
+        self.assertIsType('any([])', pentyping.Cst[False])
+        self.assertIsType('any("er")', pentyping.Cst[True])
+        self.assertIsType('any(x)', bool, env={'x': str})
+        self.assertIsType('any(x)', pentyping.Cst[True],
+                          env={'x': pentyping.Tuple[pentyping.Cst[1],
+                                                    pentyping.Cst[""]]})
+
+    def test_ascii(self):
+        self.assertIsType('ascii(3)', pentyping.Cst[ascii(3)])
+        self.assertIsType('ascii("er")', pentyping.Cst[ascii("er")])
+        self.assertIsType('ascii([])', str)
+        self.assertIsType('ascii(())', str)
+        self.assertIsType('ascii(x)', str, env={'x': str})
+
     def test_bin(self):
         self.assertIsType('bin(3)', pentyping.Cst[bin(3)])
         self.assertIsType('bin(x)', str, env={'x': int})
         with self.assertRaises(TypeError):
             self.assertIsType('bin(x)', None, env={'x': complex})
+
+    def test_callable(self):
+        self.assertIsType('callable(1)', pentyping.Cst[False])
+        self.assertIsType('callable(str)', pentyping.Cst[callable(str)])
+        self.assertIsType('callable(lambda x:1)',
+                          pentyping.Cst[callable(lambda x:1)])
+        self.assertIsType('callable(int.__add__)',
+                          pentyping.Cst[callable(int.__add__)])
+        self.assertIsType('callable(abs)', pentyping.Cst[callable(abs)])
+        self.assertIsType('callable(type(x))',
+                          pentyping.Cst[callable(type("e"))],
+                          env={'x': str})
 
     def test_complex(self):
         self.assertIsType('complex(x)', complex, env={'x': bool})
