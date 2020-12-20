@@ -1476,6 +1476,22 @@ def divmod_(x, y):
 ##
 #
 
+def enumerate_(iterable, start=int):
+    from penty.penty import Types
+    iterable = _astype(iterable)
+    start = _astype(start)
+    if not issubclass(start, int):
+        if '__index__' in Types[start]:
+            return enumerate_(iterable, Types[start]['__index__'](start))
+        else:
+            raise TypeError
+
+    iter_ty = iter_(iterable)
+    elts_ty = next_(iter_ty)
+    return _Generator[{_Tuple[int, elt_ty] for elt_ty in elts_ty}]
+##
+#
+
 def filter_(func, iterable):
     from penty.penty import Types
     typer_instance = _get_typer()
@@ -1819,7 +1835,7 @@ def register(registry):
             'callable': {_CFT[callable_, callable]},
             'chr': {_CFT[chr_, chr]},
             # 'classmethod': {},
-            # 'compileyy': {},
+            # 'compile': {},
             'complex': {_Ty[complex]},
             # 'copyright': {},
             # 'credits': {},
@@ -1827,7 +1843,7 @@ def register(registry):
             'dict': {_Ty[dict]},
             # 'dir': {},
             'divmod': {_CFT[divmod_, divmod]},
-            # 'enumerate': {},
+            'enumerate': {_FT[enumerate_]},
             # 'eval': {},
             # 'exec': {},
             # 'exit': {},
@@ -1851,7 +1867,7 @@ def register(registry):
             # 'license': {},
             'list': {_Ty[list]},
             # 'locals': {},
-            'map': {_CFT[map_, map]},
+            'map': {_FT[map_]},
             'max': {_CFT[max_, max]},
             # 'memoryview': {},
             'min': {_CFT[min_, min]},

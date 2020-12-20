@@ -78,6 +78,20 @@ class TestBuiltins(TestPenty):
         self.assertIsType('complex(x)', complex, env={'x': complex})
         self.assertIsType('complex(x)', complex, env={'x': str})
 
+    def test_enumerate(self):
+        self.assertIsType('enumerate(x)',
+                          pentyping.Generator[pentyping.Tuple[int, int]],
+                          env={'x': pentyping.List[int]})
+        self.assertIsType('enumerate(x, 3)',
+                          pentyping.Generator[pentyping.Tuple[int, int]],
+                          env={'x': pentyping.List[int]})
+        self.assertIsType('enumerate("x", 3)',
+                          pentyping.Generator[pentyping.Tuple[int, str]])
+        self.assertIsType('enumerate(x)',
+                          pentyping.Generator[{pentyping.Tuple[int, int],
+                                               pentyping.Tuple[int, float]}],
+                          env={'x': pentyping.List[{int, float}]})
+
     def test_str(self):
         self.assertIsType('str(x)', str, env={'x': bool})
         self.assertIsType('str(x)', str, env={'x': int})
