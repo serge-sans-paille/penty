@@ -1815,6 +1815,17 @@ def type_(self, node=None):
 ##
 #
 
+def zip_(*iters):
+    from penty.penty import Types
+    typer_instance = _get_typer()
+    iters_ty = [iter_(i) for i in iters]
+    elts_tys = [_asset(next_(iter_ty)) for iter_ty in iters_ty]
+    return {_Generator[_Tuple[elts_ty]]
+            for elts_ty in _itertools.product(*elts_tys)}
+
+##
+#
+
 def register(registry):
     if _Module['builtins'] not in registry:
         # the registration order must respect the type hierarchy, top-down
@@ -1913,5 +1924,5 @@ def register(registry):
             'tuple': {_Ty[tuple]},
             'type': {_FT[type_]},
             # 'vars': {},
-            # 'zip': {},
+            'zip': {_FT[zip_]},
         }
