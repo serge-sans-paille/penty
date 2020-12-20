@@ -1510,15 +1510,19 @@ def filter_(func, iterable):
 ##
 #
 
-def hasattr_(obj, name):
+def hasattr_(obj, name, node=None):
+    from penty.penty import Types
+
     if name is str:
         return bool
     if not (issubclass(name, _Cst) and isinstance(name.__args__[0], str)):
         raise TypeError
 
     attr = name.__args__[0]
-    from penty.penty import Types
-    return _Cst[attr in Types[obj]]
+    if node is None:
+        return _Cst[attr in Types[obj]]
+    else:
+        return _FilteringBool[attr in Types[obj], node.id, (obj,)]
 
 ##
 #

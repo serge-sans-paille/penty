@@ -845,18 +845,16 @@ class Typer(ast.NodeVisitor):
         func_ty = self.visit(node.func)
 
         return_ty = set()
-        istype_compat = node.args and isinstance(node.args[0], ast.Name)
-        type_ty = Types[Module['builtins']]['type']
-        isinstance_ty = Types[Module['builtins']]['isinstance']
+        arg0_is_id = node.args and isinstance(node.args[0], ast.Name)
+        special_funcs = set()
+        special_funcs.update(Types[Module['builtins']]['type'],
+                             Types[Module['builtins']]['isinstance'],
+                             Types[Module['builtins']]['hasattr'])
         for fty in func_ty:
             full_args_ty, kwonly_ty = expand_args(fty, args_ty, kwargs_ty)
 
             # Special handling for type manipulation function
-            if fty in type_ty and istype_compat:
-                assert not kwonly_ty
-                return_ty.update({fty(arg_ty, node.args[0])
-                                  for arg_ty in full_args_ty[0]})
-            elif fty in isinstance_ty and istype_compat:
+            if fty in special_funcs and arg0_is_id:
                 assert not kwonly_ty
                 for arg_tys in itertools.product(*full_args_ty):
                     rty = fty(*arg_tys, node.args[0])

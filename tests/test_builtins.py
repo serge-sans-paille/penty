@@ -94,10 +94,10 @@ class TestBuiltins(TestPenty):
 
     def test_hasattr(self):
         self.assertIsType('hasattr(x, "__add__")',
-                          pentyping.Cst[True],
+                          pentyping.FilteringBool[True, 'x', (bool,)],
                           env={'x': bool})
         self.assertIsType('hasattr(x, "__fly__")',
-                          pentyping.Cst[False],
+                          pentyping.FilteringBool[False, 'x', (bool,)],
                           env={'x': bool})
         self.assertIsType('hasattr(x, y)', bool,
                           env={'x': bool, 'y': str})
