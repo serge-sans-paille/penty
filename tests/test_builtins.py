@@ -92,6 +92,20 @@ class TestBuiltins(TestPenty):
                                                pentyping.Tuple[int, float]}],
                           env={'x': pentyping.List[{int, float}]})
 
+    def test_hasattr(self):
+        self.assertIsType('hasattr(x, "__add__")',
+                          pentyping.Cst[True],
+                          env={'x': bool})
+        self.assertIsType('hasattr(x, "__fly__")',
+                          pentyping.Cst[False],
+                          env={'x': bool})
+        self.assertIsType('hasattr(x, y)', bool,
+                          env={'x': bool, 'y': str})
+        self.assertIsType('hasattr(1, y)', bool,
+                          env={'y': str})
+        self.assertIsType('hasattr(1, "__add__")',
+                          pentyping.Cst[True])
+
     def test_str(self):
         self.assertIsType('str(x)', str, env={'x': bool})
         self.assertIsType('str(x)', str, env={'x': int})
