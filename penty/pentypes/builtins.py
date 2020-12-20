@@ -1506,6 +1506,20 @@ def filter_(func, iterable):
             if _astype(bool_ty) is not bool:
                 raise TypeError
         return _Generator[elts_ty]
+
+##
+#
+
+def hasattr_(obj, name):
+    if name is str:
+        return bool
+    if not (issubclass(name, _Cst) and isinstance(name.__args__[0], str)):
+        raise TypeError
+
+    attr = name.__args__[0]
+    from penty.penty import Types
+    return _Cst[attr in Types[obj]]
+
 ##
 #
 
@@ -1853,7 +1867,7 @@ def register(registry):
             # 'frozenset': {},
             # 'getattr': {},
             # 'globals': {},
-            # 'hasattr': {},
+            'hasattr': {_CFT[hasattr_, hasattr]},
             'hash': {_CFT[hash_, hash]},
             # 'help': {},
             'hex': {_CFT[hex_, hex]},
