@@ -106,6 +106,22 @@ class TestBuiltins(TestPenty):
         self.assertIsType('hasattr(1, "__add__")',
                           pentyping.Cst[True])
 
+    def test_getattr(self):
+        self.assertIsType('getattr(x, "__add__")(1)',
+                          int,
+                          env={'x': bool})
+        self.assertIsType('getattr(x, "__sadd__", lambda x: 0)(1)',
+                          pentyping.Cst[0],
+                          env={'x': bool})
+        self.assertIsType('getattr(True, "__add__")(1)',
+                          pentyping.Cst[True + 1])
+        self.assertIsType('getattr(type(x), "__add__")(False, 1)',
+                          pentyping.Cst[False + 1],
+                          env={'x': bool})
+        with self.assertRaises(TypeError):
+            self.assertIsType('getattr(x, "__pub__")', None,
+                              env={'x': bool})
+
     def test_str(self):
         self.assertIsType('str(x)', str, env={'x': bool})
         self.assertIsType('str(x)', str, env={'x': int})
