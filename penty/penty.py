@@ -875,35 +875,37 @@ class Typer(ast.NodeVisitor):
     def visit_Constant(self, node):
         return {Cst[node.value]}
 
-    def _bounded_attr(self, self_set, self_ty, attr):
-        func = self._unbounded_attr(self_ty, attr)
+    def _bounded_attr(self, value_ty, attr):
+        func = self._unbounded_attr(value_ty, attr)
 
         if issubclass(func, PT):
-            return func.__args__[0](self_ty)
+            return func.__args__[0](value_ty)
 
         if not issubclass(func, (FT, Lambda, FDef)):
             return func
 
         # propagate constexpr-ness
-        if issubclass(func, CFT) and issubclass(self_ty, Cst):
-            return CFT[lambda *p, **kwargs: func(self_ty, *p, **kwargs),
+        if issubclass(func, CFT) and issubclass(value_ty, Cst):
+            return CFT[lambda *p, **kwargs: func(value_ty, *p, **kwargs),
                        lambda *p, **kwargs: func.__args__[1](
-                           self_ty.__args__[0], *p, **kwargs)]
+                           value_ty.__args__[0], *p, **kwargs)]
         else:
-            return FT[lambda *p, **kwargs: func(self_ty, *p, **kwargs)]
+            return FT[lambda *p, **kwargs: func(value_ty, *p, **kwargs)]
 
     def _unbounded_attr(self, value_ty, attr):
         return Types[value_ty][attr]
+
+    def _handle_attr(self, value_ty, attr):
+        if issubclass(value_ty, (Module, Type)):
+            return self._unbounded_attr(value_ty, attr)
+        else:
+            return self._bounded_attr(value_ty, attr)
 
     def visit_Attribute(self, node):
         self_types = self.visit(node.value)
         result_types = set()
         for self_ty in list(self_types):
-            if issubclass(self_ty, (Module, Type)):
-                result_types.add(self._unbounded_attr(self_ty, node.attr))
-            else:
-                attr_ty = self._bounded_attr(self_types, self_ty, node.attr)
-                result_types.add(attr_ty)
+            result_types.add(self._handle_attr(self_ty, node.attr))
         return result_types
 
     def visit_Subscript(self, node):

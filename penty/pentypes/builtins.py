@@ -1506,6 +1506,25 @@ def filter_(func, iterable):
             if _astype(bool_ty) is not bool:
                 raise TypeError
         return _Generator[elts_ty]
+##
+#
+
+def getattr_(obj, name, default=None):
+    from penty.penty import Types
+
+    if name is str:
+        raise NotImplementedError
+    if not (issubclass(name, _Cst) and isinstance(name.__args__[0], str)):
+        raise TypeError
+
+    attr = name.__args__[0]
+    if attr in Types[obj]:
+        typer_instance = _get_typer()
+        return typer_instance._handle_attr(obj, attr)
+    elif default is not None:
+        return default
+    else:
+        raise TypeError
 
 ##
 #
@@ -1888,7 +1907,7 @@ def register(registry):
             'float': {_Ty[float]},
             # 'format': {},
             # 'frozenset': {},
-            # 'getattr': {},
+            'getattr': {_CFT[getattr_, getattr]},
             # 'globals': {},
             'hasattr': {_CFT[hasattr_, hasattr]},
             'hash': {_CFT[hash_, hash]},
