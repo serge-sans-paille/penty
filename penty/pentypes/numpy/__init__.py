@@ -94,10 +94,16 @@ _number_attrs = {
 #
 ##
 
-def _integer_round(self):
+def _integer_round(self, ndigits=None):
     if not issubclass(self, _np.integer):
         raise TypeError
-    return type(self(1).__round__())
+    if ndigits is None:
+        return type(self(1).__round__())
+    ndigits = _astype(ndigits)
+    if not issubclass(ndigits, (_np.integer, int)):
+        raise TypeError
+    return type(self(1).__round__(ndigits(1)))
+
 
 _integer_attrs = {
     '__bases__' : _Tuple[_Ty[_np.number]],
@@ -335,10 +341,15 @@ _inexact_attrs = {
 #
 ##
 
-def _floating_round(self):
+def _floating_round(self, ndigits=None):
     if not issubclass(self, _np.floating):
         raise TypeError
-    return type(self(1).__round__())
+    if ndigits is None:
+        return type(self(1).__round__())
+    ndigits = _astype(ndigits)
+    if not issubclass(ndigits, (_np.integer, int)):
+        raise TypeError
+    return type(self(1).__round__(ndigits(1)))
 
 _floating_attrs = {
     '__bases__' : _Tuple[_Ty[_np.inexact]],

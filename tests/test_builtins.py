@@ -122,6 +122,15 @@ class TestBuiltins(TestPenty):
             self.assertIsType('getattr(x, "__pub__")', None,
                               env={'x': bool})
 
+    def test_round(self):
+        self.assertIsType('round(3)', pentyping.Cst[round(3)])
+        self.assertIsType('round(x)', int, env={'x': int})
+        self.assertIsType('round(x)', int, env={'x': float})
+        self.assertIsType('round(x, 2)', int, env={'x': int})
+        self.assertIsType('round(x, 2)', float, env={'x': float})
+        with self.assertRaises(TypeError):
+            self.assertIsType('round(x, 2.)', None, env={'x': float})
+
     def test_str(self):
         self.assertIsType('str(x)', str, env={'x': bool})
         self.assertIsType('str(x)', str, env={'x': int})
