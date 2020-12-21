@@ -1661,6 +1661,20 @@ def reversed_(sequence):
         raise TypeError
     return Types[sequence]['__reversed__'](sequence)
 
+##
+#
+
+def round_(number, ndigits=None):
+    from penty.penty import Types
+    if ndigits and not issubclass(_astype(ndigits), int):
+        raise TypeError
+
+    if issubclass(number, (int, float)):
+        if ndigits is None:
+            return int
+        else:
+            return number
+    return Types[number]['__round__'](number, ndigits)
 
 ##
 #
@@ -1939,7 +1953,7 @@ def register(registry):
             # 'range': {},
             'repr': {_CFT[repr_, repr]},
             'reversed': {_FT[reversed_]},
-            # 'round': {},
+            'round': {_CFT[round_, round]},
             'set': {_Ty[set]},
             # 'setattr': {},
             'slice': {_FT[slice_]},

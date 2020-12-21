@@ -29,6 +29,7 @@ def make_integer_dtype_test(dtype):
         self.assertIsType('bin(x)', str, env={'x': dtype})
         self.assertIsType('hex(x)', str, env={'x': dtype})
         self.assertIsType('oct(x)', str, env={'x': dtype})
+        self.assertIsType('round(x, 2)', type(round(dtype(1), 2)), env={'x': dtype})
         self.assertIsType('x + x', dtype, env={'x': dtype})
         self.assertIsType('x + 1', type(dtype() + 1), env={'x': dtype})
         self.assertIsType('x & x', dtype, env={'x': dtype})
@@ -128,6 +129,7 @@ def make_floating_dtype_test(dtype):
         self.assertIsType('divmod(x, 1)',
                           pentyping.Tuple[type(dmty[0]), type(dmty[1])],
                           env={'x': dtype, 'y': dtype})
+        self.assertIsType('round(x, 2)', dtype, env={'x': dtype})
         self.assertIsType('x == x', bool, env={'x': dtype})
         self.assertIsType('x == 1', bool, env={'x': dtype})
         self.assertIsType('x // x', dtype, env={'x': dtype})
