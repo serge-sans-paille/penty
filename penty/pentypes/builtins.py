@@ -528,6 +528,111 @@ for slot in ('add', 'divmod', 'floordiv', 'mod', 'mul', 'pow', 'sub', 'truediv')
 
 ##
 #
+
+range_iterator = type(iter(range(1)))
+
+def range_bool(self):
+    return bool
+
+def range_contains(self, key):
+    return bool
+
+def range_count(self, value):
+    return int
+
+def range_getitem(self, key):
+    from penty.penty import Types
+    key_ty = _astype(key)
+    if issubclass(key_ty, int):
+        return int
+    elif issubclass(key_ty, slice):
+        return self
+    elif '__index__' in Types[key_ty]:
+        # PEP-0357 indexing
+        if issubclass(Types[key_ty]['__index__'](key_ty), int):
+            return int
+    raise TypeError
+
+def range_hash(self):
+    return int
+
+def range_init(bound0, bound1=None, step=None):
+    from penty.penty import Types
+    for p in (bound0, bound1, step):
+        if p is None:
+            continue
+        p = _astype(p)
+        if '__index__' in Types[p]:
+            p = Types[p]['__index__'](p)
+        if issubclass(p, int):
+            continue
+        raise TypeError
+    return range
+
+def range_iter(self):
+    return range_iterator
+
+def range_len(self):
+    return int
+
+def range_str(self):
+    return str
+
+def range_index(self, value, start=_Cst[0], stop=_Cst[sys.maxsize]):
+    if not issubclass(_astype(start), int):
+        raise TypeError
+    if not issubclass(_astype(stop), int):
+        raise TypeError
+    return int
+
+def make_range_compare():
+    def range_compare(self, value):
+        if not issubclass(value, range):
+            raise TypeError
+        return bool
+    return _MT[range, range_compare]
+
+def range_ne(self, value):
+    if not issubclass(value, range):
+        return _Cst[True]
+    return bool
+
+def range_eq(self, value):
+    if not issubclass(value, range):
+        return _Cst[False]
+    return bool
+
+def range_reversed(self):
+    return range_iterator
+
+_range_attrs = {
+    '__bases__': _Tuple[_Ty[object]],
+    '__bool__': _MT[range, range_bool],
+    '__contains__': _FT[range_contains],
+    '__eq__': _MT[range, range_eq],
+    '__ge__': make_range_compare(),
+    '__getitem__': _MT[range, range_getitem],
+    '__gt__': make_range_compare(),
+    '__hash__': _MT[range, range_hash],
+    '__init__': _FT[range_init],
+    '__iter__': _MT[range, range_iter],
+    '__le__': make_range_compare(),
+    '__len__': _MT[range, range_len],
+    '__lt__': make_range_compare(),
+    '__name__': _Cst['range'],
+    '__ne__': _MT[range, range_ne],
+    '__reversed__': _MT[range, range_reversed],
+    '__str__': _MT[range, range_str],
+    'count': _MT[range, range_count],
+    'index': _MT[range, range_index],
+    'start': int,
+    'step': int,
+    'stop': int,
+}
+
+
+##
+#
 str_iterator = type(iter(""))
 
 def str_add(self, value):
@@ -1371,6 +1476,20 @@ def tuple_instanciate(ty):
 ##
 #
 
+def range_iterator_iter(self):
+    return self
+
+def range_iterator_next(self):
+    return int
+
+_range_iterator_attrs = {
+    '__iter__': _MT[range_iterator, range_iterator_iter],
+    '__next__': _MT[range_iterator, range_iterator_next],
+}
+
+##
+#
+
 def str_iterator_next(self):
     if self is str_iterator:
         return str
@@ -1877,12 +1996,14 @@ def register(registry):
         registry[dict] = resolve_base_attrs(_dict_attrs, registry)
         registry[list] = resolve_base_attrs(_list_attrs, registry)
         registry[float] = resolve_base_attrs(_float_attrs, registry)
+        registry[range] = resolve_base_attrs(_range_attrs, registry)
         registry[set] = resolve_base_attrs(_set_attrs, registry)
         registry[str] = resolve_base_attrs(_str_attrs, registry)
         registry[tuple] = resolve_base_attrs(_tuple_attrs, registry)
         registry[type(None)] = resolve_base_attrs(_none_attrs, registry)
         registry[_FilteringBool] = _FilteringBool_attrs
         registry[_SetIterator] = set_iterator_instanciate
+        registry[range_iterator] = _range_iterator_attrs
         registry[str_iterator] = _str_iterator_attrs
         registry[_Dict] = dict_instanciate
         registry[_DictItemIterator] = dict_item_iterator_instanciate
@@ -1950,7 +2071,7 @@ def register(registry):
             # 'print': {},
             # 'property': {},
             # 'quit': {},
-            # 'range': {},
+            'range': {_Ty[range]},
             'repr': {_CFT[repr_, repr]},
             'reversed': {_FT[reversed_]},
             'round': {_CFT[round_, round]},
