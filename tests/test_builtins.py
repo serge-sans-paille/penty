@@ -122,6 +122,18 @@ class TestBuiltins(TestPenty):
             self.assertIsType('getattr(x, "__pub__")', None,
                               env={'x': bool})
 
+    def test_range(self):
+        with self.assertRaises(TypeError):
+            self.assertIsType('range()', None)
+        self.assertIsType('range(3)', range)
+        self.assertIsType('range(x)', range, env={'x': int})
+        self.assertIsType('range(x, 3)', range, env={'x': int})
+        self.assertIsType('range(x, 3, x)', range, env={'x': int})
+        with self.assertRaises(TypeError):
+            self.assertIsType('range(x, None, x)', range, env={'x': int})
+        with self.assertRaises(TypeError):
+            self.assertIsType('range(x, 3, 1)', range, env={'x': float})
+
     def test_round(self):
         self.assertIsType('round(3)', pentyping.Cst[round(3)])
         self.assertIsType('round(x)', int, env={'x': int})
@@ -1438,6 +1450,93 @@ class TestSet(TestPenty):
         self.assertIsType('(x.update({1.}, "er"), x)[1]',
                           pentyping.Set[{int, float, str}],
                           env={'x': pentyping.Set[int]})
+
+
+class TestRange(TestPenty):
+
+    def test_bool(self):
+        self.assertIsType('bool(range(x))', bool, env={'x': int})
+
+    def test_contains(self):
+        self.assertIsType('1 in range(x)', bool, env={'x': int})
+
+    def test_hash(self):
+        self.assertIsType('hash(range(x))', int, env={'x': int})
+
+    def test_len(self):
+        self.assertIsType('len(range(x))', int, env={'x': int})
+
+    def test_getitem(self):
+        self.assertIsType('range(x)[x-2]', int, env={'x': int})
+        self.assertIsType('range(x)[2]', int, env={'x': int})
+        self.assertIsType('range(x)[2:]', range, env={'x': int})
+
+    def test_index(self):
+        self.assertIsType('range(x).index(3)', int, env={'x': int})
+        self.assertIsType('range(x).index(x, 2)', int, env={'x': int})
+        self.assertIsType('range(x).index(x, 2, 6)', int, env={'x': int})
+        self.assertIsType('range(x).index(1, 2, x - 6)', int, env={'x': int})
+        with self.assertRaises(TypeError):
+            self.assertIsType('range(x).index(3, "2")', None, env={'x': int})
+
+    def test_name(self):
+        self.assertIsType('range.__name__', pentyping.Cst[range.__name__])
+
+    def test_start(self):
+        self.assertIsType('range(5).start', int)
+        self.assertIsType('range(x).start', int, env={'x': int})
+
+    def test_stop(self):
+        self.assertIsType('range(5).stop', int)
+        self.assertIsType('range(x).stop', int, env={'x': int})
+
+    def test_step(self):
+        self.assertIsType('range(5).step', int)
+        self.assertIsType('range(x).step', int, env={'x': int})
+
+    def test_str(self):
+        self.assertIsType('str(range(x))', str, env={'x': int})
+
+    def test_count(self):
+        self.assertIsType('range(5).count(2)', int)
+        self.assertIsType('range(x).count(2.)', int, env={'x': int})
+        self.assertIsType('range(x).count("2")', int, env={'x': int})
+
+    def test_eq(self):
+        self.assertIsType('range(x) == range(2)', bool, env={'x': int})
+        self.assertIsType('range(x) == 2', pentyping.Cst[False], env={'x': int})
+
+    def test_ne(self):
+        self.assertIsType('range(x) != range(2)', bool, env={'x': int})
+        self.assertIsType('range(x) != 2', pentyping.Cst[True], env={'x': int})
+
+    def test_ge(self):
+        self.assertIsType('range(x) >= range(2)', bool, env={'x': int})
+        with self.assertRaises(TypeError):
+            self.assertIsType('range(x) >= 2', None, env={'x': int})
+
+    def test_gt(self):
+        self.assertIsType('range(x) > range(2)', bool, env={'x': int})
+        with self.assertRaises(TypeError):
+            self.assertIsType('range(x) > 2', None, env={'x': int})
+
+    def test_le(self):
+        self.assertIsType('range(x) <= range(2)', bool, env={'x': int})
+        with self.assertRaises(TypeError):
+            self.assertIsType('range(x) <= 2', None, env={'x': int})
+
+    def test_lt(self):
+        self.assertIsType('range(x) < range(2)', bool, env={'x': int})
+        with self.assertRaises(TypeError):
+            self.assertIsType('range(x) < 2', None, env={'x': int})
+
+    def test_iter(self):
+        self.assertIsType('[e for e in range(x)]', pentyping.List[int],
+                          env={'x': int})
+
+    def test_reversed(self):
+        self.assertIsType('[e for e in reversed(range(x))]', pentyping.List[int],
+                          env={'x': int})
 
 class TestStr(TestPenty):
 
