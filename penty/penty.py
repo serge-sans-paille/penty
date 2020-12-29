@@ -145,7 +145,8 @@ def expand_args(fty, args_ty, kwargs_ty):
         node = fty.__args__[0]
         args = [arg.id for arg in node.args.args]
         kwonlyargs = [arg.id for arg in node.args.kwonlyargs]
-        kwarg = node.args.kwarg
+        kwarg = node.args.kwarg and node.args.kwarg.id
+        vararg = node.args.vararg and node.args.vararg.id
 
     elif issubclass(fty, FT):
         func = fty.__args__[0]
@@ -153,13 +154,14 @@ def expand_args(fty, args_ty, kwargs_ty):
         args = fullargspec.args
         kwonlyargs = fullargspec.kwonlyargs
         kwarg = fullargspec.varkw
+        vararg = fullargspec.varargs
 
     elif issubclass(fty, Type):
         func = Types[fty.__args__[0]]['__init__']
         return expand_args(func, args_ty, kwargs_ty)
 
     # FIXME: handle posonlyargs, defaults
-    if len(args_ty) > len(args):
+    if vararg is None and len(args_ty) > len(args):
         raise TypeError
     new_args_ty = args_ty[:len(args_ty)]
     remaining_args = args[len(args_ty):]
@@ -167,7 +169,7 @@ def expand_args(fty, args_ty, kwargs_ty):
         if arg not in kwargs_ty:
             raise TypeError
         new_args_ty.append(new_kwargs_ty.pop(arg))
-    assert len(new_args_ty) == len(args)
+    assert len(new_args_ty) == len(args) or vararg
 
     return new_args_ty, new_kwargs_ty
 

@@ -122,6 +122,12 @@ class TestBuiltins(TestPenty):
             self.assertIsType('getattr(x, "__pub__")', None,
                               env={'x': bool})
 
+    def test_print(self):
+        self.assertIsType('print(x)', pentyping.Cst[None], env={'x': int})
+        self.assertIsType('print(x, sep="e")', pentyping.Cst[None], env={'x': int})
+        self.assertIsType('print(x, end="e")', pentyping.Cst[None], env={'x': int})
+        self.assertIsType('print(x, flush=True)', pentyping.Cst[None], env={'x': int})
+
     def test_range(self):
         with self.assertRaises(TypeError):
             self.assertIsType('range()', None)
