@@ -106,6 +106,13 @@ class TestBuiltins(TestPenty):
         self.assertIsType('hasattr(1, "__add__")',
                           pentyping.Cst[True])
 
+    def test_input(self):
+        self.assertIsType('input()', str)
+        self.assertIsType('input(None)', str)
+        self.assertIsType('input(x)', str, env={'x': str})
+        with self.assertRaises(TypeError):
+            self.assertIsType('input(x)', None, env={'x': int})
+
     def test_getattr(self):
         self.assertIsType('getattr(x, "__add__")(1)',
                           int,
