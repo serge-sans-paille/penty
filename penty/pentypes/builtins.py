@@ -1907,6 +1907,26 @@ else:
 ##
 #
 
+text_io_wrapper = type(sys.stdout)
+
+def print_(*values, sep=_Cst[' '], end=_Cst['\n'], file=text_io_wrapper, flush=_Cst[False]):
+    sep = _astype(sep)
+    if not (sep is _Cst[None] or sep is str):
+        raise TypeError
+    end = _astype(end)
+    if not (end is _Cst[None] or end is str):
+        raise TypeError
+
+    from penty.penty import Types
+    if 'write' not in Types[file]:
+        raise TypeError
+
+    bool_init(flush)
+    return _Cst[None]
+
+##
+#
+
 def slice_(lower_ty, upper_ty, step_ty):
     isstatic = all(issubclass(ty, _Cst)
                    for ty in (lower_ty, upper_ty, step_ty))
@@ -2068,7 +2088,7 @@ def register(registry):
             # 'open': {},
             'ord': {_CFT[ord_, ord]},
             'pow': {_CFT[pow_, pow]},
-            # 'print': {},
+            'print': {_FT[print_]},
             # 'property': {},
             # 'quit': {},
             'range': {_Ty[range]},
