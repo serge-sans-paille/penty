@@ -1694,6 +1694,15 @@ def id_(obj):
 ##
 #
 
+def input_(prompt=_Cst[None]):
+    prompt = _astype(prompt)
+    if issubclass(prompt, (str, _Cst[None])):
+        return str
+    raise TypeError
+
+##
+#
+
 def repr_(obj):
     return str
 
@@ -2069,7 +2078,7 @@ def register(registry):
             # 'help': {},
             'hex': {_CFT[hex_, hex]},
             'id': {_FT[id_]},
-            # 'input': {},
+            'input': {_FT[input_]},
             'int': {_Ty[int]},
             'isinstance': {_CFT[isinstance_, isinstance]},
             'issubclass': {_CFT[issubclass_, issubclass]},
